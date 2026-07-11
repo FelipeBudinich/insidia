@@ -215,9 +215,9 @@ test('Mercury orbit reset does not reset independent fictional systems', () => {
   assert.equal(calendarValue.lunar.tide.hour, 2);
 });
 
-test('schema v4 preserves existing data and adds the epoch orbital shape', () => {
+test('schema v5 preserves existing data and the epoch orbital shape', () => {
   const snapshot = createCalendarJson(calculateFictionalCalendar(CALENDAR_EPOCH_UNIX_MS), CALENDAR_EPOCH_UNIX_MS);
-  assert.equal(snapshot.calendarVersion, 'v4');
+  assert.equal(snapshot.calendarVersion, 'v5');
   assert.equal(snapshot.fictional.year, 1);
   assert.equal(snapshot.fictional.period.month, 1);
   assert.equal(snapshot.fictional.time.formatted, '00:00:00');

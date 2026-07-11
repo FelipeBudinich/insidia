@@ -36,7 +36,7 @@ export const MOON_PHASES = [
 export const TIDE_PERIODS = [
   { id: 'low', name: 'Low', durationHours: 17 },
   { id: 'high', name: 'High', durationHours: 13 },
-  { id: 'dry', name: 'Dry', durationHours: 1 }
+  { id: 'parted', name: 'Parted', durationHours: 1 }
 ];
 
 export const SEASONS = [
@@ -425,7 +425,7 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
   const formattedLunarTime = formatLunarTime(calendarValue.lunar);
   const formattedTideTime = formatTideTime(calendarValue.lunar);
   return {
-    calendarVersion: 'v4',
+    calendarVersion: 'v5',
     source: {
       unixMilliseconds: realUnixMilliseconds,
       isoUtc: new Date(realUnixMilliseconds).toISOString()

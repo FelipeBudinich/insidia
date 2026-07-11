@@ -31,6 +31,8 @@ function secondsAtLunarTime(hour, minute = 0, second = 0) {
 
 test('lunar constants have the required cycle invariants', () => {
   assert.equal(MOON_PHASES.length, LUNAR_DAYS_PER_CYCLE);
+  assert.deepEqual(TIDE_PERIODS.map((period) => period.id), ['low', 'high', 'parted']);
+  assert.deepEqual(TIDE_PERIODS.map((period) => period.name), ['Low', 'High', 'Parted']);
   assert.equal(TIDE_PERIODS.reduce((total, period) => total + period.durationHours, 0), 31);
   assert.equal(FICTIONAL_SECONDS_PER_LUNAR_DAY, FICTIONAL_SECONDS_PER_HOUR * 31);
   assert.equal(FICTIONAL_SECONDS_PER_LUNAR_CYCLE, FICTIONAL_SECONDS_PER_LUNAR_DAY * 13);
@@ -75,22 +77,25 @@ test('Low tide ends after lunar hour 16 and High begins at lunar hour 17', () =>
   assert.deepEqual(firstHighSecond.tide.timeInPeriod, { hour: 0, minute: 0, second: 0 });
 });
 
-test('High tide ends after lunar hour 29 and Dry begins at lunar hour 30', () => {
+test('High tide ends after lunar hour 29 and Parted begins at lunar hour 30', () => {
   const lastHighSecond = calculateLunarState(secondsAtLunarTime(29, 60, 58));
   assert.equal(lastHighSecond.tide.name, 'High');
   assert.equal(lastHighSecond.tide.hour, 13);
 
-  const firstDrySecond = calculateLunarState(secondsAtLunarTime(30));
-  assert.equal(firstDrySecond.tide.name, 'Dry');
-  assert.equal(firstDrySecond.tide.hour, 1);
-  assert.deepEqual(firstDrySecond.tide.timeInPeriod, { hour: 0, minute: 0, second: 0 });
+  const firstPartedSecond = calculateLunarState(secondsAtLunarTime(30));
+  assert.equal(firstPartedSecond.tide.id, 'parted');
+  assert.equal(firstPartedSecond.tide.name, 'Parted');
+  assert.equal(firstPartedSecond.tide.hour, 1);
+  assert.deepEqual(firstPartedSecond.tide.timeInPeriod, { hour: 0, minute: 0, second: 0 });
 });
 
-test('the lunar day rolls from Dry to the next phase and Low tide', () => {
+test('Parted lasts through 30:60:58 before the next phase and Low tide', () => {
   const lastSecond = calculateLunarState(FICTIONAL_SECONDS_PER_LUNAR_DAY - 1);
   assert.equal(lastSecond.phase.name, 'Rebirth');
   assert.equal(formatLunarTime(lastSecond), '30:60:58');
-  assert.equal(lastSecond.tide.name, 'Dry');
+  assert.equal(lastSecond.tide.id, 'parted');
+  assert.equal(lastSecond.tide.name, 'Parted');
+  assert.deepEqual(lastSecond.tide.timeInPeriod, { hour: 0, minute: 60, second: 58 });
 
   const nextSecond = calculateLunarState(FICTIONAL_SECONDS_PER_LUNAR_DAY);
   assert.equal(nextSecond.phase.name, 'Horn');
@@ -146,10 +151,10 @@ test('the lunar cycle remains independent across the calendar year boundary', ()
   assert.equal(value.lunar.tide.hour, 12);
 });
 
-test('v4 JSON keeps calendar, season, and lunar fields while adding orbital data', () => {
+test('v5 JSON keeps calendar, season, lunar, and orbital fields', () => {
   const value = calculateFictionalCalendar(CALENDAR_EPOCH_UNIX_MS);
   const snapshot = createCalendarJson(value, CALENDAR_EPOCH_UNIX_MS);
-  assert.equal(snapshot.calendarVersion, 'v4');
+  assert.equal(snapshot.calendarVersion, 'v5');
   assert.equal(snapshot.fictional.year, 1);
   assert.equal(snapshot.fictional.period.month, 1);
   assert.equal(snapshot.fictional.time.formatted, '00:00:00');
@@ -162,6 +167,14 @@ test('v4 JSON keeps calendar, season, and lunar fields while adding orbital data
   assert.equal(snapshot.fictional.lunar.tide.timeInPeriod.formatted, '00:00:00');
   assert.equal(snapshot.fictional.season.name, 'Bones');
   assert.equal(snapshot.fictional.orbits.bodies.length, 5);
+});
+
+test('v5 JSON exposes the Parted tide enum', () => {
+  const realUnixMilliseconds = timestampForFictionalSeconds(secondsAtLunarTime(30));
+  const value = calculateFictionalCalendar(realUnixMilliseconds);
+  const snapshot = createCalendarJson(value, realUnixMilliseconds);
+  assert.equal(snapshot.fictional.lunar.tide.id, 'parted');
+  assert.equal(snapshot.fictional.lunar.tide.name, 'Parted');
 });
 
 test('lunar and tide formatting preserves fictional clock ranges', () => {

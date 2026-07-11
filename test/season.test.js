@@ -138,10 +138,10 @@ test('calendar calculation includes exactly the calculated season state', () => 
   assert.deepEqual(value.season, calculateSeasonState(value.totalElapsedDays));
 });
 
-test('v4 calendar JSON preserves calendar, season, and lunar data and adds orbits', () => {
+test('v5 calendar JSON preserves calendar, season, lunar, and orbital data', () => {
   const value = calculateFictionalCalendar(CALENDAR_EPOCH_UNIX_MS);
   const snapshot = createCalendarJson(value, CALENDAR_EPOCH_UNIX_MS);
-  assert.equal(snapshot.calendarVersion, 'v4');
+  assert.equal(snapshot.calendarVersion, 'v5');
   assert.equal(snapshot.fictional.year, 1);
   assert.equal(snapshot.fictional.period.month, 1);
   assert.equal(snapshot.fictional.time.formatted, '00:00:00');
