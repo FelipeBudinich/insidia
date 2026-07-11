@@ -138,10 +138,10 @@ test('calendar calculation includes exactly the calculated season state', () => 
   assert.deepEqual(value.season, calculateSeasonState(value.totalElapsedDays));
 });
 
-test('v5 calendar JSON preserves calendar, season, lunar, and orbital data', () => {
+test('v6 calendar JSON preserves existing data and adds progress', () => {
   const value = calculateFictionalCalendar(CALENDAR_EPOCH_UNIX_MS);
   const snapshot = createCalendarJson(value, CALENDAR_EPOCH_UNIX_MS);
-  assert.equal(snapshot.calendarVersion, 'v5');
+  assert.equal(snapshot.calendarVersion, 'v6');
   assert.equal(snapshot.fictional.year, 1);
   assert.equal(snapshot.fictional.period.month, 1);
   assert.equal(snapshot.fictional.time.formatted, '00:00:00');
@@ -158,6 +158,7 @@ test('v5 calendar JSON preserves calendar, season, lunar, and orbital data', () 
     next: { id: 'tears', name: 'Tears' }
   });
   assert.equal(snapshot.fictional.orbits.bodies.length, 5);
+  assert.equal(snapshot.fictional.progress.season.fraction, 0);
 });
 
 test('invalid total elapsed day values are rejected', () => {

@@ -2,7 +2,7 @@
 
 Insidia is a live fictional clock, calendar, season cycle, lunar cycle, tide cycle, and five-body orbital alignment model. All fictional calculations run in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
 
-**Current release:** v5.1
+**Current release:** v5.2
 
 ## Fictional time and calendar
 
@@ -62,6 +62,12 @@ Earth proximity is used only to break equal-span ties. Its fixed fictional order
 
 Alignment percentage is 100 minus the circular-span percentage. Dominant Pull is a fictional orbital-phase label, not real gravity, physical distance, or an ephemeris calculation.
 
+## Continuous progress
+
+The Progress card tracks the current lunar cycle, lunar phase, 179-day season, 353-day calendar year, 23-hour calendar day, and 61-minute fictional hour. Each fraction includes the current fictional second, remains between 0 and 1, and resets at its own boundary. Display percentages are truncated to six decimal places so the final second before a boundary never appears as a false 100%.
+
+Season progress measures only the current Bones or Tears season, not the full 358-day seasonal cycle. Lunar-phase progress uses the 31-hour lunar day, while lunar-cycle progress spans all 13 lunar days.
+
 ## Epoch
 
 At Unix epoch `1970-01-01T00:00:00.000Z`, Insidia begins with:
@@ -82,6 +88,7 @@ At Unix epoch `1970-01-01T00:00:00.000Z`, Insidia begins with:
 - Low, High, and Parted tide status with elapsed period time
 - Smooth progress for five independent fictional orbital cycles
 - Circular Dominant Pull clustering with deterministic proximity tie-breaking
+- Smooth second-level progress for the lunar cycle, lunar phase, current season, year, day, and hour
 - Collapsible, two-space-formatted JSON snapshot containing season, lunar, tide, and orbital state
 - Copy button that creates and copies one fresh, coherent snapshot
 - Responsive, system-font interface with light/dark mode support
@@ -112,10 +119,10 @@ The application validates an explicit `PORT` and listens on `0.0.0.0`, which is 
 `GET /health` returns:
 
 ```json
-{"ok":true,"version":"v5.1"}
+{"ok":true,"version":"v5.2"}
 ```
 
-The copied calendar JSON schema is `"calendarVersion":"v5"`. V5.1 publishes `parted` as the third tide enum; the application release version and JSON schema version are intentionally independent.
+The copied calendar JSON schema is `"calendarVersion":"v6"`. V5.2 adds `fictional.progress` with six continuous second-level progress values; the application release version and JSON schema version are intentionally independent.
 
 ## Architecture
 
@@ -123,7 +130,7 @@ The frontend uses vanilla HTML, CSS, and JavaScript ES modules. [`public/calenda
 
 ## Deploying to Heroku
 
-Insidia v5.1 is prepared for Heroku's native GitHub automatic deployment integration. No GitHub Actions workflow exists for v5.1.
+Insidia v5.2 is prepared for Heroku's native GitHub automatic deployment integration. No GitHub Actions workflow exists for v5.2.
 
 ### Requirements
 
@@ -143,7 +150,7 @@ web: npm start
 2. Select **GitHub** as the deployment method and connect `FelipeBudinich/insidia`.
 3. Select the deployment branch, normally `main`.
 4. Enable **Automatic Deploys** for that branch.
-5. Leave **Wait for CI to pass before deploy** disabled for v5.1 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
+5. Leave **Wait for CI to pass before deploy** disabled for v5.2 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
 
 Heroku builds and releases successful GitHub pushes directly; no Heroku Git remote, deployment script, or committed deployment credential is required.
 
@@ -166,7 +173,7 @@ https://your-app-name.herokuapp.com/
 https://your-app-name.herokuapp.com/health
 ```
 
-The health endpoint must return `{"ok":true,"version":"v5.1"}`. To inspect logs and dyno status:
+The health endpoint must return `{"ok":true,"version":"v5.2"}`. To inspect logs and dyno status:
 
 ```sh
 heroku logs --tail --app <app-name>
@@ -202,6 +209,7 @@ For custom domains, use Heroku Automated Certificate Management or another prope
 │   ├── calendar.test.js
 │   ├── lunar.test.js
 │   ├── orbits.test.js
+│   ├── progress.test.js
 │   ├── season.test.js
 │   └── server.test.js
 ├── Procfile            # Heroku web process
@@ -220,7 +228,7 @@ npm test
 npm audit --omit=dev
 ```
 
-The suite covers calendar and season boundaries, lunar phases and tides, orbital resets, circular wrap-around, all ten Dominant Pull combinations, tie-break rules, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
+The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, orbital resets, circular wrap-around, all ten Dominant Pull combinations, tie-break rules, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
 
 ## License
 

@@ -22,6 +22,7 @@ body {
 .season-section,
 .lunar-section,
 .orbital-section,
+.progress-section,
 .json-details {
   border: 1px solid color-mix(in srgb, CanvasText 24%, transparent);
   border-radius: 0.75rem;
@@ -58,7 +59,8 @@ body {
 
 .season-section,
 .lunar-section,
-.orbital-section { margin-top: 1rem; padding: clamp(1.25rem, 4vw, 1.75rem); }
+.orbital-section,
+.progress-section { margin-top: 1rem; padding: clamp(1.25rem, 4vw, 1.75rem); }
 .section-label,
 .group-label { margin: 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .section-label { margin-bottom: 1rem; }
@@ -93,6 +95,11 @@ body {
 .orbital-clarification { color: color-mix(in srgb, CanvasText 68%, Canvas); }
 .orbital-clarification { margin: 1rem 0 0; font-size: 0.8rem; line-height: 1.45; }
 
+.progress-grid { display: grid; gap: 0.9rem; }
+.progress-item { min-width: 0; }
+.progress-heading-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.9rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.progress-item progress { display: block; width: 100%; margin-top: 0.4rem; }
+
 .json-details { margin-top: 1rem; overflow: hidden; }
 summary { cursor: pointer; padding: 1rem 1.2rem; font-weight: 650; }
 summary:focus-visible, button:focus-visible, pre:focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
@@ -116,6 +123,7 @@ footer { margin-top: 1rem; color: color-mix(in srgb, CanvasText 65%, Canvas); fo
   .lunar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
   .lunar-group + .lunar-group { border-top: 0; border-left: 1px solid color-mix(in srgb, CanvasText 18%, transparent); padding-top: 0; padding-left: 1.5rem; }
   .orbital-bodies { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .progress-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto; } }

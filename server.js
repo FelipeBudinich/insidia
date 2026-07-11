@@ -287,7 +287,7 @@ export function createStaticServer(options = {}) {
       sendResponse(response, method, environment, 200, {
         'Cache-Control': 'no-store',
         'Content-Type': 'application/json; charset=utf-8'
-      }, JSON.stringify({ ok: true, version: 'v5.1' }));
+      }, JSON.stringify({ ok: true, version: 'v5.2' }));
       return;
     }
 

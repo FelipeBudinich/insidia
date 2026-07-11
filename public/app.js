@@ -37,6 +37,15 @@ const dominantPullMembersElement = document.querySelector('#dominant-pull-member
 const dominantPullSpanElement = document.querySelector('#dominant-pull-span');
 const dominantPullAlignmentElement = document.querySelector('#dominant-pull-alignment');
 const dominantPullSelectionElement = document.querySelector('#dominant-pull-selection');
+const progressElements = new Map(
+  [...document.querySelectorAll('[data-progress-key]')].map((row) => [
+    row.dataset.progressKey,
+    {
+      bar: row.querySelector('progress'),
+      percentage: row.querySelector('[data-progress-percentage]')
+    }
+  ])
+);
 const jsonElement = document.querySelector('#json-output');
 const copyButton = document.querySelector('#copy-json');
 const copyStatusElement = document.querySelector('#copy-status');
@@ -48,7 +57,7 @@ function render(realUnixMilliseconds = Date.now()) {
   const calendarValue = calculateFictionalCalendar(realUnixMilliseconds);
   const formattedTime = formatFictionalTime(calendarValue);
   const formattedDate = formatFictionalDate(calendarValue);
-  const { lunar, orbits, season } = calendarValue;
+  const { lunar, orbits, progress, season } = calendarValue;
   const snapshot = JSON.stringify(createCalendarJson(calendarValue, realUnixMilliseconds), null, 2);
 
   timeElement.textContent = formattedTime;
@@ -79,6 +88,11 @@ function render(realUnixMilliseconds = Date.now()) {
   dominantPullSelectionElement.textContent = dominantPull.tieBreak.applied
     ? `Earth-proximity tie-break applied among ${dominantPull.tieBreak.tiedCombinationCount} tied trios`
     : `Unique smallest circular arc among ${dominantPull.evaluatedCombinationCount} trios`;
+  for (const [key, progressValue] of Object.entries(progress)) {
+    const elements = progressElements.get(key);
+    elements.bar.value = progressValue.fraction;
+    elements.percentage.textContent = progressValue.formatted;
+  }
   document.querySelector('#fictional-date-accessible').textContent = formattedDate;
   jsonElement.textContent = snapshot;
   currentJsonSnapshot = snapshot;

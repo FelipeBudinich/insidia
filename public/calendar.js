@@ -268,6 +268,54 @@ export function calculateOrbitalState(totalFictionalSeconds) {
   };
 }
 
+function createProgressValue(fraction) {
+  return {
+    fraction,
+    percentage: fraction * 100,
+    formatted: formatOrbitalPercentage(fraction)
+  };
+}
+
+export function calculateProgressState(totalFictionalSeconds, seasonValue, lunarValue) {
+  assertValidTotalFictionalSeconds(totalFictionalSeconds);
+  if (!seasonValue || typeof seasonValue.day !== 'number' || typeof seasonValue.lengthDays !== 'number') {
+    throw new TypeError('seasonValue must contain day and lengthDays');
+  }
+  if (!lunarValue || typeof lunarValue.day !== 'number') {
+    throw new TypeError('lunarValue must contain day');
+  }
+
+  const secondsIntoCurrentHour = totalFictionalSeconds % FICTIONAL_SECONDS_PER_HOUR;
+  const secondsIntoCurrentCalendarDay = totalFictionalSeconds % FICTIONAL_SECONDS_PER_DAY;
+  const totalElapsedDays = Math.floor(totalFictionalSeconds / FICTIONAL_SECONDS_PER_DAY);
+  const zeroBasedDayOfYear = totalElapsedDays % DAYS_PER_YEAR;
+  const secondsIntoCurrentLunarDay = totalFictionalSeconds % FICTIONAL_SECONDS_PER_LUNAR_DAY;
+
+  return {
+    lunarCycle: createProgressValue(
+      (((lunarValue.day - 1) * FICTIONAL_SECONDS_PER_LUNAR_DAY) + secondsIntoCurrentLunarDay)
+      / FICTIONAL_SECONDS_PER_LUNAR_CYCLE
+    ),
+    lunarPhase: createProgressValue(
+      secondsIntoCurrentLunarDay / FICTIONAL_SECONDS_PER_LUNAR_DAY
+    ),
+    season: createProgressValue(
+      (((seasonValue.day - 1) * FICTIONAL_SECONDS_PER_DAY) + secondsIntoCurrentCalendarDay)
+      / (seasonValue.lengthDays * FICTIONAL_SECONDS_PER_DAY)
+    ),
+    year: createProgressValue(
+      ((zeroBasedDayOfYear * FICTIONAL_SECONDS_PER_DAY) + secondsIntoCurrentCalendarDay)
+      / (DAYS_PER_YEAR * FICTIONAL_SECONDS_PER_DAY)
+    ),
+    day: createProgressValue(
+      secondsIntoCurrentCalendarDay / FICTIONAL_SECONDS_PER_DAY
+    ),
+    hour: createProgressValue(
+      secondsIntoCurrentHour / FICTIONAL_SECONDS_PER_HOUR
+    )
+  };
+}
+
 /**
  * Convert elapsed fictional seconds to the independent fictional lunar state.
  * It deliberately shares only seconds, minutes, and hours with the calendar.
@@ -362,6 +410,10 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
     remainingDaysInYear -= interRegnumLength;
   }
 
+  const season = calculateSeasonState(totalElapsedDays);
+  const lunar = calculateLunarState(totalSeconds);
+  const progress = calculateProgressState(totalSeconds, season, lunar);
+
   return {
     totalSeconds,
     totalElapsedDays,
@@ -371,9 +423,10 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
     dayOfWeek: (totalElapsedDays % FICTIONAL_DAYS_PER_WEEK) + 1,
     period,
     time: { hour, minute, second },
-    season: calculateSeasonState(totalElapsedDays),
-    lunar: calculateLunarState(totalSeconds),
-    orbits
+    season,
+    lunar,
+    orbits,
+    progress
   };
 }
 
@@ -425,7 +478,7 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
   const formattedLunarTime = formatLunarTime(calendarValue.lunar);
   const formattedTideTime = formatTideTime(calendarValue.lunar);
   return {
-    calendarVersion: 'v5',
+    calendarVersion: 'v6',
     source: {
       unixMilliseconds: realUnixMilliseconds,
       isoUtc: new Date(realUnixMilliseconds).toISOString()
@@ -503,6 +556,7 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
           tieBreak: calendarValue.orbits.dominantPull.tieBreak
         }
       },
+      progress: calendarValue.progress,
       formattedDate: formatFictionalDate(calendarValue)
     }
   };
