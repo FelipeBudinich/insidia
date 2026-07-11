@@ -10,6 +10,8 @@ export const INTER_REGNUM_LENGTHS = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4];
 export const DAYS_PER_YEAR = 353;
 export const FICTIONAL_SECONDS_PER_HOUR = FICTIONAL_SECONDS_PER_MINUTE * FICTIONAL_MINUTES_PER_HOUR;
 export const FICTIONAL_SECONDS_PER_DAY = FICTIONAL_SECONDS_PER_HOUR * FICTIONAL_HOURS_PER_DAY;
+export const SEASON_LENGTH_DAYS = 179;
+export const SEASONS_PER_CYCLE = 2;
 export const FICTIONAL_HOURS_PER_LUNAR_DAY = 31;
 export const LUNAR_DAYS_PER_CYCLE = 13;
 export const FICTIONAL_SECONDS_PER_LUNAR_DAY = FICTIONAL_SECONDS_PER_HOUR * FICTIONAL_HOURS_PER_LUNAR_DAY;
@@ -36,6 +38,16 @@ export const TIDE_PERIODS = [
   { id: 'high', name: 'High', durationHours: 13 },
   { id: 'dry', name: 'Dry', durationHours: 1 }
 ];
+
+export const SEASONS = [
+  { id: 'bones', name: 'Bones', durationDays: SEASON_LENGTH_DAYS },
+  { id: 'tears', name: 'Tears', durationDays: SEASON_LENGTH_DAYS }
+];
+
+export const SEASONAL_CYCLE_LENGTH_DAYS = SEASONS.reduce(
+  (totalDuration, season) => totalDuration + season.durationDays,
+  0
+);
 
 function assertValidUnixMilliseconds(realUnixMilliseconds) {
   if (typeof realUnixMilliseconds !== 'number') {
@@ -66,6 +78,55 @@ function assertValidTotalFictionalSeconds(totalFictionalSeconds) {
   if (totalFictionalSeconds < 0) {
     throw new RangeError('totalFictionalSeconds cannot be negative');
   }
+}
+
+function assertValidTotalElapsedDays(totalElapsedDays) {
+  if (typeof totalElapsedDays !== 'number') {
+    throw new TypeError('totalElapsedDays must be a number');
+  }
+  if (!Number.isFinite(totalElapsedDays)) {
+    throw new RangeError('totalElapsedDays must be finite');
+  }
+  if (!Number.isSafeInteger(totalElapsedDays)) {
+    throw new RangeError('totalElapsedDays must be a safe integer');
+  }
+  if (totalElapsedDays < 0) {
+    throw new RangeError('totalElapsedDays cannot be negative');
+  }
+}
+
+/**
+ * Convert completed fictional calendar days to the independent season state.
+ * Seasons deliberately do not align to the shorter calendar year.
+ */
+export function calculateSeasonState(totalElapsedDays) {
+  assertValidTotalElapsedDays(totalElapsedDays);
+
+  const totalCompletedSeasonalCycles = Math.floor(
+    totalElapsedDays / SEASONAL_CYCLE_LENGTH_DAYS
+  );
+  const zeroBasedDayOfCycle = totalElapsedDays % SEASONAL_CYCLE_LENGTH_DAYS;
+  let elapsedDaysInCycle = 0;
+
+  for (const [seasonIndex, season] of SEASONS.entries()) {
+    if (zeroBasedDayOfCycle < elapsedDaysInCycle + season.durationDays) {
+      const nextSeason = SEASONS[(seasonIndex + 1) % SEASONS_PER_CYCLE];
+      return {
+        totalCompletedSeasonalCycles,
+        cycle: totalCompletedSeasonalCycles + 1,
+        dayOfCycle: zeroBasedDayOfCycle + 1,
+        cycleLengthDays: SEASONAL_CYCLE_LENGTH_DAYS,
+        id: season.id,
+        name: season.name,
+        day: zeroBasedDayOfCycle - elapsedDaysInCycle + 1,
+        lengthDays: season.durationDays,
+        next: { id: nextSeason.id, name: nextSeason.name }
+      };
+    }
+    elapsedDaysInCycle += season.durationDays;
+  }
+
+  throw new Error('Season definitions do not cover the seasonal cycle');
 }
 
 /**
@@ -170,6 +231,7 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
     dayOfWeek: (totalElapsedDays % FICTIONAL_DAYS_PER_WEEK) + 1,
     period,
     time: { hour, minute, second },
+    season: calculateSeasonState(totalElapsedDays),
     lunar: calculateLunarState(totalSeconds)
   };
 }
@@ -189,6 +251,10 @@ export function formatTideTime(lunarValue) {
   return `${padTwo(hour)}:${padTwo(minute)}:${padTwo(second)}`;
 }
 
+export function formatSeason(seasonValue) {
+  return `${seasonValue.name} · Day ${seasonValue.day} of ${seasonValue.lengthDays} · Seasonal Cycle ${seasonValue.cycle}`;
+}
+
 export function formatFictionalDate(calendarValue) {
   const { year, period } = calendarValue;
   if (period.type === 'month') {
@@ -203,7 +269,7 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
   const formattedLunarTime = formatLunarTime(calendarValue.lunar);
   const formattedTideTime = formatTideTime(calendarValue.lunar);
   return {
-    calendarVersion: 'v2',
+    calendarVersion: 'v3',
     source: {
       unixMilliseconds: realUnixMilliseconds,
       isoUtc: new Date(realUnixMilliseconds).toISOString()
@@ -220,6 +286,16 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
         minute: calendarValue.time.minute,
         second: calendarValue.time.second,
         formatted: formattedTime
+      },
+      season: {
+        cycle: calendarValue.season.cycle,
+        dayOfCycle: calendarValue.season.dayOfCycle,
+        cycleLengthDays: calendarValue.season.cycleLengthDays,
+        id: calendarValue.season.id,
+        name: calendarValue.season.name,
+        day: calendarValue.season.day,
+        lengthDays: calendarValue.season.lengthDays,
+        next: calendarValue.season.next
       },
       lunar: {
         cycle: calendarValue.lunar.cycle,

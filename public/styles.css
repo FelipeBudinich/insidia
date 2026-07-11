@@ -19,6 +19,7 @@ body {
 .container { width: min(100%, 42rem); }
 
 .calendar-card,
+.season-section,
 .lunar-section,
 .json-details {
   border: 1px solid color-mix(in srgb, CanvasText 24%, transparent);
@@ -54,6 +55,7 @@ body {
 .period { margin-top: 0.25rem !important; font-size: clamp(1.05rem, 4vw, 1.35rem); }
 .metadata { margin: 1.75rem 0 0; color: color-mix(in srgb, CanvasText 72%, Canvas); line-height: 1.5; }
 
+.season-section,
 .lunar-section { margin-top: 1rem; padding: clamp(1.25rem, 4vw, 1.75rem); }
 .section-label,
 .group-label { margin: 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
@@ -61,7 +63,12 @@ body {
 .lunar-grid { display: grid; gap: 1.25rem; }
 .lunar-group + .lunar-group { border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent); padding-top: 1.25rem; }
 .group-label { color: color-mix(in srgb, CanvasText 68%, Canvas); }
+.season-name,
 .lunar-name { margin: 0.35rem 0 0; font-size: 1.45rem; font-weight: 700; }
+.season-metadata,
+.season-cycle-metadata { margin: 0.25rem 0 0; line-height: 1.45; }
+.season-metadata { color: color-mix(in srgb, CanvasText 78%, Canvas); }
+.season-cycle-metadata { color: color-mix(in srgb, CanvasText 68%, Canvas); }
 .lunar-metadata,
 .lunar-time { margin: 0.25rem 0 0; line-height: 1.45; }
 .lunar-metadata { color: color-mix(in srgb, CanvasText 78%, Canvas); }

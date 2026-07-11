@@ -1,8 +1,8 @@
 # Insidia
 
-Insidia is a live fictional clock, calendar, lunar cycle, and tide cycle. All fictional time is calculated in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
+Insidia is a live fictional clock, calendar, season cycle, lunar cycle, and tide cycle. All fictional calculations run in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
 
-**Current release:** v3
+**Current release:** v4
 
 ## Fictional time and calendar
 
@@ -14,6 +14,17 @@ Insidia is a live fictional clock, calendar, lunar cycle, and tide cycle. All fi
 - Each year has 11 months of 29 days, 10 three-day Inter Regna, and a final four-day Inter Regnum from Month 11 to Month 1: 353 days total.
 
 Inter Regnum days are full calendar days: they have a time of day and continue the week cycle, but do not belong to a month.
+
+## Seasonal cycle
+
+The season system is an independent, continuous 358-day cycle made from two seasons:
+
+- **Bones:** 179 fictional calendar days
+- **Tears:** 179 fictional calendar days
+
+A seasonal day is the existing 23-hour calendar day; seasons do not use the 31-hour lunar day. Bones begins at the Unix epoch, is followed by Tears, and Tears is followed by Bones in the next seasonal cycle.
+
+The 353-day calendar year and 358-day seasonal cycle are deliberately different. Seasons do not reset at month boundaries, Inter Regna, or New Year. Calendar Year 2 therefore begins on Tears Day 175; the next Bones cycle begins five days later, on Year 2, Month 1, Day 6. Seasons are fictional names only—no real climate, meteorological, orbital, or geographical data is used.
 
 ## Lunar cycle and tides
 
@@ -27,23 +38,25 @@ Every lunar day contains a tide sequence:
 - High: 13 hours
 - Dry: 1 hour
 
-Lunar days and tides do not reset at calendar midnight, calendar month boundaries, Inter Regna, or New Year. They advance directly from total elapsed fictional seconds; no real astronomical, geographic, or tidal data is used.
+Lunar days and tides do not reset at calendar midnight, calendar month boundaries, Inter Regna, or New Year. They advance directly from total elapsed fictional seconds.
 
 ## Epoch
 
 At Unix epoch `1970-01-01T00:00:00.000Z`, Insidia begins with:
 
 - **Calendar:** Year 1, Month 1, Day 1, `00:00:00`
+- **Season:** Seasonal Cycle 1, Bones, Day 1 of 179
 - **Lunar:** Cycle 1, Day 1 of 13, Rebirth, `00:00:00`
 - **Tide:** Low, Hour 1 of 17
 
 ## Features
 
 - Live, drift-resistant browser-side calculations from `Date.now()`
-- Month, Inter Regnum, week, and day-of-year calendar metadata
+- Month, Inter Regnum, week, day-of-year, and independent season metadata
+- Independent 358-day Bones/Tears season display
 - Independent lunar phase and 31-hour lunar clock display
 - Low, High, and Dry tide status with elapsed period time
-- Collapsible, two-space-formatted JSON snapshot containing `fictional.lunar`
+- Collapsible, two-space-formatted JSON snapshot containing `fictional.season` and `fictional.lunar`
 - Copy button that creates and copies one fresh, coherent snapshot
 - Responsive, system-font interface with light/dark mode support
 - Hardened static-file server with explicit security headers and graceful shutdown
@@ -68,23 +81,23 @@ PORT=5001 NODE_ENV=production npm start
 
 The application validates an explicit `PORT` and listens on `0.0.0.0`, which is suitable for Heroku dynos. `CANONICAL_ORIGIN` is optional; without it, no canonical redirect is forced.
 
-## Health check
+## Health check and JSON schema
 
 `GET /health` returns:
 
 ```json
-{"ok":true,"version":"v3"}
+{"ok":true,"version":"v4"}
 ```
 
-The calendar JSON schema deliberately remains at `"calendarVersion":"v2"`: v3 hardens deployment and server behavior without changing calendar, lunar, or tide data.
+The copied calendar JSON schema is `"calendarVersion":"v3"`. V4 adds the season object to the calendar/lunar/tide shape that was previously schema v2; the application release version and JSON schema version are intentionally independent.
 
 ## Architecture
 
-The frontend uses vanilla HTML, CSS, and JavaScript ES modules. [`public/calendar.js`](public/calendar.js) is a pure calculation module for calendar, lunar, and tide state. [`public/app.js`](public/app.js) renders one coherent browser-side snapshot on every fictional-second update. The Node.js server only serves static files and the health endpoint. There is no database, frontend framework, build step, runtime dependency, server-side calendar calculation, or real astronomy integration.
+The frontend uses vanilla HTML, CSS, and JavaScript ES modules. [`public/calendar.js`](public/calendar.js) is a pure calculation module for calendar, season, lunar, and tide state. [`public/app.js`](public/app.js) renders one coherent browser-side snapshot on every fictional-second update. The Node.js server only serves static files and the health endpoint. There is no database, frontend framework, build step, runtime dependency, server-side fictional calculation, or real-world data integration.
 
 ## Deploying to Heroku
 
-Insidia v3 is prepared for Heroku's native GitHub automatic deployment integration. No GitHub Actions workflow exists for v3.
+Insidia v4 is prepared for Heroku's native GitHub automatic deployment integration. No GitHub Actions workflow exists for v4.
 
 ### Requirements
 
@@ -104,7 +117,7 @@ web: npm start
 2. Select **GitHub** as the deployment method and connect `FelipeBudinich/insidia`.
 3. Select the deployment branch, normally `main`.
 4. Enable **Automatic Deploys** for that branch.
-5. Leave **Wait for CI to pass before deploy** disabled for v3 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
+5. Leave **Wait for CI to pass before deploy** disabled for v4 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
 
 Heroku builds and releases successful GitHub pushes directly; no Heroku Git remote, deployment script, or committed deployment credential is required.
 
@@ -127,7 +140,7 @@ https://your-app-name.herokuapp.com/
 https://your-app-name.herokuapp.com/health
 ```
 
-The health endpoint must return `{"ok":true,"version":"v3"}`. To inspect logs and dyno status:
+The health endpoint must return `{"ok":true,"version":"v4"}`. To inspect logs and dyno status:
 
 ```sh
 heroku logs --tail --app <app-name>
@@ -156,12 +169,13 @@ For custom domains, use Heroku Automated Certificate Management or another prope
 .
 ├── public/
 │   ├── app.js          # Browser rendering, scheduling, and copy behavior
-│   ├── calendar.js     # Pure calendar, lunar, and tide calculations
+│   ├── calendar.js     # Pure calendar, season, lunar, and tide calculations
 │   ├── index.html      # Application markup
 │   └── styles.css      # Responsive system-font styling
 ├── test/
 │   ├── calendar.test.js
 │   ├── lunar.test.js
+│   ├── season.test.js
 │   └── server.test.js
 ├── Procfile            # Heroku web process
 ├── .nvmrc              # Node.js production major
@@ -172,14 +186,14 @@ For custom domains, use Heroku Automated Certificate Management or another prope
 
 ## Testing
 
-Run the pure calendar/lunar/tide and server integration tests with Node's built-in test runner:
+Run the pure calendar/season/lunar/tide and server integration tests with Node's built-in test runner:
 
 ```sh
 npm test
 npm audit --omit=dev
 ```
 
-The suite covers fictional time boundaries, lunar phases and tides, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
+The suite covers calendar and season boundaries, lunar phases and tides, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
 
 ## License
 

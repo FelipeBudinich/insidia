@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="A live browser-calculated fictional clock, calendar, lunar cycle, and tide cycle.">
+    <meta name="description" content="A live browser-calculated fictional clock, calendar, season cycle, lunar cycle, and tide cycle.">
     <title>Insidia — Fictional Calendar</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
@@ -12,7 +12,7 @@
       <section class="calendar-card" aria-labelledby="page-title">
         <header class="heading">
           <p id="page-title">Fictional Calendar</p>
-          <span class="version" aria-label="Application version 3">v3</span>
+          <span class="version" aria-label="Application version 4">v4</span>
         </header>
 
         <p id="fictional-time" class="time" aria-live="off">00:00:00</p>
@@ -22,6 +22,13 @@
           <p id="fictional-date-accessible" class="visually-hidden">Year 1 · Month 1 · Day 1</p>
         </div>
         <p id="fictional-metadata" class="metadata">Week 1 · Day 1 of 7 · Day 1 of 353</p>
+      </section>
+
+      <section class="season-section" aria-labelledby="season-heading">
+        <p id="season-heading" class="section-label">Season</p>
+        <p id="season-name" class="season-name">Bones</p>
+        <p id="season-metadata" class="season-metadata">Day 1 of 179 · Seasonal Cycle 1</p>
+        <p id="season-cycle-metadata" class="season-cycle-metadata">Seasonal Day 1 of 358 · Next: Tears</p>
       </section>
 
       <section class="lunar-section" aria-labelledby="lunar-heading">

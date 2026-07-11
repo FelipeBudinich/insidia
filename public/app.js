@@ -13,6 +13,9 @@ const timeElement = document.querySelector('#fictional-time');
 const yearElement = document.querySelector('#fictional-year');
 const periodElement = document.querySelector('#fictional-period');
 const metadataElement = document.querySelector('#fictional-metadata');
+const seasonNameElement = document.querySelector('#season-name');
+const seasonMetadataElement = document.querySelector('#season-metadata');
+const seasonCycleMetadataElement = document.querySelector('#season-cycle-metadata');
 const lunarPhaseElement = document.querySelector('#lunar-phase');
 const lunarMetadataElement = document.querySelector('#lunar-metadata');
 const lunarTimeElement = document.querySelector('#lunar-time');
@@ -30,7 +33,7 @@ function render(realUnixMilliseconds = Date.now()) {
   const calendarValue = calculateFictionalCalendar(realUnixMilliseconds);
   const formattedTime = formatFictionalTime(calendarValue);
   const formattedDate = formatFictionalDate(calendarValue);
-  const { lunar } = calendarValue;
+  const { lunar, season } = calendarValue;
   const snapshot = JSON.stringify(createCalendarJson(calendarValue, realUnixMilliseconds), null, 2);
 
   timeElement.textContent = formattedTime;
@@ -39,6 +42,9 @@ function render(realUnixMilliseconds = Date.now()) {
     ? `Month ${calendarValue.period.month} · Day ${calendarValue.period.day}`
     : `Inter Regnum ${calendarValue.period.fromMonth} → ${calendarValue.period.toMonth} · Day ${calendarValue.period.day} of ${calendarValue.period.length}`;
   metadataElement.textContent = `Week ${calendarValue.weekOfYear} · Day ${calendarValue.dayOfWeek} of 7 · Day ${calendarValue.dayOfYear} of 353`;
+  seasonNameElement.textContent = season.name;
+  seasonMetadataElement.textContent = `Day ${season.day} of ${season.lengthDays} · Seasonal Cycle ${season.cycle}`;
+  seasonCycleMetadataElement.textContent = `Seasonal Day ${season.dayOfCycle} of ${season.cycleLengthDays} · Next: ${season.next.name}`;
   lunarPhaseElement.textContent = lunar.phase.name;
   lunarMetadataElement.textContent = `Lunar Day ${lunar.day} of ${lunar.cycleLengthDays} · Cycle ${lunar.cycle}`;
   lunarTimeElement.textContent = `Lunar time ${formatLunarTime(lunar)}`;
@@ -60,24 +66,58 @@ function scheduleNextUpdate() {
   }, Math.max(1, millisecondsUntilNextSecond + 5));
 }
 
-async function copyText(text) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
+function copyWithLegacyCommand(text) {
   const textarea = document.createElement('textarea');
   textarea.value = text;
   textarea.setAttribute('readonly', '');
+  textarea.setAttribute('aria-hidden', 'true');
   textarea.style.position = 'fixed';
+  textarea.style.inset = '0 auto auto 0';
+  textarea.style.width = '1px';
+  textarea.style.height = '1px';
+  textarea.style.padding = '0';
+  textarea.style.border = '0';
   textarea.style.opacity = '0';
   document.body.append(textarea);
+  textarea.focus({ preventScroll: true });
   textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
   const copied = document.execCommand('copy');
   textarea.remove();
   if (!copied) {
     throw new Error('Copy command was unavailable');
   }
+}
+
+function copyWithClipboardApi(text) {
+  return new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      reject(new Error('Clipboard API timed out'));
+    }, 500);
+
+    navigator.clipboard.writeText(text).then(
+      () => {
+        window.clearTimeout(timeoutId);
+        resolve();
+      },
+      (error) => {
+        window.clearTimeout(timeoutId);
+        reject(error);
+      }
+    );
+  });
+}
+
+async function copyText(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await copyWithClipboardApi(text);
+      return;
+    } catch {
+      // Some embedded browsers expose the API but deny write permission.
+    }
+  }
+  copyWithLegacyCommand(text);
 }
 
 copyButton.addEventListener('click', async () => {
