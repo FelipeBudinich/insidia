@@ -138,7 +138,10 @@ function resolvePublicFile(publicDirectory, pathname) {
     return null;
   }
 
-  const relativePath = decodedPathname === '/' ? 'index.html' : pathSegments.join(path.sep);
+  if (decodedPathname === '/') {
+    return null;
+  }
+  const relativePath = pathSegments.join(path.sep);
   const requestedFile = path.resolve(publicDirectory, relativePath);
   const relativeToPublicDirectory = path.relative(publicDirectory, requestedFile);
   if (
@@ -283,11 +286,19 @@ export function createStaticServer(options = {}) {
       return;
     }
 
+    if (requestUrl.pathname === '/') {
+      sendResponse(response, method, environment, 302, {
+        'Cache-Control': 'no-store',
+        Location: '/calendar.html'
+      });
+      return;
+    }
+
     if (requestUrl.pathname === '/health') {
       sendResponse(response, method, environment, 200, {
         'Cache-Control': 'no-store',
         'Content-Type': 'application/json; charset=utf-8'
-      }, JSON.stringify({ ok: true, version: 'v5.4' }));
+      }, JSON.stringify({ ok: true, version: 'v5.5' }));
       return;
     }
 

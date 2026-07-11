@@ -4,15 +4,21 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="A live browser-calculated fictional clock, calendar, season and lunar cycles, tides, orbital alignment, and continuous progress.">
-    <title>Insidia — Fictional Calendar</title>
+    <title>Calendar · Insidia</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <main class="container">
+    <div class="page-shell">
+      <nav class="primary-nav" aria-label="Primary">
+        <a href="/calendar.html" aria-current="page">Calendar</a>
+        <a href="/treasure.html">Treasure</a>
+        <a href="/weather.html">Weather</a>
+      </nav>
+      <main class="container">
       <section class="calendar-card" aria-labelledby="page-title">
         <header class="heading">
           <p id="page-title">Fictional Calendar</p>
-          <span class="version" aria-label="Application version 5.4">v5.4</span>
+          <span class="version" aria-label="Application version 5.5">v5.5</span>
         </header>
 
         <p id="fictional-time" class="time" aria-live="off">00:00:00</p>
@@ -26,9 +32,9 @@
 
       <section class="season-section" aria-labelledby="season-heading">
         <p id="season-heading" class="section-label">Season</p>
-        <p id="season-name" class="season-name">Bones</p>
-        <p id="season-metadata" class="season-metadata">Day 1 of 179 · Seasonal Cycle 1</p>
-        <p id="season-cycle-metadata" class="season-cycle-metadata">Seasonal Day 1 of 358 · Next: Tears</p>
+        <p id="season-name" class="season-name" data-season-name>Bones</p>
+        <p id="season-metadata" class="season-metadata" data-season-metadata>Day 1 of 179 · Seasonal Cycle 1</p>
+        <p id="season-cycle-metadata" class="season-cycle-metadata" data-season-cycle-metadata>Seasonal Day 1 of 358 · Next: Tears</p>
       </section>
 
       <section class="lunar-section" aria-labelledby="lunar-heading">
@@ -42,9 +48,9 @@
           </div>
           <div class="lunar-group" aria-label="Current tide">
             <p class="group-label">Tide</p>
-            <p id="tide-name" class="lunar-name">Low</p>
-            <p id="tide-metadata" class="lunar-metadata">Hour 1 of 17</p>
-            <p id="tide-time" class="lunar-time">00:00:00 into Low</p>
+            <p id="tide-name" class="lunar-name" data-tide-name>Low</p>
+            <p id="tide-metadata" class="lunar-metadata" data-tide-metadata>Hour 1 of 17</p>
+            <p id="tide-time" class="lunar-time" data-tide-time>00:00:00 into Low</p>
           </div>
         </div>
       </section>
@@ -197,7 +203,8 @@
       </details>
 
       <footer>Epoch: 1970-01-01 00:00:00 UTC</footer>
-    </main>
-    <script type="module" src="/app.js"></script>
+      </main>
+    </div>
+    <script type="module" src="/calendar-page.js"></script>
   </body>
 </html>

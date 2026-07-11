@@ -71,42 +71,27 @@ function assertSecurityHeaders(headers) {
   assert.ok(!csp.includes("'unsafe-eval'"));
 }
 
-test('GET and HEAD root serve the v5.4 document with all orbital pull fallbacks', async () => {
+test('GET and HEAD root redirect securely to the calendar route', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/');
     const headResponse = await request(server, '/', { method: 'HEAD' });
-    assert.equal(getResponse.statusCode, 200);
-    assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8');
-    assert.equal(getResponse.headers['cache-control'], 'no-cache');
-    assert.match(getResponse.body, /aria-label="Application version 5\.4">v5\.4/);
-    assert.match(getResponse.body, /id="season-name" class="season-name">Bones/);
-    for (const bodyName of ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Moon']) {
-      assert.match(getResponse.body, new RegExp(` ${bodyName}</p>`));
-    }
-    assert.match(getResponse.body, /Orbital Pulls/);
-    for (const pullLabel of ['Dominant Pull', 'Minor Pull', 'Negative Pull']) {
-      assert.match(getResponse.body, new RegExp(`>${pullLabel}<`));
-    }
-    assert.equal((getResponse.body.match(/Moon · Venus · Mars/g) ?? []).length, 2);
-    assert.match(getResponse.body, /Moon · Venus · Mercury/);
-    assert.match(getResponse.body, /Pulls measure fictional orbital-phase clustering, not physical gravity\./);
-    assert.match(getResponse.body, /13 lunar days/);
-    assert.ok(!getResponse.body.includes('29' + ' fictional days'));
-    for (const progressLabel of ['Lunar Cycle', 'Current Phase', 'Current Season', 'Current Year', 'Current Day', 'Current Hour']) {
-      assert.match(getResponse.body, new RegExp(`>${progressLabel}<`));
-    }
+    assert.equal(getResponse.statusCode, 302);
+    assert.equal(getResponse.headers.location, '/calendar.html');
+    assert.equal(getResponse.headers['cache-control'], 'no-store');
+    assert.equal(getResponse.body, '');
     assertSecurityHeaders(getResponse.headers);
-    assert.equal(headResponse.statusCode, 200);
+    assert.equal(headResponse.statusCode, 302);
+    assert.equal(headResponse.headers.location, '/calendar.html');
+    assert.equal(headResponse.headers['cache-control'], 'no-store');
     assert.equal(headResponse.body, '');
-    assert.equal(headResponse.headers['content-type'], getResponse.headers['content-type']);
     assert.equal(headResponse.headers['content-security-policy'], getResponse.headers['content-security-policy']);
   } finally {
     await stopServer(server);
   }
 });
 
-test('GET and HEAD health return the v5.4 availability response', async () => {
+test('GET and HEAD health return the v5.5 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -114,7 +99,7 @@ test('GET and HEAD health return the v5.4 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v5.4"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v5.5"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -124,10 +109,111 @@ test('GET and HEAD health return the v5.4 availability response', async () => {
   }
 });
 
+test('all three HTML routes serve secure no-cache documents with shared navigation', async () => {
+  const server = await startTestServer();
+  const pageDefinitions = [
+    { path: '/calendar.html', activeLabel: 'Calendar', title: 'Calendar · Insidia' },
+    { path: '/treasure.html', activeLabel: 'Treasure', title: 'Treasure · Insidia' },
+    { path: '/weather.html', activeLabel: 'Weather', title: 'Weather · Insidia' }
+  ];
+  try {
+    for (const page of pageDefinitions) {
+      const getResponse = await request(server, page.path);
+      const headResponse = await request(server, page.path, { method: 'HEAD' });
+      assert.equal(getResponse.statusCode, 200, page.path);
+      assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8', page.path);
+      assert.equal(getResponse.headers['cache-control'], 'no-cache', page.path);
+      assert.match(getResponse.body, new RegExp(`<title>${page.title}</title>`), page.path);
+      assert.match(getResponse.body, /aria-label="Application version 5\.5">v5\.5/, page.path);
+      assert.match(getResponse.body, /<nav class="primary-nav" aria-label="Primary">/, page.path);
+      for (const [href, label] of [
+        ['/calendar.html', 'Calendar'],
+        ['/treasure.html', 'Treasure'],
+        ['/weather.html', 'Weather']
+      ]) {
+        assert.match(getResponse.body, new RegExp(`<a href="${href}"(?: aria-current="page")?>${label}</a>`), page.path);
+      }
+      assert.equal((getResponse.body.match(/aria-current="page"/g) ?? []).length, 1, page.path);
+      assert.match(
+        getResponse.body,
+        new RegExp(`<a href="${page.path}" aria-current="page">${page.activeLabel}</a>`),
+        page.path
+      );
+      assertSecurityHeaders(getResponse.headers);
+      assert.equal(headResponse.statusCode, 200, page.path);
+      assert.equal(headResponse.body, '', page.path);
+      assert.equal(headResponse.headers['content-type'], getResponse.headers['content-type'], page.path);
+      assert.equal(headResponse.headers['cache-control'], 'no-cache', page.path);
+      assertSecurityHeaders(headResponse.headers);
+    }
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('calendar route preserves the complete v5.4 dashboard and JSON output', async () => {
+  const server = await startTestServer();
+  try {
+    const response = await request(server, '/calendar.html');
+    for (const requiredContent of [
+      'Fictional Calendar', 'Month 1 · Day 1', 'Week 1 · Day 1 of 7',
+      'Season', 'Bones', 'Lunar Cycle', 'Tide', 'Low',
+      'Celestial Orbits', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Moon',
+      'Orbital Pulls', 'Dominant Pull', 'Minor Pull', 'Negative Pull',
+      'Progress', 'Lunar Cycle', 'Current Phase', 'Current Season',
+      'Current Year', 'Current Day', 'Current Hour', 'JSON output', 'Copy JSON',
+      'Epoch: 1970-01-01 00:00:00 UTC'
+    ]) {
+      assert.ok(response.body.includes(requiredContent), requiredContent);
+    }
+    assert.match(response.body, /src="\/calendar-page\.js"/);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('treasure route contains tide, all six orbits, and all three pulls', async () => {
+  const server = await startTestServer();
+  try {
+    const response = await request(server, '/treasure.html');
+    for (const requiredContent of [
+      'Tide', 'Low', 'Hour 1 of 17', '00:00:00 into Low', 'Celestial Orbits',
+      'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Moon',
+      'Dominant Pull', 'Minor Pull', 'Negative Pull',
+      'Pulls measure fictional orbital-phase clustering, not physical gravity.'
+    ]) {
+      assert.ok(response.body.includes(requiredContent), requiredContent);
+    }
+    assert.equal((response.body.match(/0\.000000%/g) ?? []).length >= 9, true);
+    assert.match(response.body, /src="\/treasure-page\.js"/);
+    assert.ok(!response.body.includes('JSON output'));
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('weather route contains the complete season fallback and progress', async () => {
+  const server = await startTestServer();
+  try {
+    const response = await request(server, '/weather.html');
+    for (const requiredContent of [
+      'Season', 'Bones', 'Day 1 of 179 · Seasonal Cycle 1',
+      'Seasonal Day 1 of 358', 'Next: Tears', 'Progress: 0.000000%'
+    ]) {
+      assert.ok(response.body.includes(requiredContent), requiredContent);
+    }
+    assert.match(response.body, /aria-label="Current season progress"/);
+    assert.match(response.body, /src="\/weather-page\.js"/);
+    assert.ok(!response.body.includes('JSON output'));
+  } finally {
+    await stopServer(server);
+  }
+});
+
 test('unknown routes and directories return generic 404 responses', async () => {
   const server = await startTestServer();
   try {
-    for (const requestPath of ['/does-not-exist', '/public/']) {
+    for (const requestPath of ['/does-not-exist', '/public/', '/index.html', '/app.js']) {
       const response = await request(server, requestPath);
       assert.equal(response.statusCode, 404);
       assert.equal(response.body, 'Not Found');
@@ -183,17 +269,56 @@ test('malformed encoding and representative traversal paths fail safely', async 
 test('static JavaScript and CSS use explicit types and no-cache', async () => {
   const server = await startTestServer();
   try {
-    const javascript = await request(server, '/app.js');
     const css = await request(server, '/styles.css');
-    assert.equal(javascript.statusCode, 200);
-    assert.equal(javascript.headers['content-type'], 'text/javascript; charset=utf-8');
-    assert.equal(javascript.headers['cache-control'], 'no-cache');
+    for (const scriptPath of [
+      '/calendar.js', '/live-state.js', '/renderers.js',
+      '/calendar-page.js', '/treasure-page.js', '/weather-page.js'
+    ]) {
+      const javascript = await request(server, scriptPath);
+      assert.equal(javascript.statusCode, 200, scriptPath);
+      assert.equal(javascript.headers['content-type'], 'text/javascript; charset=utf-8', scriptPath);
+      assert.equal(javascript.headers['cache-control'], 'no-cache', scriptPath);
+    }
     assert.equal(css.statusCode, 200);
     assert.equal(css.headers['content-type'], 'text/css; charset=utf-8');
     assert.equal(css.headers['cache-control'], 'no-cache');
   } finally {
     await stopServer(server);
   }
+});
+
+test('all page modules use the shared live-state scheduler and shared renderers', async () => {
+  const liveState = await readFile(path.join(projectDirectory, 'public/live-state.js'), 'utf8');
+  const renderers = await readFile(path.join(projectDirectory, 'public/renderers.js'), 'utf8');
+  const pageModuleNames = ['calendar-page.js', 'treasure-page.js', 'weather-page.js'];
+
+  assert.match(liveState, /calculateFictionalCalendar\(realUnixMilliseconds\)/);
+  assert.match(liveState, /const realUnixMilliseconds = Date\.now\(\)/);
+  assert.match(liveState, /window\.setTimeout\(update/);
+  assert.match(liveState, /visibilitychange/);
+  assert.ok(!renderers.includes('Date.now'));
+  assert.ok(!renderers.includes('calculateFictionalCalendar'));
+  assert.ok(!renderers.includes('innerHTML'));
+
+  for (const moduleName of pageModuleNames) {
+    const moduleText = await readFile(path.join(projectDirectory, 'public', moduleName), 'utf8');
+    assert.match(moduleText, /from '\.\/live-state\.js'/, moduleName);
+    assert.match(moduleText, /startLiveState\(/, moduleName);
+    assert.ok(!moduleText.includes('setInterval'), moduleName);
+    assert.ok(!moduleText.includes('scheduleNextUpdate'), moduleName);
+    assert.ok(!moduleText.includes('REAL_MS_PER_FICTIONAL_SECOND'), moduleName);
+    assert.ok(!moduleText.includes('calculateFictionalCalendar'), moduleName);
+    assert.ok(!moduleText.includes('innerHTML'), moduleName);
+  }
+
+  await assert.rejects(
+    readFile(path.join(projectDirectory, 'public/index.html'), 'utf8'),
+    { code: 'ENOENT' }
+  );
+  await assert.rejects(
+    readFile(path.join(projectDirectory, 'public/app.js'), 'utf8'),
+    { code: 'ENOENT' }
+  );
 });
 
 test('production adds HSTS while development omits it', async () => {
@@ -252,6 +377,12 @@ test('canonical redirects use only the validated origin and secure protocol chai
     assert.equal(hostileHost.headers['cache-control'], 'no-store');
     assertSecurityHeaders(hostileHost.headers);
 
+    const hostileRoot = await request(server, '/', {
+      headers: { Host: 'attacker.example', 'X-Forwarded-Proto': 'https' }
+    });
+    assert.equal(hostileRoot.statusCode, 308);
+    assert.equal(hostileRoot.headers.location, 'https://canonical.example/');
+
     for (const forwardedProto of ['http', 'https,http', 'http,https', 'HTTPS,http']) {
       const response = await request(server, '/health', {
         headers: { Host: 'canonical.example', 'X-Forwarded-Proto': forwardedProto }
@@ -265,6 +396,12 @@ test('canonical redirects use only the validated origin and secure protocol chai
     });
     assert.equal(canonicalSecureRequest.statusCode, 404);
     assert.equal(canonicalSecureRequest.headers.location, undefined);
+
+    const canonicalSecureRoot = await request(server, '/', {
+      headers: { Host: 'canonical.example', 'X-Forwarded-Proto': 'HTTPS, https' }
+    });
+    assert.equal(canonicalSecureRoot.statusCode, 302);
+    assert.equal(canonicalSecureRoot.headers.location, '/calendar.html');
   } finally {
     await stopServer(server);
   }
@@ -309,7 +446,7 @@ test('Procfile and package metadata are ready for Heroku', async () => {
   ]);
   const packageJson = JSON.parse(packageText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '5.4.0');
+  assert.equal(packageJson.version, '5.5.0');
   assert.equal(packageJson.engines.node, '24.x');
 });
 
@@ -330,9 +467,12 @@ test('calendar JSON schema is v8 with all three orbital pulls', () => {
 test('retired orbital metadata and Moon duration references are absent', async () => {
   const projectFiles = [
     'README.md',
-    'public/app.js',
+    'public/calendar-page.js',
     'public/calendar.js',
-    'public/index.html',
+    'public/calendar.html',
+    'public/renderers.js',
+    'public/treasure.html',
+    'public/weather.html',
     'test/calendar.test.js',
     'test/lunar.test.js',
     'test/orbits.test.js',

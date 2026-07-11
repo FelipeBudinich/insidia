@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="The current fictional Bones or Tears season in Insidia.">
+    <title>Weather · Insidia</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="page-shell">
+      <nav class="primary-nav" aria-label="Primary">
+        <a href="/calendar.html">Calendar</a>
+        <a href="/treasure.html">Treasure</a>
+        <a href="/weather.html" aria-current="page">Weather</a>
+      </nav>
+      <main class="container">
+        <header class="page-header">
+          <div>
+            <p class="page-kicker">Insidia</p>
+            <h1>Weather</h1>
+          </div>
+          <span class="version" aria-label="Application version 5.5">v5.5</span>
+        </header>
+
+        <section class="season-section focused-section" aria-labelledby="season-heading">
+          <p id="season-heading" class="section-label">Season</p>
+          <p class="season-name" data-season-name>Bones</p>
+          <p class="season-metadata" data-season-metadata>Day 1 of 179 · Seasonal Cycle 1</p>
+          <p class="season-cycle-metadata" data-season-cycle-metadata>Seasonal Day 1 of 358</p>
+          <p class="season-cycle-metadata" data-season-next>Next: Tears</p>
+          <div class="weather-progress">
+            <div class="weather-progress-heading">
+              <span data-season-progress>Progress: 0.000000%</span>
+            </div>
+            <progress max="1" value="0" aria-label="Current season progress" data-season-progress-bar></progress>
+          </div>
+        </section>
+        <footer>Epoch: 1970-01-01 00:00:00 UTC</footer>
+      </main>
+    </div>
+    <script type="module" src="/weather-page.js"></script>
+  </body>
+</html>

@@ -16,8 +16,36 @@ body {
   padding: 1.25rem;
 }
 
-.container { width: min(100%, 42rem); }
+.page-shell { width: min(100%, 42rem); }
+.container { width: 100%; }
 
+.primary-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 1rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, CanvasText 28%, transparent);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, Canvas 94%, CanvasText 6%);
+}
+.primary-nav a {
+  min-width: 0;
+  padding: 0.65rem 0.45rem;
+  color: CanvasText;
+  font-size: 0.875rem;
+  font-weight: 650;
+  text-align: center;
+  text-decoration: none;
+}
+.primary-nav a + a { border-left: 1px solid color-mix(in srgb, CanvasText 22%, transparent); }
+.primary-nav a:hover { background: color-mix(in srgb, Canvas 85%, CanvasText 15%); }
+.primary-nav a[aria-current="page"] {
+  background: color-mix(in srgb, Highlight 18%, Canvas);
+  box-shadow: inset 0 -3px 0 Highlight;
+  font-weight: 800;
+}
+
+.page-header,
 .calendar-card,
 .season-section,
 .lunar-section,
@@ -28,6 +56,16 @@ body {
   border-radius: 0.75rem;
   background: color-mix(in srgb, Canvas 94%, CanvasText 6%);
 }
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+}
+.page-header h1 { margin: 0.15rem 0 0; font-size: clamp(1.75rem, 8vw, 2.5rem); }
+.page-kicker { margin: 0; color: color-mix(in srgb, CanvasText 68%, Canvas); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 
 .calendar-card { padding: clamp(1.25rem, 5vw, 2.5rem); }
 
@@ -77,6 +115,7 @@ body {
 .lunar-time { margin: 0.25rem 0 0; line-height: 1.45; }
 .lunar-metadata { color: color-mix(in srgb, CanvasText 78%, Canvas); }
 .lunar-time { color: color-mix(in srgb, CanvasText 68%, Canvas); font-variant-numeric: tabular-nums; }
+.focused-section { margin-top: 1rem; }
 
 .orbital-bodies { display: grid; gap: 0.75rem; }
 .orbital-body { min-width: 0; padding: 0.9rem; border: 1px solid color-mix(in srgb, CanvasText 16%, transparent); border-radius: 0.5rem; }
@@ -102,10 +141,13 @@ body {
 .progress-item { min-width: 0; }
 .progress-heading-row { display: flex; justify-content: space-between; gap: 0.75rem; font-size: 0.9rem; font-weight: 650; font-variant-numeric: tabular-nums; }
 .progress-item progress { display: block; width: 100%; margin-top: 0.4rem; }
+.weather-progress { margin-top: 1rem; }
+.weather-progress-heading { margin-bottom: 0.4rem; font-size: 0.9rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.weather-progress progress { display: block; width: 100%; }
 
 .json-details { margin-top: 1rem; overflow: hidden; }
 summary { cursor: pointer; padding: 1rem 1.2rem; font-weight: 650; }
-summary:focus-visible, button:focus-visible, pre:focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
+summary:focus-visible, button:focus-visible, pre:focus-visible, .primary-nav a:focus-visible { outline: 3px solid Highlight; outline-offset: -3px; }
 .json-content { border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent); padding: 1rem; }
 button { border: 1px solid color-mix(in srgb, CanvasText 40%, transparent); border-radius: 0.4rem; background: ButtonFace; color: ButtonText; cursor: pointer; font: inherit; padding: 0.5rem 0.75rem; }
 button:hover { background: color-mix(in srgb, ButtonFace 86%, CanvasText); }

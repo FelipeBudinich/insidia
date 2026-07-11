@@ -2,7 +2,7 @@
 
 Insidia is a live fictional clock, calendar, season cycle, lunar cycle, tide cycle, and six-body orbital alignment model. All fictional calculations run in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
 
-**Current release:** v5.4
+**Current release:** v5.5
 
 ## Fictional time and calendar
 
@@ -113,7 +113,7 @@ npm test
 npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000). To use a different port, set `PORT` before starting the server:
+Open [http://localhost:3000](http://localhost:3000); the server redirects the root route to `/calendar.html`. To use a different port, set `PORT` before starting the server:
 
 ```sh
 PORT=5001 NODE_ENV=production npm start
@@ -121,23 +121,35 @@ PORT=5001 NODE_ENV=production npm start
 
 The application validates an explicit `PORT` and listens on `0.0.0.0`, which is suitable for Heroku dynos. `CANONICAL_ORIGIN` is optional; without it, no canonical redirect is forced.
 
+## Routes
+
+| Route | Purpose |
+|---|---|
+| `/` | Redirects to `/calendar.html` |
+| `/calendar.html` | Complete fictional calendar dashboard |
+| `/treasure.html` | Tide, celestial orbits, and orbital pulls |
+| `/weather.html` | Current Bones or Tears season |
+| `/health` | Application health response |
+
+All three HTML pages use normal navigation links and calculate the same complete fictional state from the same Unix epoch through one shared browser scheduler. Each page displays a different subset of that state. Reloading or switching routes never resets a cycle because no fictional counters are stored in memory, local storage, or on the server. The Node.js server stores no fictional state and handles only static files, the health response, and the root redirect.
+
 ## Health check and JSON schema
 
 `GET /health` returns:
 
 ```json
-{"ok":true,"version":"v5.4"}
+{"ok":true,"version":"v5.5"}
 ```
 
-The copied calendar JSON schema is `"calendarVersion":"v8"`. V5.4 preserves `fictional.orbits.dominantPull` and adds `minorPull` and `negativePull`, all derived from one shared twenty-candidate evaluation. The application release version and JSON schema version are intentionally independent.
+The copied calendar JSON schema remains `"calendarVersion":"v8"`. V5.5 changes document routing and presentation without restructuring the fictional snapshot. The application release version and JSON schema version are intentionally independent.
 
 ## Architecture
 
-The frontend uses vanilla HTML, CSS, and JavaScript ES modules. [`public/calendar.js`](public/calendar.js) is a pure calculation module for calendar, season, lunar, tide, orbital, and pull state. [`public/app.js`](public/app.js) renders one coherent browser-side snapshot on every fictional-second update. The Node.js server only serves static files and the health endpoint. There is no database, frontend framework, build step, runtime dependency, server-side fictional calculation, or real-world astronomy integration.
+The frontend uses three real HTML documents, vanilla CSS, and JavaScript ES modules. [`public/calendar.js`](public/calendar.js) is the pure state calculator, [`public/live-state.js`](public/live-state.js) owns the single drift-resistant browser scheduler used by every page, and [`public/renderers.js`](public/renderers.js) contains shared season, tide, orbit, and pull renderers. Page-specific modules bind only the elements their document displays. The Node.js server serves static files, the health endpoint, and a relative root redirect. There is no client-side router, database, frontend framework, build step, runtime dependency, server-side fictional calculation, or real-world astronomy integration.
 
 ## Deploying to Heroku
 
-Insidia v5.4 is prepared for Heroku's native GitHub automatic deployment integration. No GitHub Actions workflow exists for v5.4.
+Insidia v5.5 remains prepared for Heroku's native GitHub automatic deployment integration. The routing change does not alter the Procfile or automatic deployment configuration. No GitHub Actions workflow exists for v5.5.
 
 ### Requirements
 
@@ -157,7 +169,7 @@ web: npm start
 2. Select **GitHub** as the deployment method and connect `FelipeBudinich/insidia`.
 3. Select the deployment branch, normally `main`.
 4. Enable **Automatic Deploys** for that branch.
-5. Leave **Wait for CI to pass before deploy** disabled for v5.4 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
+5. Leave **Wait for CI to pass before deploy** disabled for v5.5 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
 
 Heroku builds and releases successful GitHub pushes directly; no Heroku Git remote, deployment script, or committed deployment credential is required.
 
@@ -180,7 +192,7 @@ https://your-app-name.herokuapp.com/
 https://your-app-name.herokuapp.com/health
 ```
 
-The health endpoint must return `{"ok":true,"version":"v5.4"}`. To inspect logs and dyno status:
+The health endpoint must return `{"ok":true,"version":"v5.5"}`. To inspect logs and dyno status:
 
 ```sh
 heroku logs --tail --app <app-name>
@@ -208,10 +220,16 @@ For custom domains, use Heroku Automated Certificate Management or another prope
 ```text
 .
 ├── public/
-│   ├── app.js          # Browser rendering, scheduling, and copy behavior
-│   ├── calendar.js     # Pure calendar, season, lunar, tide, and orbital calculations
-│   ├── index.html      # Application markup
-│   └── styles.css      # Responsive system-font styling
+│   ├── calendar.html       # Complete dashboard route
+│   ├── treasure.html       # Tide, orbit, and pull route
+│   ├── weather.html        # Season route
+│   ├── calendar.js         # Pure fictional-state calculations
+│   ├── live-state.js       # Shared drift-resistant scheduler
+│   ├── renderers.js        # Shared focused-state renderers
+│   ├── calendar-page.js    # Calendar page binding and JSON copy behavior
+│   ├── treasure-page.js    # Treasure page binding
+│   ├── weather-page.js     # Weather page binding
+│   └── styles.css          # Shared responsive styling
 ├── test/
 │   ├── calendar.test.js
 │   ├── lunar.test.js
@@ -235,7 +253,7 @@ npm test
 npm audit --omit=dev
 ```
 
-The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, planetary and Moon orbital resets, Moon/lunar-cycle synchronization, circular wrap-around, all twenty orbital pull candidates, grouped epsilon ranking, Minor and Negative Pull selection, raw-fraction ordering, fixed-priority tie-break rules, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
+The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, planetary and Moon orbital resets, Moon/lunar-cycle synchronization, circular wrap-around, all twenty orbital pull candidates, grouped epsilon ranking, Minor and Negative Pull selection, raw-fraction ordering, fixed-priority tie-break rules, all three HTML routes and their navigation, shared scheduler architecture, redirects, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
 
 ## License
 
