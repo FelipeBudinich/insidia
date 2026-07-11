@@ -19,6 +19,7 @@ body {
 .container { width: min(100%, 42rem); }
 
 .calendar-card,
+.lunar-section,
 .json-details {
   border: 1px solid color-mix(in srgb, CanvasText 24%, transparent);
   border-radius: 0.75rem;
@@ -53,6 +54,19 @@ body {
 .period { margin-top: 0.25rem !important; font-size: clamp(1.05rem, 4vw, 1.35rem); }
 .metadata { margin: 1.75rem 0 0; color: color-mix(in srgb, CanvasText 72%, Canvas); line-height: 1.5; }
 
+.lunar-section { margin-top: 1rem; padding: clamp(1.25rem, 4vw, 1.75rem); }
+.section-label,
+.group-label { margin: 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.section-label { margin-bottom: 1rem; }
+.lunar-grid { display: grid; gap: 1.25rem; }
+.lunar-group + .lunar-group { border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent); padding-top: 1.25rem; }
+.group-label { color: color-mix(in srgb, CanvasText 68%, Canvas); }
+.lunar-name { margin: 0.35rem 0 0; font-size: 1.45rem; font-weight: 700; }
+.lunar-metadata,
+.lunar-time { margin: 0.25rem 0 0; line-height: 1.45; }
+.lunar-metadata { color: color-mix(in srgb, CanvasText 78%, Canvas); }
+.lunar-time { color: color-mix(in srgb, CanvasText 68%, Canvas); font-variant-numeric: tabular-nums; }
+
 .json-details { margin-top: 1rem; overflow: hidden; }
 summary { cursor: pointer; padding: 1rem 1.2rem; font-weight: 650; }
 summary:focus-visible, button:focus-visible, pre:focus-visible { outline: 3px solid Highlight; outline-offset: 3px; }
@@ -70,6 +84,11 @@ footer { margin-top: 1rem; color: color-mix(in srgb, CanvasText 65%, Canvas); fo
   .time { font-size: 2.75rem; }
   .json-toolbar { align-items: flex-start; flex-direction: column; gap: 0.5rem; }
   .copy-status { text-align: left; }
+}
+
+@media (min-width: 38rem) {
+  .lunar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
+  .lunar-group + .lunar-group { border-top: 0; border-left: 1px solid color-mix(in srgb, CanvasText 18%, transparent); padding-top: 0; padding-left: 1.5rem; }
 }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto; } }

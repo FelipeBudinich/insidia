@@ -10,6 +10,32 @@ export const INTER_REGNUM_LENGTHS = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4];
 export const DAYS_PER_YEAR = 353;
 export const FICTIONAL_SECONDS_PER_HOUR = FICTIONAL_SECONDS_PER_MINUTE * FICTIONAL_MINUTES_PER_HOUR;
 export const FICTIONAL_SECONDS_PER_DAY = FICTIONAL_SECONDS_PER_HOUR * FICTIONAL_HOURS_PER_DAY;
+export const FICTIONAL_HOURS_PER_LUNAR_DAY = 31;
+export const LUNAR_DAYS_PER_CYCLE = 13;
+export const FICTIONAL_SECONDS_PER_LUNAR_DAY = FICTIONAL_SECONDS_PER_HOUR * FICTIONAL_HOURS_PER_LUNAR_DAY;
+export const FICTIONAL_SECONDS_PER_LUNAR_CYCLE = FICTIONAL_SECONDS_PER_LUNAR_DAY * LUNAR_DAYS_PER_CYCLE;
+
+export const MOON_PHASES = [
+  { id: 'rebirth', name: 'Rebirth', type: 'standard', stage: 'new', approximateIllumination: 0 },
+  { id: 'horn', name: 'Horn', type: 'fictional', stage: 'waxing', approximateIllumination: 8 },
+  { id: 'crescent', name: 'Crescent', type: 'standard', stage: 'waxing', approximateIllumination: 22 },
+  { id: 'passage', name: 'Passage', type: 'fictional', stage: 'waxing', approximateIllumination: 38 },
+  { id: 'growing', name: 'Growing', type: 'standard', stage: 'waxing', approximateIllumination: 50 },
+  { id: 'waxing', name: 'Waxing', type: 'standard', stage: 'waxing', approximateIllumination: 75 },
+  { id: 'ascent', name: 'Ascent', type: 'fictional', stage: 'waxing', approximateIllumination: 92 },
+  { id: 'apex', name: 'Apex', type: 'standard', stage: 'full', approximateIllumination: 100 },
+  { id: 'bite', name: 'Bite', type: 'fictional', stage: 'waning', approximateIllumination: 92 },
+  { id: 'waning', name: 'Waning', type: 'standard', stage: 'waning', approximateIllumination: 75 },
+  { id: 'receding', name: 'Receding', type: 'standard', stage: 'waning', approximateIllumination: 50 },
+  { id: 'veil', name: 'Veil', type: 'standard', stage: 'waning', approximateIllumination: 22 },
+  { id: 'death', name: 'Death', type: 'fictional', stage: 'waning', approximateIllumination: 8 }
+];
+
+export const TIDE_PERIODS = [
+  { id: 'low', name: 'Low', durationHours: 17 },
+  { id: 'high', name: 'High', durationHours: 13 },
+  { id: 'dry', name: 'Dry', durationHours: 1 }
+];
 
 function assertValidUnixMilliseconds(realUnixMilliseconds) {
   if (typeof realUnixMilliseconds !== 'number') {
@@ -25,6 +51,64 @@ function assertValidUnixMilliseconds(realUnixMilliseconds) {
 
 function padTwo(value) {
   return String(value).padStart(2, '0');
+}
+
+function assertValidTotalFictionalSeconds(totalFictionalSeconds) {
+  if (typeof totalFictionalSeconds !== 'number') {
+    throw new TypeError('totalFictionalSeconds must be a number');
+  }
+  if (!Number.isFinite(totalFictionalSeconds)) {
+    throw new RangeError('totalFictionalSeconds must be finite');
+  }
+  if (!Number.isSafeInteger(totalFictionalSeconds)) {
+    throw new RangeError('totalFictionalSeconds must be a safe integer');
+  }
+  if (totalFictionalSeconds < 0) {
+    throw new RangeError('totalFictionalSeconds cannot be negative');
+  }
+}
+
+/**
+ * Convert elapsed fictional seconds to the independent fictional lunar state.
+ * It deliberately shares only seconds, minutes, and hours with the calendar.
+ */
+export function calculateLunarState(totalFictionalSeconds) {
+  assertValidTotalFictionalSeconds(totalFictionalSeconds);
+
+  const totalCompletedLunarDays = Math.floor(
+    totalFictionalSeconds / FICTIONAL_SECONDS_PER_LUNAR_DAY
+  );
+  const zeroBasedLunarDay = totalCompletedLunarDays % LUNAR_DAYS_PER_CYCLE;
+  const secondsIntoLunarDay = totalFictionalSeconds % FICTIONAL_SECONDS_PER_LUNAR_DAY;
+  const hour = Math.floor(secondsIntoLunarDay / FICTIONAL_SECONDS_PER_HOUR);
+  const secondsIntoLunarHour = secondsIntoLunarDay % FICTIONAL_SECONDS_PER_HOUR;
+  const minute = Math.floor(secondsIntoLunarHour / FICTIONAL_SECONDS_PER_MINUTE);
+  const second = secondsIntoLunarHour % FICTIONAL_SECONDS_PER_MINUTE;
+
+  let elapsedTideHours = 0;
+  let tide;
+  for (const tidePeriod of TIDE_PERIODS) {
+    if (hour < elapsedTideHours + tidePeriod.durationHours) {
+      const hourInPeriod = hour - elapsedTideHours;
+      tide = {
+        ...tidePeriod,
+        hour: hourInPeriod + 1,
+        timeInPeriod: { hour: hourInPeriod, minute, second }
+      };
+      break;
+    }
+    elapsedTideHours += tidePeriod.durationHours;
+  }
+
+  return {
+    totalCompletedLunarDays,
+    cycle: Math.floor(totalCompletedLunarDays / LUNAR_DAYS_PER_CYCLE) + 1,
+    day: zeroBasedLunarDay + 1,
+    cycleLengthDays: LUNAR_DAYS_PER_CYCLE,
+    phase: { ...MOON_PHASES[zeroBasedLunarDay] },
+    time: { hour, minute, second },
+    tide
+  };
 }
 
 /**
@@ -85,12 +169,23 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
     weekOfYear: Math.floor(zeroBasedDayOfYear / FICTIONAL_DAYS_PER_WEEK) + 1,
     dayOfWeek: (totalElapsedDays % FICTIONAL_DAYS_PER_WEEK) + 1,
     period,
-    time: { hour, minute, second }
+    time: { hour, minute, second },
+    lunar: calculateLunarState(totalSeconds)
   };
 }
 
 export function formatFictionalTime(calendarValue) {
   const { hour, minute, second } = calendarValue.time;
+  return `${padTwo(hour)}:${padTwo(minute)}:${padTwo(second)}`;
+}
+
+export function formatLunarTime(lunarValue) {
+  const { hour, minute, second } = lunarValue.time;
+  return `${padTwo(hour)}:${padTwo(minute)}:${padTwo(second)}`;
+}
+
+export function formatTideTime(lunarValue) {
+  const { hour, minute, second } = lunarValue.tide.timeInPeriod;
   return `${padTwo(hour)}:${padTwo(minute)}:${padTwo(second)}`;
 }
 
@@ -105,8 +200,10 @@ export function formatFictionalDate(calendarValue) {
 export function createCalendarJson(calendarValue, realUnixMilliseconds) {
   assertValidUnixMilliseconds(realUnixMilliseconds);
   const formattedTime = formatFictionalTime(calendarValue);
+  const formattedLunarTime = formatLunarTime(calendarValue.lunar);
+  const formattedTideTime = formatTideTime(calendarValue.lunar);
   return {
-    calendarVersion: 'v1',
+    calendarVersion: 'v2',
     source: {
       unixMilliseconds: realUnixMilliseconds,
       isoUtc: new Date(realUnixMilliseconds).toISOString()
@@ -123,6 +220,31 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
         minute: calendarValue.time.minute,
         second: calendarValue.time.second,
         formatted: formattedTime
+      },
+      lunar: {
+        cycle: calendarValue.lunar.cycle,
+        day: calendarValue.lunar.day,
+        cycleLengthDays: calendarValue.lunar.cycleLengthDays,
+        phase: calendarValue.lunar.phase,
+        time: {
+          hour: calendarValue.lunar.time.hour,
+          minute: calendarValue.lunar.time.minute,
+          second: calendarValue.lunar.time.second,
+          hoursPerLunarDay: FICTIONAL_HOURS_PER_LUNAR_DAY,
+          formatted: formattedLunarTime
+        },
+        tide: {
+          id: calendarValue.lunar.tide.id,
+          name: calendarValue.lunar.tide.name,
+          durationHours: calendarValue.lunar.tide.durationHours,
+          hour: calendarValue.lunar.tide.hour,
+          timeInPeriod: {
+            hour: calendarValue.lunar.tide.timeInPeriod.hour,
+            minute: calendarValue.lunar.tide.timeInPeriod.minute,
+            second: calendarValue.lunar.tide.timeInPeriod.second,
+            formatted: formattedTideTime
+          }
+        }
       },
       formattedDate: formatFictionalDate(calendarValue)
     }

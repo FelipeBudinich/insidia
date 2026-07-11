@@ -4,13 +4,21 @@ import {
   calculateFictionalCalendar,
   createCalendarJson,
   formatFictionalDate,
-  formatFictionalTime
+  formatFictionalTime,
+  formatLunarTime,
+  formatTideTime
 } from './calendar.js';
 
 const timeElement = document.querySelector('#fictional-time');
 const yearElement = document.querySelector('#fictional-year');
 const periodElement = document.querySelector('#fictional-period');
 const metadataElement = document.querySelector('#fictional-metadata');
+const lunarPhaseElement = document.querySelector('#lunar-phase');
+const lunarMetadataElement = document.querySelector('#lunar-metadata');
+const lunarTimeElement = document.querySelector('#lunar-time');
+const tideNameElement = document.querySelector('#tide-name');
+const tideMetadataElement = document.querySelector('#tide-metadata');
+const tideTimeElement = document.querySelector('#tide-time');
 const jsonElement = document.querySelector('#json-output');
 const copyButton = document.querySelector('#copy-json');
 const copyStatusElement = document.querySelector('#copy-status');
@@ -22,6 +30,7 @@ function render(realUnixMilliseconds = Date.now()) {
   const calendarValue = calculateFictionalCalendar(realUnixMilliseconds);
   const formattedTime = formatFictionalTime(calendarValue);
   const formattedDate = formatFictionalDate(calendarValue);
+  const { lunar } = calendarValue;
   const snapshot = JSON.stringify(createCalendarJson(calendarValue, realUnixMilliseconds), null, 2);
 
   timeElement.textContent = formattedTime;
@@ -30,6 +39,12 @@ function render(realUnixMilliseconds = Date.now()) {
     ? `Month ${calendarValue.period.month} · Day ${calendarValue.period.day}`
     : `Inter Regnum ${calendarValue.period.fromMonth} → ${calendarValue.period.toMonth} · Day ${calendarValue.period.day} of ${calendarValue.period.length}`;
   metadataElement.textContent = `Week ${calendarValue.weekOfYear} · Day ${calendarValue.dayOfWeek} of 7 · Day ${calendarValue.dayOfYear} of 353`;
+  lunarPhaseElement.textContent = lunar.phase.name;
+  lunarMetadataElement.textContent = `Lunar Day ${lunar.day} of ${lunar.cycleLengthDays} · Cycle ${lunar.cycle}`;
+  lunarTimeElement.textContent = `Lunar time ${formatLunarTime(lunar)}`;
+  tideNameElement.textContent = lunar.tide.name;
+  tideMetadataElement.textContent = `Hour ${lunar.tide.hour} of ${lunar.tide.durationHours}`;
+  tideTimeElement.textContent = `${formatTideTime(lunar)} into ${lunar.tide.name}`;
   document.querySelector('#fictional-date-accessible').textContent = formattedDate;
   jsonElement.textContent = snapshot;
   currentJsonSnapshot = snapshot;
