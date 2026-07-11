@@ -49,6 +49,16 @@ export const SEASONAL_CYCLE_LENGTH_DAYS = SEASONS.reduce(
   0
 );
 
+export const CELESTIAL_BODIES = [
+  { id: 'mercury', name: 'Mercury', symbol: '☿', orbitalPeriodDays: 89, earthProximityRank: 3 },
+  { id: 'venus', name: 'Venus', symbol: '♀', orbitalPeriodDays: 223, earthProximityRank: 1 },
+  { id: 'mars', name: 'Mars', symbol: '♂', orbitalPeriodDays: 683, earthProximityRank: 2 },
+  { id: 'jupiter', name: 'Jupiter', symbol: '♃', orbitalPeriodDays: 4337, earthProximityRank: 4 },
+  { id: 'saturn', name: 'Saturn', symbol: '♄', orbitalPeriodDays: 7919, earthProximityRank: 5 }
+];
+
+export const ORBITAL_SPAN_TIE_EPSILON = 1e-12;
+
 function assertValidUnixMilliseconds(realUnixMilliseconds) {
   if (typeof realUnixMilliseconds !== 'number') {
     throw new TypeError('realUnixMilliseconds must be a number');
@@ -129,6 +139,135 @@ export function calculateSeasonState(totalElapsedDays) {
   throw new Error('Season definitions do not cover the seasonal cycle');
 }
 
+function assertProgressFraction(progressFraction, name = 'progressFraction') {
+  if (typeof progressFraction !== 'number') {
+    throw new TypeError(`${name} must be a number`);
+  }
+  if (!Number.isFinite(progressFraction) || progressFraction < 0 || progressFraction >= 1) {
+    throw new RangeError(`${name} must be finite and at least 0 but less than 1`);
+  }
+}
+
+export function calculateCircularSpan(progressFractions) {
+  if (!Array.isArray(progressFractions) || progressFractions.length !== 3) {
+    throw new TypeError('progressFractions must contain exactly three values');
+  }
+  progressFractions.forEach((progressFraction, index) => {
+    assertProgressFraction(progressFraction, `progressFractions[${index}]`);
+  });
+
+  const [a, b, c] = [...progressFractions].sort((first, second) => first - second);
+  const gaps = [b - a, c - b, 1 - c + a];
+  const spanFraction = 1 - Math.max(...gaps);
+  return Math.min(1, Math.max(0, spanFraction));
+}
+
+function compareNumberVectors(firstVector, secondVector) {
+  for (let index = 0; index < firstVector.length; index += 1) {
+    if (firstVector[index] !== secondVector[index]) {
+      return firstVector[index] - secondVector[index];
+    }
+  }
+  return 0;
+}
+
+function getEarthProximityVector(candidate) {
+  return candidate.members
+    .map((member) => member.earthProximityRank)
+    .sort((first, second) => second - first);
+}
+
+function getCanonicalVector(candidate) {
+  return candidate.members
+    .map((member) => CELESTIAL_BODIES.findIndex((body) => body.id === member.id))
+    .sort((first, second) => first - second);
+}
+
+export function calculateDominantPull(bodyStates) {
+  if (!Array.isArray(bodyStates) || bodyStates.length !== CELESTIAL_BODIES.length) {
+    throw new TypeError('bodyStates must contain exactly five body states');
+  }
+  bodyStates.forEach((bodyState, index) => {
+    if (!bodyState || typeof bodyState !== 'object') {
+      throw new TypeError(`bodyStates[${index}] must be an object`);
+    }
+    assertProgressFraction(bodyState.progressFraction, `bodyStates[${index}].progressFraction`);
+    if (!Number.isInteger(bodyState.earthProximityRank)) {
+      throw new TypeError(`bodyStates[${index}].earthProximityRank must be an integer`);
+    }
+  });
+
+  const candidates = [];
+  for (let first = 0; first < bodyStates.length - 2; first += 1) {
+    for (let second = first + 1; second < bodyStates.length - 1; second += 1) {
+      for (let third = second + 1; third < bodyStates.length; third += 1) {
+        const members = [bodyStates[first], bodyStates[second], bodyStates[third]];
+        candidates.push({
+          members,
+          spanFraction: calculateCircularSpan(members.map((member) => member.progressFraction))
+        });
+      }
+    }
+  }
+
+  const minimumSpan = Math.min(...candidates.map((candidate) => candidate.spanFraction));
+  const tiedCandidates = candidates.filter(
+    (candidate) => Math.abs(candidate.spanFraction - minimumSpan) <= ORBITAL_SPAN_TIE_EPSILON
+  );
+  tiedCandidates.sort((firstCandidate, secondCandidate) => {
+    const proximityComparison = compareNumberVectors(
+      getEarthProximityVector(firstCandidate),
+      getEarthProximityVector(secondCandidate)
+    );
+    return proximityComparison || compareNumberVectors(
+      getCanonicalVector(firstCandidate),
+      getCanonicalVector(secondCandidate)
+    );
+  });
+
+  const winner = tiedCandidates[0];
+  const spanFraction = winner.spanFraction;
+  return {
+    members: [...winner.members]
+      .sort((first, second) => first.earthProximityRank - second.earthProximityRank)
+      .map(({ id, name, symbol }) => ({ id, name, symbol })),
+    selectionMethod: 'smallest_circular_arc',
+    evaluatedCombinationCount: candidates.length,
+    spanFraction,
+    spanPercentage: spanFraction * 100,
+    alignmentPercentage: (1 - spanFraction) * 100,
+    tieBreak: {
+      applied: tiedCandidates.length > 1,
+      method: 'earth_proximity',
+      tiedCombinationCount: tiedCandidates.length
+    }
+  };
+}
+
+export function calculateOrbitalState(totalFictionalSeconds) {
+  assertValidTotalFictionalSeconds(totalFictionalSeconds);
+
+  const bodies = CELESTIAL_BODIES.map((body) => {
+    const orbitalPeriodSeconds = body.orbitalPeriodDays * FICTIONAL_SECONDS_PER_DAY;
+    const completedOrbits = Math.floor(totalFictionalSeconds / orbitalPeriodSeconds);
+    const secondsIntoOrbit = totalFictionalSeconds % orbitalPeriodSeconds;
+    const progressFraction = secondsIntoOrbit / orbitalPeriodSeconds;
+    return {
+      ...body,
+      completedOrbits,
+      orbit: completedOrbits + 1,
+      dayOfOrbit: Math.floor(secondsIntoOrbit / FICTIONAL_SECONDS_PER_DAY) + 1,
+      progressFraction,
+      progressPercentage: progressFraction * 100
+    };
+  });
+
+  return {
+    bodies,
+    dominantPull: calculateDominantPull(bodies)
+  };
+}
+
 /**
  * Convert elapsed fictional seconds to the independent fictional lunar state.
  * It deliberately shares only seconds, minutes, and hours with the calendar.
@@ -182,6 +321,7 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
   const totalSeconds = Math.floor(
     (realUnixMilliseconds - CALENDAR_EPOCH_UNIX_MS) / REAL_MS_PER_FICTIONAL_SECOND
   );
+  const orbits = calculateOrbitalState(totalSeconds);
   let remainingSeconds = totalSeconds;
   const second = remainingSeconds % FICTIONAL_SECONDS_PER_MINUTE;
   remainingSeconds = Math.floor(remainingSeconds / FICTIONAL_SECONDS_PER_MINUTE);
@@ -232,7 +372,8 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
     period,
     time: { hour, minute, second },
     season: calculateSeasonState(totalElapsedDays),
-    lunar: calculateLunarState(totalSeconds)
+    lunar: calculateLunarState(totalSeconds),
+    orbits
   };
 }
 
@@ -255,6 +396,21 @@ export function formatSeason(seasonValue) {
   return `${seasonValue.name} · Day ${seasonValue.day} of ${seasonValue.lengthDays} · Seasonal Cycle ${seasonValue.cycle}`;
 }
 
+export function formatOrbitalPercentage(progressFraction) {
+  if (typeof progressFraction !== 'number') {
+    throw new TypeError('progressFraction must be a number');
+  }
+  if (!Number.isFinite(progressFraction) || progressFraction < 0 || progressFraction > 1) {
+    throw new RangeError('progressFraction must be finite and between 0 and 1');
+  }
+
+  const truncatedPercentage = Math.trunc(progressFraction * 100 * 1_000_000) / 1_000_000;
+  const safePercentage = progressFraction < 1
+    ? Math.min(truncatedPercentage, 99.999999)
+    : 100;
+  return `${safePercentage.toFixed(6)}%`;
+}
+
 export function formatFictionalDate(calendarValue) {
   const { year, period } = calendarValue;
   if (period.type === 'month') {
@@ -269,7 +425,7 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
   const formattedLunarTime = formatLunarTime(calendarValue.lunar);
   const formattedTideTime = formatTideTime(calendarValue.lunar);
   return {
-    calendarVersion: 'v3',
+    calendarVersion: 'v4',
     source: {
       unixMilliseconds: realUnixMilliseconds,
       isoUtc: new Date(realUnixMilliseconds).toISOString()
@@ -320,6 +476,31 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
             second: calendarValue.lunar.tide.timeInPeriod.second,
             formatted: formattedTideTime
           }
+        }
+      },
+      orbits: {
+        bodies: calendarValue.orbits.bodies.map((body) => ({
+          id: body.id,
+          name: body.name,
+          symbol: body.symbol,
+          orbitalPeriodDays: body.orbitalPeriodDays,
+          earthProximityRank: body.earthProximityRank,
+          orbit: body.orbit,
+          dayOfOrbit: body.dayOfOrbit,
+          progressFraction: body.progressFraction,
+          progressPercentage: body.progressPercentage,
+          formattedProgress: formatOrbitalPercentage(body.progressFraction)
+        })),
+        dominantPull: {
+          members: calendarValue.orbits.dominantPull.members,
+          selectionMethod: calendarValue.orbits.dominantPull.selectionMethod,
+          evaluatedCombinationCount: calendarValue.orbits.dominantPull.evaluatedCombinationCount,
+          spanFraction: calendarValue.orbits.dominantPull.spanFraction,
+          spanPercentage: calendarValue.orbits.dominantPull.spanPercentage,
+          formattedSpan: formatOrbitalPercentage(calendarValue.orbits.dominantPull.spanFraction),
+          alignmentPercentage: calendarValue.orbits.dominantPull.alignmentPercentage,
+          formattedAlignment: formatOrbitalPercentage(1 - calendarValue.orbits.dominantPull.spanFraction),
+          tieBreak: calendarValue.orbits.dominantPull.tieBreak
         }
       },
       formattedDate: formatFictionalDate(calendarValue)

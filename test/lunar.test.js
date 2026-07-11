@@ -146,10 +146,10 @@ test('the lunar cycle remains independent across the calendar year boundary', ()
   assert.equal(value.lunar.tide.hour, 12);
 });
 
-test('v3 JSON keeps calendar and lunar fields while adding season data', () => {
+test('v4 JSON keeps calendar, season, and lunar fields while adding orbital data', () => {
   const value = calculateFictionalCalendar(CALENDAR_EPOCH_UNIX_MS);
   const snapshot = createCalendarJson(value, CALENDAR_EPOCH_UNIX_MS);
-  assert.equal(snapshot.calendarVersion, 'v3');
+  assert.equal(snapshot.calendarVersion, 'v4');
   assert.equal(snapshot.fictional.year, 1);
   assert.equal(snapshot.fictional.period.month, 1);
   assert.equal(snapshot.fictional.time.formatted, '00:00:00');
@@ -161,6 +161,7 @@ test('v3 JSON keeps calendar and lunar fields while adding season data', () => {
   assert.equal(snapshot.fictional.lunar.tide.hour, 1);
   assert.equal(snapshot.fictional.lunar.tide.timeInPeriod.formatted, '00:00:00');
   assert.equal(snapshot.fictional.season.name, 'Bones');
+  assert.equal(snapshot.fictional.orbits.bodies.length, 5);
 });
 
 test('lunar and tide formatting preserves fictional clock ranges', () => {

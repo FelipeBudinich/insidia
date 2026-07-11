@@ -71,7 +71,7 @@ function assertSecurityHeaders(headers) {
   assert.ok(!csp.includes("'unsafe-eval'"));
 }
 
-test('GET and HEAD root serve the v4 document with season fallback text and security headers', async () => {
+test('GET and HEAD root serve the v5 document with orbital fallback text and security headers', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/');
@@ -79,8 +79,13 @@ test('GET and HEAD root serve the v4 document with season fallback text and secu
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-cache');
-    assert.match(getResponse.body, /aria-label="Application version 4">v4/);
+    assert.match(getResponse.body, /aria-label="Application version 5">v5/);
     assert.match(getResponse.body, /id="season-name" class="season-name">Bones/);
+    for (const bodyName of ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']) {
+      assert.match(getResponse.body, new RegExp(` ${bodyName}</p>`));
+    }
+    assert.match(getResponse.body, /Dominant Pull/);
+    assert.match(getResponse.body, /Venus · Mars · Mercury/);
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -91,7 +96,7 @@ test('GET and HEAD root serve the v4 document with season fallback text and secu
   }
 });
 
-test('GET and HEAD health return the v4 availability response', async () => {
+test('GET and HEAD health return the v5 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -99,7 +104,7 @@ test('GET and HEAD health return the v4 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v4"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v5"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -294,16 +299,17 @@ test('Procfile and package metadata are ready for Heroku', async () => {
   ]);
   const packageJson = JSON.parse(packageText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '4.0.0');
+  assert.equal(packageJson.version, '5.0.0');
   assert.equal(packageJson.engines.node, '24.x');
 });
 
-test('calendar JSON schema is v3 with season, lunar, and tide state', () => {
+test('calendar JSON schema is v4 with season, lunar, tide, and orbital state', () => {
   const snapshot = createCalendarJson(calculateFictionalCalendar(0), 0);
-  assert.equal(snapshot.calendarVersion, 'v3');
+  assert.equal(snapshot.calendarVersion, 'v4');
   assert.equal(snapshot.fictional.season.name, 'Bones');
   assert.equal(snapshot.fictional.lunar.phase.name, 'Rebirth');
   assert.equal(snapshot.fictional.lunar.tide.name, 'Low');
+  assert.equal(snapshot.fictional.orbits.bodies.length, 5);
 });
 
 async function findAvailablePort() {

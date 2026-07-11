@@ -6,6 +6,7 @@ import {
   formatFictionalDate,
   formatFictionalTime,
   formatLunarTime,
+  formatOrbitalPercentage,
   formatTideTime
 } from './calendar.js';
 
@@ -22,6 +23,20 @@ const lunarTimeElement = document.querySelector('#lunar-time');
 const tideNameElement = document.querySelector('#tide-name');
 const tideMetadataElement = document.querySelector('#tide-metadata');
 const tideTimeElement = document.querySelector('#tide-time');
+const orbitalBodyElements = new Map(
+  [...document.querySelectorAll('[data-orbital-body]')].map((row) => [
+    row.dataset.orbitalBody,
+    {
+      metadata: row.querySelector('[data-orbital-metadata]'),
+      percentage: row.querySelector('[data-orbital-percentage]'),
+      progress: row.querySelector('progress')
+    }
+  ])
+);
+const dominantPullMembersElement = document.querySelector('#dominant-pull-members');
+const dominantPullSpanElement = document.querySelector('#dominant-pull-span');
+const dominantPullAlignmentElement = document.querySelector('#dominant-pull-alignment');
+const dominantPullSelectionElement = document.querySelector('#dominant-pull-selection');
 const jsonElement = document.querySelector('#json-output');
 const copyButton = document.querySelector('#copy-json');
 const copyStatusElement = document.querySelector('#copy-status');
@@ -33,7 +48,7 @@ function render(realUnixMilliseconds = Date.now()) {
   const calendarValue = calculateFictionalCalendar(realUnixMilliseconds);
   const formattedTime = formatFictionalTime(calendarValue);
   const formattedDate = formatFictionalDate(calendarValue);
-  const { lunar, season } = calendarValue;
+  const { lunar, orbits, season } = calendarValue;
   const snapshot = JSON.stringify(createCalendarJson(calendarValue, realUnixMilliseconds), null, 2);
 
   timeElement.textContent = formattedTime;
@@ -51,6 +66,19 @@ function render(realUnixMilliseconds = Date.now()) {
   tideNameElement.textContent = lunar.tide.name;
   tideMetadataElement.textContent = `Hour ${lunar.tide.hour} of ${lunar.tide.durationHours}`;
   tideTimeElement.textContent = `${formatTideTime(lunar)} into ${lunar.tide.name}`;
+  for (const body of orbits.bodies) {
+    const bodyElements = orbitalBodyElements.get(body.id);
+    bodyElements.metadata.textContent = `Orbit ${body.orbit} · Day ${body.dayOfOrbit} of ${body.orbitalPeriodDays}`;
+    bodyElements.percentage.textContent = formatOrbitalPercentage(body.progressFraction);
+    bodyElements.progress.value = body.progressFraction;
+  }
+  const { dominantPull } = orbits;
+  dominantPullMembersElement.textContent = dominantPull.members.map((member) => member.name).join(' · ');
+  dominantPullSpanElement.textContent = `Circular span ${formatOrbitalPercentage(dominantPull.spanFraction)}`;
+  dominantPullAlignmentElement.textContent = `Alignment ${formatOrbitalPercentage(1 - dominantPull.spanFraction)}`;
+  dominantPullSelectionElement.textContent = dominantPull.tieBreak.applied
+    ? `Earth-proximity tie-break applied among ${dominantPull.tieBreak.tiedCombinationCount} tied trios`
+    : `Unique smallest circular arc among ${dominantPull.evaluatedCombinationCount} trios`;
   document.querySelector('#fictional-date-accessible').textContent = formattedDate;
   jsonElement.textContent = snapshot;
   currentJsonSnapshot = snapshot;

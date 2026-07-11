@@ -21,6 +21,7 @@ body {
 .calendar-card,
 .season-section,
 .lunar-section,
+.orbital-section,
 .json-details {
   border: 1px solid color-mix(in srgb, CanvasText 24%, transparent);
   border-radius: 0.75rem;
@@ -56,7 +57,8 @@ body {
 .metadata { margin: 1.75rem 0 0; color: color-mix(in srgb, CanvasText 72%, Canvas); line-height: 1.5; }
 
 .season-section,
-.lunar-section { margin-top: 1rem; padding: clamp(1.25rem, 4vw, 1.75rem); }
+.lunar-section,
+.orbital-section { margin-top: 1rem; padding: clamp(1.25rem, 4vw, 1.75rem); }
 .section-label,
 .group-label { margin: 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .section-label { margin-bottom: 1rem; }
@@ -73,6 +75,23 @@ body {
 .lunar-time { margin: 0.25rem 0 0; line-height: 1.45; }
 .lunar-metadata { color: color-mix(in srgb, CanvasText 78%, Canvas); }
 .lunar-time { color: color-mix(in srgb, CanvasText 68%, Canvas); font-variant-numeric: tabular-nums; }
+
+.orbital-bodies { display: grid; gap: 0.75rem; }
+.orbital-body { min-width: 0; padding: 0.9rem; border: 1px solid color-mix(in srgb, CanvasText 16%, transparent); border-radius: 0.5rem; }
+.orbital-body p { margin: 0; }
+.orbital-name { font-size: 1.05rem; font-weight: 700; }
+.orbital-period { margin-top: 0.15rem !important; color: color-mix(in srgb, CanvasText 64%, Canvas); font-size: 0.8rem; }
+.orbital-metadata { margin-top: 0.65rem !important; color: color-mix(in srgb, CanvasText 78%, Canvas); font-size: 0.9rem; }
+.orbital-progress-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
+.orbital-progress-row progress { width: 100%; }
+.orbital-percentage { font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.dominant-pull { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent); }
+.dominant-pull-members { margin: 0.35rem 0 0; font-size: 1.2rem; font-weight: 700; }
+.dominant-pull-detail,
+.dominant-pull-selection { margin: 0.25rem 0 0; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.dominant-pull-selection,
+.orbital-clarification { color: color-mix(in srgb, CanvasText 68%, Canvas); }
+.orbital-clarification { margin: 1rem 0 0; font-size: 0.8rem; line-height: 1.45; }
 
 .json-details { margin-top: 1rem; overflow: hidden; }
 summary { cursor: pointer; padding: 1rem 1.2rem; font-weight: 650; }
@@ -96,6 +115,7 @@ footer { margin-top: 1rem; color: color-mix(in srgb, CanvasText 65%, Canvas); fo
 @media (min-width: 38rem) {
   .lunar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; }
   .lunar-group + .lunar-group { border-top: 0; border-left: 1px solid color-mix(in srgb, CanvasText 18%, transparent); padding-top: 0; padding-left: 1.5rem; }
+  .orbital-bodies { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto; } }
