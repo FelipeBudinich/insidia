@@ -77,7 +77,8 @@ function render(realUnixMilliseconds = Date.now()) {
   tideTimeElement.textContent = `${formatTideTime(lunar)} into ${lunar.tide.name}`;
   for (const body of orbits.bodies) {
     const bodyElements = orbitalBodyElements.get(body.id);
-    bodyElements.metadata.textContent = `Orbit ${body.orbit} · Day ${body.dayOfOrbit} of ${body.orbitalPeriodDays}`;
+    const periodLength = body.orbitalPeriodLunarDays ?? body.orbitalPeriodDays;
+    bodyElements.metadata.textContent = `Orbit ${body.orbit} · Day ${body.dayOfOrbit} of ${periodLength}`;
     bodyElements.percentage.textContent = formatOrbitalPercentage(body.progressFraction);
     bodyElements.progress.value = body.progressFraction;
   }

@@ -49,9 +49,9 @@ Lunar days and tides do not reset at calendar midnight, calendar month boundarie
 | ♂ Mars | 683 fictional days |
 | ♃ Jupiter | 4,337 fictional days |
 | ♄ Saturn | 7,919 fictional days |
-| ☾ Moon | 29 fictional days |
+| ☾ Moon | 13 lunar days (403 fictional hours) |
 
-Orbital periods use the existing 23-hour fictional calendar day, not the 31-hour lunar day. All six bodies begin at 0% at the epoch and advance uniformly through independent circular normalized orbits. The Moon's 29-day orbit is separate from the 13-phase lunar cycle. Progress includes fictional hours, minutes, and seconds rather than changing only at midnight. At each exact orbital boundary, progress resets from just below 100% to 0% and the body's one-based orbit count increments.
+Planetary orbital periods use the existing 23-hour fictional calendar day. The Moon instead completes one orbit over the 13-phase lunar cycle: 13 lunar days of 31 fictional hours, or 403 fictional hours total. All six bodies begin at 0% at the epoch and advance uniformly through independent circular normalized orbits. Progress includes fictional hours, minutes, and seconds rather than changing only at a day boundary. At each exact orbital boundary, progress resets from just below 100% to 0% and the body's one-based orbit count increments.
 
 The model has no real orbital eccentricity, inclination, retrograde motion, physical position, or real astronomical data. On its circular scale, 0% and 100% are the same point.
 
@@ -59,7 +59,7 @@ The model has no real orbital eccentricity, inclination, retrograde motion, phys
 
 Dominant Pull evaluates all twenty possible three-body combinations and selects the trio contained within the smallest circular phase arc. Circular wrap-around is required: 99%, 0%, and 1% span 2%, not 99%.
 
-Fixed priority is used only to break equal-span ties. Its order is Venus, Mars, Mercury, Jupiter, Saturn, Moon. Tied trios are compared by their lowest-priority member first, then their next-lowest-priority member. At the epoch all bodies are aligned, so the tie-break selects Venus, Mars, and Mercury. A strictly narrower trio always wins regardless of priority.
+Fixed priority is used only to break equal-span ties. Its order is Moon, Venus, Mars, Mercury, Jupiter, Saturn. Tied trios are compared by their lowest-priority member first, then their next-lowest-priority member. At the epoch all bodies are aligned, so the tie-break selects Moon, Venus, and Mars. A strictly narrower trio always wins regardless of priority.
 
 Alignment percentage is 100 minus the circular-span percentage. Dominant Pull is a fictional orbital-phase label, not real gravity, physical distance, or an ephemeris calculation.
 
@@ -78,7 +78,7 @@ At Unix epoch `1970-01-01T00:00:00.000Z`, Insidia begins with:
 - **Lunar:** Cycle 1, Day 1 of 13, Rebirth, `00:00:00`
 - **Tide:** Low, Hour 1 of 17
 - **Orbits:** Mercury, Venus, Mars, Jupiter, Saturn, and Moon at 0%
-- **Dominant Pull:** Venus, Mars, Mercury; circular span 0%; alignment 100%; fixed-priority tie-break applied
+- **Dominant Pull:** Moon, Venus, Mars; circular span 0%; alignment 100%; fixed-priority tie-break applied
 
 ## Features
 
@@ -229,7 +229,7 @@ npm test
 npm audit --omit=dev
 ```
 
-The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, orbital resets, Moon independence, circular wrap-around, all twenty Dominant Pull combinations, fixed-priority tie-break rules, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
+The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, planetary and Moon orbital resets, Moon/lunar-cycle synchronization, circular wrap-around, all twenty Dominant Pull combinations, fixed-priority tie-break rules, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
 
 ## License
 

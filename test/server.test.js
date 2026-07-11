@@ -85,7 +85,9 @@ test('GET and HEAD root serve the v5.3 document with Moon and progress fallback 
       assert.match(getResponse.body, new RegExp(` ${bodyName}</p>`));
     }
     assert.match(getResponse.body, /Dominant Pull/);
-    assert.match(getResponse.body, /Venus · Mars · Mercury/);
+    assert.match(getResponse.body, /Moon · Venus · Mars/);
+    assert.match(getResponse.body, /13 lunar days/);
+    assert.ok(!getResponse.body.includes('29' + ' fictional days'));
     for (const progressLabel of ['Lunar Cycle', 'Current Phase', 'Current Season', 'Current Year', 'Current Day', 'Current Hour']) {
       assert.match(getResponse.body, new RegExp(`>${progressLabel}<`));
     }
@@ -316,7 +318,7 @@ test('calendar JSON schema is v7 with Moon, progress, and all existing state', (
   assert.equal(Object.keys(snapshot.fictional.progress).length, 6);
 });
 
-test('retired orbital tie-break metadata names are absent from source and documentation', async () => {
+test('retired orbital metadata and Moon duration references are absent', async () => {
   const projectFiles = [
     'README.md',
     'public/app.js',
@@ -328,7 +330,14 @@ test('retired orbital tie-break metadata names are absent from source and docume
     'test/progress.test.js',
     'test/season.test.js'
   ];
-  const retiredNames = ['earth' + 'ProximityRank', 'earth' + '_proximity'];
+  const retiredMoonDayCount = String(20 + 9);
+  const retiredNames = [
+    'earth' + 'ProximityRank',
+    'earth' + '_proximity',
+    'orbitalPeriodDays: ' + retiredMoonDayCount,
+    retiredMoonDayCount + ' fictional days',
+    "Moon's " + retiredMoonDayCount + '-day orbit'
+  ];
   for (const projectFile of projectFiles) {
     const content = await readFile(path.join(projectDirectory, projectFile), 'utf8');
     for (const retiredName of retiredNames) {

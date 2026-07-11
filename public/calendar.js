@@ -50,12 +50,12 @@ export const SEASONAL_CYCLE_LENGTH_DAYS = SEASONS.reduce(
 );
 
 export const CELESTIAL_BODIES = [
-  { id: 'mercury', name: 'Mercury', symbol: '☿', orbitalPeriodDays: 89, tieBreakPriorityRank: 3 },
-  { id: 'venus', name: 'Venus', symbol: '♀', orbitalPeriodDays: 223, tieBreakPriorityRank: 1 },
-  { id: 'mars', name: 'Mars', symbol: '♂', orbitalPeriodDays: 683, tieBreakPriorityRank: 2 },
-  { id: 'jupiter', name: 'Jupiter', symbol: '♃', orbitalPeriodDays: 4337, tieBreakPriorityRank: 4 },
-  { id: 'saturn', name: 'Saturn', symbol: '♄', orbitalPeriodDays: 7919, tieBreakPriorityRank: 5 },
-  { id: 'moon', name: 'Moon', symbol: '☾', orbitalPeriodDays: 29, tieBreakPriorityRank: 6 }
+  { id: 'mercury', name: 'Mercury', symbol: '☿', orbitalPeriodDays: 89, tieBreakPriorityRank: 4 },
+  { id: 'venus', name: 'Venus', symbol: '♀', orbitalPeriodDays: 223, tieBreakPriorityRank: 2 },
+  { id: 'mars', name: 'Mars', symbol: '♂', orbitalPeriodDays: 683, tieBreakPriorityRank: 3 },
+  { id: 'jupiter', name: 'Jupiter', symbol: '♃', orbitalPeriodDays: 4337, tieBreakPriorityRank: 5 },
+  { id: 'saturn', name: 'Saturn', symbol: '♄', orbitalPeriodDays: 7919, tieBreakPriorityRank: 6 },
+  { id: 'moon', name: 'Moon', symbol: '☾', orbitalPeriodLunarDays: 13, tieBreakPriorityRank: 1 }
 ];
 
 export const ORBITAL_SPAN_TIE_EPSILON = 1e-12;
@@ -257,7 +257,16 @@ export function calculateOrbitalState(totalFictionalSeconds) {
   assertValidTotalFictionalSeconds(totalFictionalSeconds);
 
   const bodies = CELESTIAL_BODIES.map((body) => {
-    const orbitalPeriodSeconds = body.orbitalPeriodDays * FICTIONAL_SECONDS_PER_DAY;
+    const usesLunarDays = Number.isInteger(body.orbitalPeriodLunarDays);
+    const orbitalUnitSeconds = usesLunarDays
+      ? FICTIONAL_SECONDS_PER_LUNAR_DAY
+      : FICTIONAL_SECONDS_PER_DAY;
+    const orbitalPeriodUnits = usesLunarDays
+      ? body.orbitalPeriodLunarDays
+      : body.orbitalPeriodDays;
+    const orbitalPeriodSeconds = usesLunarDays
+      ? FICTIONAL_SECONDS_PER_LUNAR_CYCLE
+      : orbitalPeriodUnits * orbitalUnitSeconds;
     const completedOrbits = Math.floor(totalFictionalSeconds / orbitalPeriodSeconds);
     const secondsIntoOrbit = totalFictionalSeconds % orbitalPeriodSeconds;
     const progressFraction = secondsIntoOrbit / orbitalPeriodSeconds;
@@ -265,7 +274,7 @@ export function calculateOrbitalState(totalFictionalSeconds) {
       ...body,
       completedOrbits,
       orbit: completedOrbits + 1,
-      dayOfOrbit: Math.floor(secondsIntoOrbit / FICTIONAL_SECONDS_PER_DAY) + 1,
+      dayOfOrbit: Math.floor(secondsIntoOrbit / orbitalUnitSeconds) + 1,
       progressFraction,
       progressPercentage: progressFraction * 100
     };
@@ -545,7 +554,9 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
           id: body.id,
           name: body.name,
           symbol: body.symbol,
-          orbitalPeriodDays: body.orbitalPeriodDays,
+          ...(Number.isInteger(body.orbitalPeriodLunarDays)
+            ? { orbitalPeriodLunarDays: body.orbitalPeriodLunarDays }
+            : { orbitalPeriodDays: body.orbitalPeriodDays }),
           tieBreakPriorityRank: body.tieBreakPriorityRank,
           orbit: body.orbit,
           dayOfOrbit: body.dayOfOrbit,
