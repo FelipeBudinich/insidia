@@ -13,6 +13,7 @@ import {
   calculateDominantPull,
   calculateFictionalCalendar,
   calculateOrbitalState,
+  calculateOrbitalPulls,
   createCalendarJson,
   formatOrbitalPercentage
 } from '../public/calendar.js';
@@ -30,6 +31,10 @@ function createSyntheticStates(progressFractions) {
 
 function memberIds(dominantPull) {
   return dominantPull.members.map((member) => member.id);
+}
+
+function trioKey(pull) {
+  return [...memberIds(pull)].sort().join(',');
 }
 
 test('celestial definitions preserve canonical display and fixed-priority order', () => {
@@ -164,8 +169,10 @@ test('circular span rejects invalid input without mutating valid input', () => {
 });
 
 test('epoch Dominant Pull uses fixed priority across all twenty tied trios', () => {
-  const dominantPull = calculateOrbitalState(0).dominantPull;
+  const { dominantPull, minorPull, negativePull } = calculateOrbitalState(0);
   assert.deepEqual(memberIds(dominantPull), ['moon', 'venus', 'mars']);
+  assert.deepEqual(memberIds(minorPull), ['moon', 'venus', 'mercury']);
+  assert.deepEqual(memberIds(negativePull), ['moon', 'venus', 'mars']);
   assert.equal(dominantPull.spanFraction, 0);
   assert.equal(dominantPull.spanPercentage, 0);
   assert.equal(dominantPull.alignmentPercentage, 100);
@@ -173,6 +180,72 @@ test('epoch Dominant Pull uses fixed priority across all twenty tied trios', () 
   assert.equal(dominantPull.tieBreak.applied, true);
   assert.equal(dominantPull.tieBreak.method, 'fixed_priority');
   assert.equal(dominantPull.tieBreak.tiedCombinationCount, 20);
+  for (const pull of [dominantPull, minorPull, negativePull]) {
+    assert.equal(pull.evaluatedCombinationCount, 20);
+    assert.equal(pull.spanFraction, 0);
+    assert.equal(pull.tieBreak.applied, true);
+    assert.equal(pull.tieBreak.tiedCombinationCount, 20);
+  }
+  assert.notEqual(trioKey(dominantPull), trioKey(minorPull));
+  assert.equal(trioKey(dominantPull), trioKey(negativePull));
+});
+
+test('Minor Pull is the distinct second-ranked trio and does not skip equal spans', () => {
+  const pulls = calculateOrbitalPulls(createSyntheticStates([0, 0, 0.2, 0.4, 0.6, 0.8]));
+  assert.deepEqual(memberIds(pulls.dominantPull), ['moon', 'venus', 'mercury']);
+  assert.deepEqual(memberIds(pulls.minorPull), ['venus', 'mars', 'mercury']);
+  assert.equal(pulls.minorPull.spanFraction, pulls.dominantPull.spanFraction);
+  assert.equal(pulls.minorPull.tieBreak.applied, true);
+  assert.equal(pulls.minorPull.tieBreak.tiedCombinationCount, 2);
+  assert.notEqual(trioKey(pulls.dominantPull), trioKey(pulls.minorPull));
+});
+
+test('Negative Pull selects the largest raw span', () => {
+  const pulls = calculateOrbitalPulls(createSyntheticStates([0, 0.01, 0.02, 0.4, 0.7, 0.8]));
+  assert.deepEqual(memberIds(pulls.dominantPull), ['venus', 'mars', 'mercury']);
+  assert.deepEqual(memberIds(pulls.minorPull), ['moon', 'venus', 'mercury']);
+  assert.deepEqual(memberIds(pulls.negativePull), ['mars', 'jupiter', 'saturn']);
+  assert.ok(pulls.negativePull.spanFraction > pulls.minorPull.spanFraction);
+  assert.equal(pulls.negativePull.tieBreak.applied, false);
+});
+
+test('fixed priority resolves tied largest spans', () => {
+  const { negativePull } = calculateOrbitalPulls(
+    createSyntheticStates([0, 0, 0.2, 0.4, 0.6, 0.8])
+  );
+  assert.deepEqual(memberIds(negativePull), ['moon', 'venus', 'jupiter']);
+  assert.equal(negativePull.tieBreak.applied, true);
+  assert.equal(negativePull.tieBreak.tiedCombinationCount, 8);
+});
+
+test('a strictly larger span wins Negative Pull regardless of fixed priority', () => {
+  const { negativePull } = calculateOrbitalPulls(
+    createSyntheticStates([0, 0.01, 0.02, 0.4, 0.7, 0.8])
+  );
+  assert.deepEqual(memberIds(negativePull), ['mars', 'jupiter', 'saturn']);
+  assert.equal(negativePull.tieBreak.applied, false);
+});
+
+test('Dominant and Minor Pull remain distinct across representative rankings', () => {
+  for (const progressFractions of [
+    [0, 0, 0, 0, 0, 0],
+    [0, 0.01, 0.02, 0.4, 0.7, 0.8],
+    [0.99, 0, 0.01, 0.33, 0.66, 0.5],
+    [0, 0.2, 0.5, 0.501, 0.502, 0.8]
+  ]) {
+    const pulls = calculateOrbitalPulls(createSyntheticStates(progressFractions));
+    assert.notEqual(trioKey(pulls.dominantPull), trioKey(pulls.minorPull));
+  }
+});
+
+test('pull ranking uses raw spans when formatted percentages are identical', () => {
+  const pulls = calculateOrbitalPulls(
+    createSyntheticStates([0, 0.1, 0.2, 0.300000001, 0.4, 0.5])
+  );
+  assert.deepEqual(memberIds(pulls.dominantPull), ['moon', 'jupiter', 'saturn']);
+  assert.deepEqual(memberIds(pulls.minorPull), ['venus', 'mars', 'mercury']);
+  assert.ok(pulls.dominantPull.spanFraction < pulls.minorPull.spanFraction);
+  assert.equal(pulls.dominantPull.formattedSpan, pulls.minorPull.formattedSpan);
 });
 
 test('Dominant Pull selects the basic closest trio', () => {
@@ -277,9 +350,9 @@ test('Mercury orbit reset does not reset independent fictional systems', () => {
   assert.equal(calendarValue.lunar.tide.hour, 2);
 });
 
-test('schema v7 preserves existing data and adds the Moon orbital shape', () => {
+test('schema v8 preserves orbital bodies and exposes all three pulls', () => {
   const snapshot = createCalendarJson(calculateFictionalCalendar(CALENDAR_EPOCH_UNIX_MS), CALENDAR_EPOCH_UNIX_MS);
-  assert.equal(snapshot.calendarVersion, 'v7');
+  assert.equal(snapshot.calendarVersion, 'v8');
   assert.equal(snapshot.fictional.year, 1);
   assert.equal(snapshot.fictional.period.month, 1);
   assert.equal(snapshot.fictional.time.formatted, '00:00:00');
@@ -298,7 +371,7 @@ test('schema v7 preserves existing data and adds the Moon orbital shape', () => 
     assert.equal(body.progressPercentage, 0);
     assert.equal(body.formattedProgress, '0.000000%');
   }
-  const dominantPull = snapshot.fictional.orbits.dominantPull;
+  const { dominantPull, minorPull, negativePull } = snapshot.fictional.orbits;
   const moon = snapshot.fictional.orbits.bodies.at(-1);
   assert.deepEqual(Object.keys(moon), [
     'id', 'name', 'symbol', 'orbitalPeriodLunarDays', 'tieBreakPriorityRank',
@@ -310,16 +383,22 @@ test('schema v7 preserves existing data and adds the Moon orbital shape', () => 
   assert.equal(moon.progressPercentage, 0);
   assert.equal(moon.formattedProgress, '0.000000%');
   assert.deepEqual(memberIds(dominantPull), ['moon', 'venus', 'mars']);
+  assert.deepEqual(memberIds(minorPull), ['moon', 'venus', 'mercury']);
+  assert.deepEqual(memberIds(negativePull), ['moon', 'venus', 'mars']);
   assert.equal(dominantPull.selectionMethod, 'smallest_circular_arc');
-  assert.equal(dominantPull.evaluatedCombinationCount, 20);
-  assert.equal(dominantPull.spanFraction, 0);
-  assert.equal(dominantPull.spanPercentage, 0);
-  assert.equal(dominantPull.formattedSpan, '0.000000%');
-  assert.equal(dominantPull.alignmentPercentage, 100);
-  assert.equal(dominantPull.formattedAlignment, '100.000000%');
-  assert.deepEqual(dominantPull.tieBreak, {
-    applied: true, method: 'fixed_priority', tiedCombinationCount: 20
-  });
+  assert.equal(minorPull.selectionMethod, 'second_ranked_circular_arc');
+  assert.equal(negativePull.selectionMethod, 'largest_circular_arc');
+  for (const pull of [dominantPull, minorPull, negativePull]) {
+    assert.equal(pull.evaluatedCombinationCount, 20);
+    assert.equal(pull.spanFraction, 0);
+    assert.equal(pull.spanPercentage, 0);
+    assert.equal(pull.formattedSpan, '0.000000%');
+    assert.equal(pull.alignmentPercentage, 100);
+    assert.equal(pull.formattedAlignment, '100.000000%');
+    assert.deepEqual(pull.tieBreak, {
+      applied: true, method: 'fixed_priority', tiedCombinationCount: 20
+    });
+  }
   assert.deepEqual(
     { id: moon.id, orbitalPeriodLunarDays: moon.orbitalPeriodLunarDays, tieBreakPriorityRank: moon.tieBreakPriorityRank },
     { id: 'moon', orbitalPeriodLunarDays: 13, tieBreakPriorityRank: 1 }

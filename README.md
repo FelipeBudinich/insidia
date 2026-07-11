@@ -1,8 +1,8 @@
 # Insidia
 
-Insidia is a live fictional clock, calendar, season cycle, lunar cycle, tide cycle, and five-body orbital alignment model. All fictional calculations run in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
+Insidia is a live fictional clock, calendar, season cycle, lunar cycle, tide cycle, and six-body orbital alignment model. All fictional calculations run in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
 
-**Current release:** v5.3
+**Current release:** v5.4
 
 ## Fictional time and calendar
 
@@ -55,13 +55,17 @@ Planetary orbital periods use the existing 23-hour fictional calendar day. The M
 
 The model has no real orbital eccentricity, inclination, retrograde motion, physical position, or real astronomical data. On its circular scale, 0% and 100% are the same point.
 
-## Dominant Pull
+## Orbital Pulls
 
-Dominant Pull evaluates all twenty possible three-body combinations and selects the trio contained within the smallest circular phase arc. Circular wrap-around is required: 99%, 0%, and 1% span 2%, not 99%.
+The orbital pull model evaluates all twenty possible three-body combinations once per timestamp using raw, unrounded progress fractions. It ranks candidates in deterministic epsilon groups while preserving circular wrap-around: 99%, 0%, and 1% span 2%, not 99%.
 
-Fixed priority is used only to break equal-span ties. Its order is Moon, Venus, Mars, Mercury, Jupiter, Saturn. Tied trios are compared by their lowest-priority member first, then their next-lowest-priority member. At the epoch all bodies are aligned, so the tie-break selects Moon, Venus, and Mars. A strictly narrower trio always wins regardless of priority.
+- **Dominant Pull:** the first-ranked, smallest-span trio.
+- **Minor Pull:** the second-ranked distinct trio, including when it shares Dominant Pull's span.
+- **Negative Pull:** the largest-span trio; it may duplicate another pull when every span is tied.
 
-Alignment percentage is 100 minus the circular-span percentage. Dominant Pull is a fictional orbital-phase label, not real gravity, physical distance, or an ephemeris calculation.
+Fixed priority is used only to break equal-span ties. Its order is Moon, Venus, Mars, Mercury, Jupiter, Saturn. Tied trios are compared by their lowest-priority member first, then their next-lowest-priority member, with canonical IDs as the final fallback. Strictly smaller spans win the ascending ranking and strictly larger spans win Negative Pull regardless of priority.
+
+Alignment percentage is 100 minus the circular-span percentage and does not affect selection. Pulls measure fictional orbital-phase clustering, not physical gravity.
 
 ## Continuous progress
 
@@ -78,7 +82,9 @@ At Unix epoch `1970-01-01T00:00:00.000Z`, Insidia begins with:
 - **Lunar:** Cycle 1, Day 1 of 13, Rebirth, `00:00:00`
 - **Tide:** Low, Hour 1 of 17
 - **Orbits:** Mercury, Venus, Mars, Jupiter, Saturn, and Moon at 0%
-- **Dominant Pull:** Moon, Venus, Mars; circular span 0%; alignment 100%; fixed-priority tie-break applied
+- **Dominant Pull:** Moon, Venus, Mars; circular span 0%; alignment 100%
+- **Minor Pull:** Moon, Venus, Mercury; circular span 0%; alignment 100%
+- **Negative Pull:** Moon, Venus, Mars; circular span 0%; alignment 100%
 
 ## Features
 
@@ -88,7 +94,7 @@ At Unix epoch `1970-01-01T00:00:00.000Z`, Insidia begins with:
 - Independent lunar phase and 31-hour lunar clock display
 - Low, High, and Parted tide status with elapsed period time
 - Smooth progress for six independent fictional orbital cycles
-- Circular Dominant Pull clustering with deterministic fixed-priority tie-breaking
+- Dominant, Minor, and Negative orbital pull ranking with deterministic fixed-priority tie-breaking
 - Smooth second-level progress for the lunar cycle, lunar phase, current season, year, day, and hour
 - Collapsible, two-space-formatted JSON snapshot containing season, lunar, tide, and orbital state
 - Copy button that creates and copies one fresh, coherent snapshot
@@ -120,18 +126,18 @@ The application validates an explicit `PORT` and listens on `0.0.0.0`, which is 
 `GET /health` returns:
 
 ```json
-{"ok":true,"version":"v5.3"}
+{"ok":true,"version":"v5.4"}
 ```
 
-The copied calendar JSON schema is `"calendarVersion":"v7"`. V5.3 adds the Moon to `fictional.orbits.bodies`, renames orbital tie-break rank metadata, uses the `fixed_priority` method, and evaluates all twenty trios. The application release version and JSON schema version are intentionally independent.
+The copied calendar JSON schema is `"calendarVersion":"v8"`. V5.4 preserves `fictional.orbits.dominantPull` and adds `minorPull` and `negativePull`, all derived from one shared twenty-candidate evaluation. The application release version and JSON schema version are intentionally independent.
 
 ## Architecture
 
-The frontend uses vanilla HTML, CSS, and JavaScript ES modules. [`public/calendar.js`](public/calendar.js) is a pure calculation module for calendar, season, lunar, tide, orbital, and Dominant Pull state. [`public/app.js`](public/app.js) renders one coherent browser-side snapshot on every fictional-second update. The Node.js server only serves static files and the health endpoint. There is no database, frontend framework, build step, runtime dependency, server-side fictional calculation, or real-world astronomy integration.
+The frontend uses vanilla HTML, CSS, and JavaScript ES modules. [`public/calendar.js`](public/calendar.js) is a pure calculation module for calendar, season, lunar, tide, orbital, and pull state. [`public/app.js`](public/app.js) renders one coherent browser-side snapshot on every fictional-second update. The Node.js server only serves static files and the health endpoint. There is no database, frontend framework, build step, runtime dependency, server-side fictional calculation, or real-world astronomy integration.
 
 ## Deploying to Heroku
 
-Insidia v5.3 is prepared for Heroku's native GitHub automatic deployment integration. No GitHub Actions workflow exists for v5.3.
+Insidia v5.4 is prepared for Heroku's native GitHub automatic deployment integration. No GitHub Actions workflow exists for v5.4.
 
 ### Requirements
 
@@ -151,7 +157,7 @@ web: npm start
 2. Select **GitHub** as the deployment method and connect `FelipeBudinich/insidia`.
 3. Select the deployment branch, normally `main`.
 4. Enable **Automatic Deploys** for that branch.
-5. Leave **Wait for CI to pass before deploy** disabled for v5.3 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
+5. Leave **Wait for CI to pass before deploy** disabled for v5.4 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
 
 Heroku builds and releases successful GitHub pushes directly; no Heroku Git remote, deployment script, or committed deployment credential is required.
 
@@ -174,7 +180,7 @@ https://your-app-name.herokuapp.com/
 https://your-app-name.herokuapp.com/health
 ```
 
-The health endpoint must return `{"ok":true,"version":"v5.3"}`. To inspect logs and dyno status:
+The health endpoint must return `{"ok":true,"version":"v5.4"}`. To inspect logs and dyno status:
 
 ```sh
 heroku logs --tail --app <app-name>
@@ -229,7 +235,7 @@ npm test
 npm audit --omit=dev
 ```
 
-The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, planetary and Moon orbital resets, Moon/lunar-cycle synchronization, circular wrap-around, all twenty Dominant Pull combinations, fixed-priority tie-break rules, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
+The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, planetary and Moon orbital resets, Moon/lunar-cycle synchronization, circular wrap-around, all twenty orbital pull candidates, grouped epsilon ranking, Minor and Negative Pull selection, raw-fraction ordering, fixed-priority tie-break rules, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
 
 ## License
 

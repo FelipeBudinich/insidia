@@ -71,7 +71,7 @@ function assertSecurityHeaders(headers) {
   assert.ok(!csp.includes("'unsafe-eval'"));
 }
 
-test('GET and HEAD root serve the v5.3 document with Moon and progress fallback text', async () => {
+test('GET and HEAD root serve the v5.4 document with all orbital pull fallbacks', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/');
@@ -79,13 +79,18 @@ test('GET and HEAD root serve the v5.3 document with Moon and progress fallback 
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-cache');
-    assert.match(getResponse.body, /aria-label="Application version 5\.3">v5\.3/);
+    assert.match(getResponse.body, /aria-label="Application version 5\.4">v5\.4/);
     assert.match(getResponse.body, /id="season-name" class="season-name">Bones/);
     for (const bodyName of ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Moon']) {
       assert.match(getResponse.body, new RegExp(` ${bodyName}</p>`));
     }
-    assert.match(getResponse.body, /Dominant Pull/);
-    assert.match(getResponse.body, /Moon · Venus · Mars/);
+    assert.match(getResponse.body, /Orbital Pulls/);
+    for (const pullLabel of ['Dominant Pull', 'Minor Pull', 'Negative Pull']) {
+      assert.match(getResponse.body, new RegExp(`>${pullLabel}<`));
+    }
+    assert.equal((getResponse.body.match(/Moon · Venus · Mars/g) ?? []).length, 2);
+    assert.match(getResponse.body, /Moon · Venus · Mercury/);
+    assert.match(getResponse.body, /Pulls measure fictional orbital-phase clustering, not physical gravity\./);
     assert.match(getResponse.body, /13 lunar days/);
     assert.ok(!getResponse.body.includes('29' + ' fictional days'));
     for (const progressLabel of ['Lunar Cycle', 'Current Phase', 'Current Season', 'Current Year', 'Current Day', 'Current Hour']) {
@@ -101,7 +106,7 @@ test('GET and HEAD root serve the v5.3 document with Moon and progress fallback 
   }
 });
 
-test('GET and HEAD health return the v5.3 availability response', async () => {
+test('GET and HEAD health return the v5.4 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -109,7 +114,7 @@ test('GET and HEAD health return the v5.3 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v5.3"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v5.4"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -304,17 +309,21 @@ test('Procfile and package metadata are ready for Heroku', async () => {
   ]);
   const packageJson = JSON.parse(packageText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '5.3.0');
+  assert.equal(packageJson.version, '5.4.0');
   assert.equal(packageJson.engines.node, '24.x');
 });
 
-test('calendar JSON schema is v7 with Moon, progress, and all existing state', () => {
+test('calendar JSON schema is v8 with all three orbital pulls', () => {
   const snapshot = createCalendarJson(calculateFictionalCalendar(0), 0);
-  assert.equal(snapshot.calendarVersion, 'v7');
+  assert.equal(snapshot.calendarVersion, 'v8');
   assert.equal(snapshot.fictional.season.name, 'Bones');
   assert.equal(snapshot.fictional.lunar.phase.name, 'Rebirth');
   assert.equal(snapshot.fictional.lunar.tide.name, 'Low');
   assert.equal(snapshot.fictional.orbits.bodies.length, 6);
+  assert.deepEqual(
+    Object.keys(snapshot.fictional.orbits).filter((key) => key.endsWith('Pull')),
+    ['dominantPull', 'minorPull', 'negativePull']
+  );
   assert.equal(Object.keys(snapshot.fictional.progress).length, 6);
 });
 

@@ -192,7 +192,7 @@ function compareStringVectors(firstVector, secondVector) {
   return 0;
 }
 
-export function calculateDominantPull(bodyStates) {
+function validateOrbitalBodyStates(bodyStates) {
   if (!Array.isArray(bodyStates) || bodyStates.length !== CELESTIAL_BODIES.length) {
     throw new TypeError(`bodyStates must contain exactly ${CELESTIAL_BODIES.length} body states`);
   }
@@ -205,7 +205,9 @@ export function calculateDominantPull(bodyStates) {
       throw new TypeError(`bodyStates[${index}].tieBreakPriorityRank must be an integer`);
     }
   });
+}
 
+function createPullCandidates(bodyStates) {
   const candidates = [];
   for (let first = 0; first < bodyStates.length - 2; first += 1) {
     for (let second = first + 1; second < bodyStates.length - 1; second += 1) {
@@ -218,39 +220,106 @@ export function calculateDominantPull(bodyStates) {
       }
     }
   }
+  return candidates;
+}
 
-  const minimumSpan = Math.min(...candidates.map((candidate) => candidate.spanFraction));
-  const tiedCandidates = candidates.filter(
-    (candidate) => Math.abs(candidate.spanFraction - minimumSpan) <= ORBITAL_SPAN_TIE_EPSILON
+function compareCandidatesByFixedPriority(firstCandidate, secondCandidate) {
+  const priorityComparison = compareNumberVectors(
+    getTieBreakPriorityVector(firstCandidate),
+    getTieBreakPriorityVector(secondCandidate)
   );
-  tiedCandidates.sort((firstCandidate, secondCandidate) => {
-    const priorityComparison = compareNumberVectors(
-      getTieBreakPriorityVector(firstCandidate),
-      getTieBreakPriorityVector(secondCandidate)
-    );
-    return priorityComparison || compareStringVectors(
-      getCanonicalVector(firstCandidate),
-      getCanonicalVector(secondCandidate)
-    );
-  });
+  return priorityComparison || compareStringVectors(
+    getCanonicalVector(firstCandidate),
+    getCanonicalVector(secondCandidate)
+  );
+}
 
-  const winner = tiedCandidates[0];
-  const spanFraction = winner.spanFraction;
+function rankCandidatesByAscendingSpanGroups(candidates) {
+  const remainingCandidates = [...candidates];
+  const rankedCandidates = [];
+
+  while (remainingCandidates.length > 0) {
+    const minimumSpan = Math.min(
+      ...remainingCandidates.map((candidate) => candidate.spanFraction)
+    );
+    const tieGroup = remainingCandidates.filter(
+      (candidate) => Math.abs(candidate.spanFraction - minimumSpan) <= ORBITAL_SPAN_TIE_EPSILON
+    );
+    tieGroup.sort(compareCandidatesByFixedPriority);
+    for (const candidate of tieGroup) {
+      rankedCandidates.push({ candidate, tiedCombinationCount: tieGroup.length });
+    }
+
+    const groupedCandidates = new Set(tieGroup);
+    for (let index = remainingCandidates.length - 1; index >= 0; index -= 1) {
+      if (groupedCandidates.has(remainingCandidates[index])) {
+        remainingCandidates.splice(index, 1);
+      }
+    }
+  }
+
+  return rankedCandidates;
+}
+
+function createPullResult(candidate, selectionMethod, tiedCombinationCount, evaluatedCombinationCount) {
+  const spanFraction = candidate.spanFraction;
   return {
-    members: [...winner.members]
+    members: [...candidate.members]
       .sort((first, second) => first.tieBreakPriorityRank - second.tieBreakPriorityRank)
       .map(({ id, name, symbol }) => ({ id, name, symbol })),
-    selectionMethod: 'smallest_circular_arc',
-    evaluatedCombinationCount: candidates.length,
+    selectionMethod,
+    evaluatedCombinationCount,
     spanFraction,
     spanPercentage: spanFraction * 100,
+    formattedSpan: formatOrbitalPercentage(spanFraction),
     alignmentPercentage: (1 - spanFraction) * 100,
+    formattedAlignment: formatOrbitalPercentage(1 - spanFraction),
     tieBreak: {
-      applied: tiedCandidates.length > 1,
+      applied: tiedCombinationCount > 1,
       method: 'fixed_priority',
-      tiedCombinationCount: tiedCandidates.length
+      tiedCombinationCount
     }
   };
+}
+
+export function calculateOrbitalPulls(bodyStates) {
+  validateOrbitalBodyStates(bodyStates);
+  const candidates = createPullCandidates(bodyStates);
+  const rankedCandidates = rankCandidatesByAscendingSpanGroups(candidates);
+  const maximumSpan = Math.max(...candidates.map((candidate) => candidate.spanFraction));
+  const largestSpanCandidates = candidates
+    .filter((candidate) => Math.abs(candidate.spanFraction - maximumSpan) <= ORBITAL_SPAN_TIE_EPSILON)
+    .sort(compareCandidatesByFixedPriority);
+
+  const dominantEntry = rankedCandidates[0];
+  const minorEntry = rankedCandidates[1];
+  const negativeCandidate = largestSpanCandidates[0];
+  const evaluatedCombinationCount = candidates.length;
+
+  return {
+    dominantPull: createPullResult(
+      dominantEntry.candidate,
+      'smallest_circular_arc',
+      dominantEntry.tiedCombinationCount,
+      evaluatedCombinationCount
+    ),
+    minorPull: createPullResult(
+      minorEntry.candidate,
+      'second_ranked_circular_arc',
+      minorEntry.tiedCombinationCount,
+      evaluatedCombinationCount
+    ),
+    negativePull: createPullResult(
+      negativeCandidate,
+      'largest_circular_arc',
+      largestSpanCandidates.length,
+      evaluatedCombinationCount
+    )
+  };
+}
+
+export function calculateDominantPull(bodyStates) {
+  return calculateOrbitalPulls(bodyStates).dominantPull;
 }
 
 export function calculateOrbitalState(totalFictionalSeconds) {
@@ -280,10 +349,7 @@ export function calculateOrbitalState(totalFictionalSeconds) {
     };
   });
 
-  return {
-    bodies,
-    dominantPull: calculateDominantPull(bodies)
-  };
+  return { bodies, ...calculateOrbitalPulls(bodies) };
 }
 
 function createProgressValue(fraction) {
@@ -490,13 +556,27 @@ export function formatFictionalDate(calendarValue) {
   return `Year ${year} · Inter Regnum ${period.fromMonth} → ${period.toMonth} · Day ${period.day} of ${period.length}`;
 }
 
+function createPullJson(pull) {
+  return {
+    members: pull.members,
+    selectionMethod: pull.selectionMethod,
+    evaluatedCombinationCount: pull.evaluatedCombinationCount,
+    spanFraction: pull.spanFraction,
+    spanPercentage: pull.spanPercentage,
+    formattedSpan: pull.formattedSpan,
+    alignmentPercentage: pull.alignmentPercentage,
+    formattedAlignment: pull.formattedAlignment,
+    tieBreak: pull.tieBreak
+  };
+}
+
 export function createCalendarJson(calendarValue, realUnixMilliseconds) {
   assertValidUnixMilliseconds(realUnixMilliseconds);
   const formattedTime = formatFictionalTime(calendarValue);
   const formattedLunarTime = formatLunarTime(calendarValue.lunar);
   const formattedTideTime = formatTideTime(calendarValue.lunar);
   return {
-    calendarVersion: 'v7',
+    calendarVersion: 'v8',
     source: {
       unixMilliseconds: realUnixMilliseconds,
       isoUtc: new Date(realUnixMilliseconds).toISOString()
@@ -564,17 +644,9 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
           progressPercentage: body.progressPercentage,
           formattedProgress: formatOrbitalPercentage(body.progressFraction)
         })),
-        dominantPull: {
-          members: calendarValue.orbits.dominantPull.members,
-          selectionMethod: calendarValue.orbits.dominantPull.selectionMethod,
-          evaluatedCombinationCount: calendarValue.orbits.dominantPull.evaluatedCombinationCount,
-          spanFraction: calendarValue.orbits.dominantPull.spanFraction,
-          spanPercentage: calendarValue.orbits.dominantPull.spanPercentage,
-          formattedSpan: formatOrbitalPercentage(calendarValue.orbits.dominantPull.spanFraction),
-          alignmentPercentage: calendarValue.orbits.dominantPull.alignmentPercentage,
-          formattedAlignment: formatOrbitalPercentage(1 - calendarValue.orbits.dominantPull.spanFraction),
-          tieBreak: calendarValue.orbits.dominantPull.tieBreak
-        }
+        dominantPull: createPullJson(calendarValue.orbits.dominantPull),
+        minorPull: createPullJson(calendarValue.orbits.minorPull),
+        negativePull: createPullJson(calendarValue.orbits.negativePull)
       },
       progress: calendarValue.progress,
       formattedDate: formatFictionalDate(calendarValue)

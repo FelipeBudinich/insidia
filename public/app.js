@@ -33,10 +33,17 @@ const orbitalBodyElements = new Map(
     }
   ])
 );
-const dominantPullMembersElement = document.querySelector('#dominant-pull-members');
-const dominantPullSpanElement = document.querySelector('#dominant-pull-span');
-const dominantPullAlignmentElement = document.querySelector('#dominant-pull-alignment');
-const dominantPullSelectionElement = document.querySelector('#dominant-pull-selection');
+const pullElements = new Map(
+  [...document.querySelectorAll('[data-pull-key]')].map((pullElement) => [
+    pullElement.dataset.pullKey,
+    {
+      members: pullElement.querySelector('[data-pull-members]'),
+      span: pullElement.querySelector('[data-pull-span]'),
+      alignment: pullElement.querySelector('[data-pull-alignment]'),
+      selection: pullElement.querySelector('[data-pull-selection]')
+    }
+  ])
+);
 const progressElements = new Map(
   [...document.querySelectorAll('[data-progress-key]')].map((row) => [
     row.dataset.progressKey,
@@ -82,13 +89,16 @@ function render(realUnixMilliseconds = Date.now()) {
     bodyElements.percentage.textContent = formatOrbitalPercentage(body.progressFraction);
     bodyElements.progress.value = body.progressFraction;
   }
-  const { dominantPull } = orbits;
-  dominantPullMembersElement.textContent = dominantPull.members.map((member) => member.name).join(' · ');
-  dominantPullSpanElement.textContent = `Circular span ${formatOrbitalPercentage(dominantPull.spanFraction)}`;
-  dominantPullAlignmentElement.textContent = `Alignment ${formatOrbitalPercentage(1 - dominantPull.spanFraction)}`;
-  dominantPullSelectionElement.textContent = dominantPull.tieBreak.applied
-    ? `Fixed-priority tie-break applied among ${dominantPull.tieBreak.tiedCombinationCount} tied trios`
-    : `Unique smallest circular arc among ${dominantPull.evaluatedCombinationCount} trios`;
+  for (const pullKey of ['dominantPull', 'minorPull', 'negativePull']) {
+    const pull = orbits[pullKey];
+    const elements = pullElements.get(pullKey);
+    elements.members.textContent = pull.members.map((member) => member.name).join(' · ');
+    elements.span.textContent = `Circular span ${formatOrbitalPercentage(pull.spanFraction)}`;
+    elements.alignment.textContent = `Alignment ${formatOrbitalPercentage(1 - pull.spanFraction)}`;
+    elements.selection.textContent = pull.tieBreak.applied
+      ? `Fixed-priority tie-break applied among ${pull.tieBreak.tiedCombinationCount} tied trios`
+      : `No fixed-priority tie-break · selected from ${pull.evaluatedCombinationCount} trios`;
+  }
   for (const [key, progressValue] of Object.entries(progress)) {
     const elements = progressElements.get(key);
     elements.bar.value = progressValue.fraction;

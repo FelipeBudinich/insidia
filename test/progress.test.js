@@ -118,11 +118,11 @@ test('every final pre-boundary progress value stays below one', () => {
   }
 });
 
-test('schema v7 JSON contains all six progress objects', () => {
+test('schema v8 JSON contains all six progress objects', () => {
   const value = calendarAtSeconds(1);
   const realUnixMilliseconds = REAL_MS_PER_FICTIONAL_SECOND;
   const snapshot = createCalendarJson(value, realUnixMilliseconds);
-  assert.equal(snapshot.calendarVersion, 'v7');
+  assert.equal(snapshot.calendarVersion, 'v8');
   assert.deepEqual(Object.keys(snapshot.fictional.progress), progressKeys);
   for (const key of progressKeys) {
     assert.deepEqual(Object.keys(snapshot.fictional.progress[key]), ['fraction', 'percentage', 'formatted']);
