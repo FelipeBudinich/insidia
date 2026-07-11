@@ -30,22 +30,23 @@ function memberIds(dominantPull) {
   return dominantPull.members.map((member) => member.id);
 }
 
-test('celestial definitions preserve canonical and Earth-proximity order', () => {
-  assert.equal(CELESTIAL_BODIES.length, 5);
+test('celestial definitions preserve canonical display and fixed-priority order', () => {
+  assert.equal(CELESTIAL_BODIES.length, 6);
   assert.deepEqual(CELESTIAL_BODIES.map((body) => body.id), [
-    'mercury', 'venus', 'mars', 'jupiter', 'saturn'
+    'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'moon'
   ]);
-  assert.deepEqual(CELESTIAL_BODIES.map((body) => body.orbitalPeriodDays), [89, 223, 683, 4337, 7919]);
-  assert.equal(new Set(CELESTIAL_BODIES.map((body) => body.id)).size, 5);
+  assert.deepEqual(CELESTIAL_BODIES.map((body) => body.orbitalPeriodDays), [89, 223, 683, 4337, 7919, 29]);
+  assert.equal(new Set(CELESTIAL_BODIES.map((body) => body.id)).size, 6);
   assert.ok(CELESTIAL_BODIES.every((body) => Number.isSafeInteger(body.orbitalPeriodDays) && body.orbitalPeriodDays > 0));
   assert.deepEqual(
-    [...CELESTIAL_BODIES].sort((first, second) => first.earthProximityRank - second.earthProximityRank).map((body) => body.id),
-    ['venus', 'mars', 'mercury', 'jupiter', 'saturn']
+    [...CELESTIAL_BODIES].sort((first, second) => first.tieBreakPriorityRank - second.tieBreakPriorityRank).map((body) => body.id),
+    ['venus', 'mars', 'mercury', 'jupiter', 'saturn', 'moon']
   );
   assert.deepEqual(
-    [...CELESTIAL_BODIES].map((body) => body.earthProximityRank).sort((first, second) => first - second),
-    [1, 2, 3, 4, 5]
+    [...CELESTIAL_BODIES].map((body) => body.tieBreakPriorityRank).sort((first, second) => first - second),
+    [1, 2, 3, 4, 5, 6]
   );
+  assert.equal(CELESTIAL_BODIES.at(-1).tieBreakPriorityRank, 6);
 });
 
 test('all bodies begin together in Orbit 1 at zero progress', () => {
@@ -89,6 +90,31 @@ test('every body independently resets and increments at its exact orbit boundary
   }
 });
 
+test('Moon resets after exactly 29 fictional calendar days', () => {
+  const moonPeriodSeconds = 29 * FICTIONAL_SECONDS_PER_DAY;
+  const beforeReset = calculateOrbitalState(moonPeriodSeconds - 1).bodies.at(-1);
+  const atReset = calculateOrbitalState(moonPeriodSeconds).bodies.at(-1);
+  assert.equal(beforeReset.id, 'moon');
+  assert.equal(beforeReset.orbit, 1);
+  assert.equal(beforeReset.dayOfOrbit, 29);
+  assert.ok(beforeReset.progressFraction < 1);
+  assert.equal(atReset.orbit, 2);
+  assert.equal(atReset.dayOfOrbit, 1);
+  assert.equal(atReset.progressFraction, 0);
+});
+
+test('Moon orbit remains independent from the 31-hour lunar phase cycle', () => {
+  const lunarDaySeconds = 31 * FICTIONAL_SECONDS_PER_HOUR;
+  const atLunarBoundary = calculateFictionalCalendar(
+    lunarDaySeconds * REAL_MS_PER_FICTIONAL_SECOND
+  );
+  const moon = atLunarBoundary.orbits.bodies.find((body) => body.id === 'moon');
+  assert.equal(atLunarBoundary.lunar.day, 2);
+  assert.equal(atLunarBoundary.lunar.time.hour, 0);
+  approximatelyEqual(moon.progressFraction, lunarDaySeconds / (29 * FICTIONAL_SECONDS_PER_DAY));
+  assert.notEqual(moon.progressFraction, 0);
+});
+
 test('orbital percentage formatting truncates safely to six decimals', () => {
   assert.equal(formatOrbitalPercentage(0), '0.000000%');
   assert.equal(formatOrbitalPercentage(0.01), '1.000000%');
@@ -119,32 +145,46 @@ test('circular span rejects invalid input without mutating valid input', () => {
   }
 });
 
-test('epoch Dominant Pull uses Earth proximity across all ten tied trios', () => {
+test('epoch Dominant Pull uses fixed priority across all twenty tied trios', () => {
   const dominantPull = calculateOrbitalState(0).dominantPull;
   assert.deepEqual(memberIds(dominantPull), ['venus', 'mars', 'mercury']);
   assert.equal(dominantPull.spanFraction, 0);
   assert.equal(dominantPull.spanPercentage, 0);
   assert.equal(dominantPull.alignmentPercentage, 100);
-  assert.equal(dominantPull.evaluatedCombinationCount, 10);
+  assert.equal(dominantPull.evaluatedCombinationCount, 20);
   assert.equal(dominantPull.tieBreak.applied, true);
-  assert.equal(dominantPull.tieBreak.method, 'earth_proximity');
-  assert.equal(dominantPull.tieBreak.tiedCombinationCount, 10);
+  assert.equal(dominantPull.tieBreak.method, 'fixed_priority');
+  assert.equal(dominantPull.tieBreak.tiedCombinationCount, 20);
 });
 
 test('Dominant Pull selects the basic closest trio', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0.01, 0.02, 0.40, 0.80]));
+  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0.01, 0.02, 0.40, 0.80, 0.60]));
   assert.deepEqual(memberIds(dominantPull), ['venus', 'mars', 'mercury']);
   approximatelyEqual(dominantPull.spanFraction, 0.02);
 });
 
 test('Dominant Pull recognizes a trio across circular wrap-around', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0.99, 0, 0.01, 0.40, 0.70]));
+  const dominantPull = calculateDominantPull(createSyntheticStates([0.99, 0, 0.01, 0.40, 0.70, 0.50]));
   assert.deepEqual(memberIds(dominantPull), ['venus', 'mars', 'mercury']);
   approximatelyEqual(dominantPull.spanFraction, 0.02);
 });
 
+test('Moon-containing trio wins across circular wrap-around when strictly narrowest', () => {
+  const dominantPull = calculateDominantPull(createSyntheticStates([0.30, 0, 0.01, 0.50, 0.70, 0.99]));
+  assert.deepEqual(memberIds(dominantPull), ['venus', 'mars', 'moon']);
+  approximatelyEqual(dominantPull.spanFraction, 0.02);
+  assert.equal(dominantPull.tieBreak.applied, false);
+});
+
+test('Moon-containing trio wins when its span is strictly smaller', () => {
+  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0.20, 0.80, 0.50, 0.501, 0.502]));
+  assert.deepEqual(memberIds(dominantPull), ['jupiter', 'saturn', 'moon']);
+  approximatelyEqual(dominantPull.spanFraction, 0.002);
+  assert.equal(dominantPull.tieBreak.applied, false);
+});
+
 test('required five-position example selects 0%, 10%, and 27%', () => {
-  const states = createSyntheticStates([0.10, 0.27, 0.50, 0.80, 0]);
+  const states = createSyntheticStates([0.10, 0.27, 0.50, 0.80, 0, 0.60]);
   const dominantPull = calculateDominantPull(states);
   const positionsById = new Map(states.map((body) => [body.id, body.progressFraction]));
   const winningPositions = memberIds(dominantPull).map((id) => positionsById.get(id)).sort((first, second) => first - second);
@@ -154,22 +194,22 @@ test('required five-position example selects 0%, 10%, and 27%', () => {
   assert.notDeepEqual(winningPositions, [0, 0.10, 0.80]);
 });
 
-test('clustered five-position tie selects Venus, Mars, and Mercury', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0.01, 0.02, 0.03, 0.04]));
+test('equal-span tie selects the higher-priority trio without Moon', () => {
+  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0, 0, 0, 0, 0]));
   assert.deepEqual(memberIds(dominantPull), ['venus', 'mars', 'mercury']);
   assert.equal(dominantPull.tieBreak.applied, true);
   assert.ok(dominantPull.tieBreak.tiedCombinationCount > 1);
 });
 
-test('Earth-proximity tie-break minimizes the farthest member first', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0, 1 / 12, 2 / 12, 0, 1 / 12]));
+test('fixed-priority tie-break minimizes the lowest-priority member first', () => {
+  const dominantPull = calculateDominantPull(createSyntheticStates([0, 1 / 12, 2 / 12, 0, 1 / 12, 0.60]));
   assert.deepEqual(memberIds(dominantPull), ['venus', 'mercury', 'jupiter']);
   approximatelyEqual(dominantPull.spanFraction, 1 / 12);
   assert.equal(dominantPull.tieBreak.applied, true);
 });
 
-test('a strictly smaller farther trio overrides Earth proximity', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0.20, 0.50, 0.501, 0.502]));
+test('a strictly smaller lower-priority trio overrides fixed priority', () => {
+  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0.20, 0.50, 0.501, 0.502, 0.80]));
   assert.deepEqual(memberIds(dominantPull), ['mars', 'jupiter', 'saturn']);
   approximatelyEqual(dominantPull.spanFraction, 0.002);
   assert.equal(dominantPull.tieBreak.applied, false);
@@ -177,13 +217,13 @@ test('a strictly smaller farther trio overrides Earth proximity', () => {
 
 test('span differences inside epsilon tie while larger differences do not', () => {
   const withinEpsilon = calculateDominantPull(createSyntheticStates([
-    0.40 - (ORBITAL_SPAN_TIE_EPSILON / 2), 0.42, 0.50, 0.58, 0.60
+    0.40 - (ORBITAL_SPAN_TIE_EPSILON / 2), 0.42, 0.50, 0.58, 0.60, 0.90
   ]));
   assert.deepEqual(memberIds(withinEpsilon), ['venus', 'mars', 'mercury']);
   assert.equal(withinEpsilon.tieBreak.applied, true);
 
   const outsideEpsilon = calculateDominantPull(createSyntheticStates([
-    0.40 - (ORBITAL_SPAN_TIE_EPSILON * 10), 0.42, 0.50, 0.58, 0.60
+    0.40 - (ORBITAL_SPAN_TIE_EPSILON * 10), 0.42, 0.50, 0.58, 0.60, 0.90
   ]));
   assert.deepEqual(memberIds(outsideEpsilon), ['mars', 'jupiter', 'saturn']);
   assert.equal(outsideEpsilon.tieBreak.applied, false);
@@ -215,19 +255,19 @@ test('Mercury orbit reset does not reset independent fictional systems', () => {
   assert.equal(calendarValue.lunar.tide.hour, 2);
 });
 
-test('schema v6 preserves existing data and the epoch orbital shape', () => {
+test('schema v7 preserves existing data and adds the Moon orbital shape', () => {
   const snapshot = createCalendarJson(calculateFictionalCalendar(CALENDAR_EPOCH_UNIX_MS), CALENDAR_EPOCH_UNIX_MS);
-  assert.equal(snapshot.calendarVersion, 'v6');
+  assert.equal(snapshot.calendarVersion, 'v7');
   assert.equal(snapshot.fictional.year, 1);
   assert.equal(snapshot.fictional.period.month, 1);
   assert.equal(snapshot.fictional.time.formatted, '00:00:00');
   assert.equal(snapshot.fictional.season.name, 'Bones');
   assert.equal(snapshot.fictional.lunar.phase.name, 'Rebirth');
   assert.equal(snapshot.fictional.lunar.tide.name, 'Low');
-  assert.equal(snapshot.fictional.orbits.bodies.length, 5);
+  assert.equal(snapshot.fictional.orbits.bodies.length, 6);
   for (const body of snapshot.fictional.orbits.bodies) {
     assert.deepEqual(Object.keys(body), [
-      'id', 'name', 'symbol', 'orbitalPeriodDays', 'earthProximityRank',
+      'id', 'name', 'symbol', 'orbitalPeriodDays', 'tieBreakPriorityRank',
       'orbit', 'dayOfOrbit', 'progressFraction', 'progressPercentage', 'formattedProgress'
     ]);
     assert.equal(body.orbit, 1);
@@ -239,15 +279,20 @@ test('schema v6 preserves existing data and the epoch orbital shape', () => {
   const dominantPull = snapshot.fictional.orbits.dominantPull;
   assert.deepEqual(memberIds(dominantPull), ['venus', 'mars', 'mercury']);
   assert.equal(dominantPull.selectionMethod, 'smallest_circular_arc');
-  assert.equal(dominantPull.evaluatedCombinationCount, 10);
+  assert.equal(dominantPull.evaluatedCombinationCount, 20);
   assert.equal(dominantPull.spanFraction, 0);
   assert.equal(dominantPull.spanPercentage, 0);
   assert.equal(dominantPull.formattedSpan, '0.000000%');
   assert.equal(dominantPull.alignmentPercentage, 100);
   assert.equal(dominantPull.formattedAlignment, '100.000000%');
   assert.deepEqual(dominantPull.tieBreak, {
-    applied: true, method: 'earth_proximity', tiedCombinationCount: 10
+    applied: true, method: 'fixed_priority', tiedCombinationCount: 20
   });
+  const moon = snapshot.fictional.orbits.bodies.at(-1);
+  assert.deepEqual(
+    { id: moon.id, orbitalPeriodDays: moon.orbitalPeriodDays, tieBreakPriorityRank: moon.tieBreakPriorityRank },
+    { id: 'moon', orbitalPeriodDays: 29, tieBreakPriorityRank: 6 }
+  );
   assert.equal(snapshot.fictional.progress.hour.fraction, 0);
 });
 

@@ -86,7 +86,7 @@ function render(realUnixMilliseconds = Date.now()) {
   dominantPullSpanElement.textContent = `Circular span ${formatOrbitalPercentage(dominantPull.spanFraction)}`;
   dominantPullAlignmentElement.textContent = `Alignment ${formatOrbitalPercentage(1 - dominantPull.spanFraction)}`;
   dominantPullSelectionElement.textContent = dominantPull.tieBreak.applied
-    ? `Earth-proximity tie-break applied among ${dominantPull.tieBreak.tiedCombinationCount} tied trios`
+    ? `Fixed-priority tie-break applied among ${dominantPull.tieBreak.tiedCombinationCount} tied trios`
     : `Unique smallest circular arc among ${dominantPull.evaluatedCombinationCount} trios`;
   for (const [key, progressValue] of Object.entries(progress)) {
     const elements = progressElements.get(key);

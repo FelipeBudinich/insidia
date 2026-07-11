@@ -151,10 +151,10 @@ test('the lunar cycle remains independent across the calendar year boundary', ()
   assert.equal(value.lunar.tide.hour, 12);
 });
 
-test('v6 JSON keeps calendar, season, lunar, and orbital fields while adding progress', () => {
+test('v7 JSON keeps calendar, season, lunar, orbital, and progress fields', () => {
   const value = calculateFictionalCalendar(CALENDAR_EPOCH_UNIX_MS);
   const snapshot = createCalendarJson(value, CALENDAR_EPOCH_UNIX_MS);
-  assert.equal(snapshot.calendarVersion, 'v6');
+  assert.equal(snapshot.calendarVersion, 'v7');
   assert.equal(snapshot.fictional.year, 1);
   assert.equal(snapshot.fictional.period.month, 1);
   assert.equal(snapshot.fictional.time.formatted, '00:00:00');
@@ -166,11 +166,11 @@ test('v6 JSON keeps calendar, season, lunar, and orbital fields while adding pro
   assert.equal(snapshot.fictional.lunar.tide.hour, 1);
   assert.equal(snapshot.fictional.lunar.tide.timeInPeriod.formatted, '00:00:00');
   assert.equal(snapshot.fictional.season.name, 'Bones');
-  assert.equal(snapshot.fictional.orbits.bodies.length, 5);
+  assert.equal(snapshot.fictional.orbits.bodies.length, 6);
   assert.equal(snapshot.fictional.progress.lunarPhase.fraction, 0);
 });
 
-test('v6 JSON exposes the Parted tide enum', () => {
+test('v7 JSON exposes the Parted tide enum', () => {
   const realUnixMilliseconds = timestampForFictionalSeconds(secondsAtLunarTime(30));
   const value = calculateFictionalCalendar(realUnixMilliseconds);
   const snapshot = createCalendarJson(value, realUnixMilliseconds);

@@ -71,7 +71,7 @@ function assertSecurityHeaders(headers) {
   assert.ok(!csp.includes("'unsafe-eval'"));
 }
 
-test('GET and HEAD root serve the v5.2 document with progress fallback text and security headers', async () => {
+test('GET and HEAD root serve the v5.3 document with Moon and progress fallback text', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/');
@@ -79,9 +79,9 @@ test('GET and HEAD root serve the v5.2 document with progress fallback text and 
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-cache');
-    assert.match(getResponse.body, /aria-label="Application version 5\.2">v5\.2/);
+    assert.match(getResponse.body, /aria-label="Application version 5\.3">v5\.3/);
     assert.match(getResponse.body, /id="season-name" class="season-name">Bones/);
-    for (const bodyName of ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']) {
+    for (const bodyName of ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Moon']) {
       assert.match(getResponse.body, new RegExp(` ${bodyName}</p>`));
     }
     assert.match(getResponse.body, /Dominant Pull/);
@@ -99,7 +99,7 @@ test('GET and HEAD root serve the v5.2 document with progress fallback text and 
   }
 });
 
-test('GET and HEAD health return the v5.2 availability response', async () => {
+test('GET and HEAD health return the v5.3 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -107,7 +107,7 @@ test('GET and HEAD health return the v5.2 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v5.2"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v5.3"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -302,18 +302,39 @@ test('Procfile and package metadata are ready for Heroku', async () => {
   ]);
   const packageJson = JSON.parse(packageText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '5.2.0');
+  assert.equal(packageJson.version, '5.3.0');
   assert.equal(packageJson.engines.node, '24.x');
 });
 
-test('calendar JSON schema is v6 with progress and all existing state', () => {
+test('calendar JSON schema is v7 with Moon, progress, and all existing state', () => {
   const snapshot = createCalendarJson(calculateFictionalCalendar(0), 0);
-  assert.equal(snapshot.calendarVersion, 'v6');
+  assert.equal(snapshot.calendarVersion, 'v7');
   assert.equal(snapshot.fictional.season.name, 'Bones');
   assert.equal(snapshot.fictional.lunar.phase.name, 'Rebirth');
   assert.equal(snapshot.fictional.lunar.tide.name, 'Low');
-  assert.equal(snapshot.fictional.orbits.bodies.length, 5);
+  assert.equal(snapshot.fictional.orbits.bodies.length, 6);
   assert.equal(Object.keys(snapshot.fictional.progress).length, 6);
+});
+
+test('retired orbital tie-break metadata names are absent from source and documentation', async () => {
+  const projectFiles = [
+    'README.md',
+    'public/app.js',
+    'public/calendar.js',
+    'public/index.html',
+    'test/calendar.test.js',
+    'test/lunar.test.js',
+    'test/orbits.test.js',
+    'test/progress.test.js',
+    'test/season.test.js'
+  ];
+  const retiredNames = ['earth' + 'ProximityRank', 'earth' + '_proximity'];
+  for (const projectFile of projectFiles) {
+    const content = await readFile(path.join(projectDirectory, projectFile), 'utf8');
+    for (const retiredName of retiredNames) {
+      assert.ok(!content.includes(retiredName), `${retiredName} remains in ${projectFile}`);
+    }
+  }
 });
 
 async function findAvailablePort() {

@@ -2,7 +2,7 @@
 
 Insidia is a live fictional clock, calendar, season cycle, lunar cycle, tide cycle, and five-body orbital alignment model. All fictional calculations run in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
 
-**Current release:** v5.2
+**Current release:** v5.3
 
 ## Fictional time and calendar
 
@@ -49,16 +49,17 @@ Lunar days and tides do not reset at calendar midnight, calendar month boundarie
 | ♂ Mars | 683 fictional days |
 | ♃ Jupiter | 4,337 fictional days |
 | ♄ Saturn | 7,919 fictional days |
+| ☾ Moon | 29 fictional days |
 
-Orbital periods use the existing 23-hour fictional calendar day, not the 31-hour lunar day. All five bodies begin at 0% at the epoch and advance uniformly through independent circular normalized orbits. Progress includes fictional hours, minutes, and seconds rather than changing only at midnight. At each exact orbital boundary, progress resets from just below 100% to 0% and the body's one-based orbit count increments.
+Orbital periods use the existing 23-hour fictional calendar day, not the 31-hour lunar day. All six bodies begin at 0% at the epoch and advance uniformly through independent circular normalized orbits. The Moon's 29-day orbit is separate from the 13-phase lunar cycle. Progress includes fictional hours, minutes, and seconds rather than changing only at midnight. At each exact orbital boundary, progress resets from just below 100% to 0% and the body's one-based orbit count increments.
 
 The model has no real orbital eccentricity, inclination, retrograde motion, physical position, or real astronomical data. On its circular scale, 0% and 100% are the same point.
 
 ## Dominant Pull
 
-Dominant Pull evaluates all ten possible three-body combinations and selects the trio contained within the smallest circular phase arc. Circular wrap-around is required: 99%, 0%, and 1% span 2%, not 99%.
+Dominant Pull evaluates all twenty possible three-body combinations and selects the trio contained within the smallest circular phase arc. Circular wrap-around is required: 99%, 0%, and 1% span 2%, not 99%.
 
-Earth proximity is used only to break equal-span ties. Its fixed fictional order is Venus, Mars, Mercury, Jupiter, Saturn. Tied trios are compared by their farthest member first, then their second-farthest, then their nearest member. At the epoch all bodies are aligned, so the tie-break selects Venus, Mars, and Mercury. A strictly narrower trio always wins regardless of proximity.
+Fixed priority is used only to break equal-span ties. Its order is Venus, Mars, Mercury, Jupiter, Saturn, Moon. Tied trios are compared by their lowest-priority member first, then their next-lowest-priority member. At the epoch all bodies are aligned, so the tie-break selects Venus, Mars, and Mercury. A strictly narrower trio always wins regardless of priority.
 
 Alignment percentage is 100 minus the circular-span percentage. Dominant Pull is a fictional orbital-phase label, not real gravity, physical distance, or an ephemeris calculation.
 
@@ -76,8 +77,8 @@ At Unix epoch `1970-01-01T00:00:00.000Z`, Insidia begins with:
 - **Season:** Seasonal Cycle 1, Bones, Day 1 of 179
 - **Lunar:** Cycle 1, Day 1 of 13, Rebirth, `00:00:00`
 - **Tide:** Low, Hour 1 of 17
-- **Orbits:** Mercury, Venus, Mars, Jupiter, and Saturn at 0%
-- **Dominant Pull:** Venus, Mars, Mercury; circular span 0%; alignment 100%; Earth-proximity tie-break applied
+- **Orbits:** Mercury, Venus, Mars, Jupiter, Saturn, and Moon at 0%
+- **Dominant Pull:** Venus, Mars, Mercury; circular span 0%; alignment 100%; fixed-priority tie-break applied
 
 ## Features
 
@@ -86,8 +87,8 @@ At Unix epoch `1970-01-01T00:00:00.000Z`, Insidia begins with:
 - Independent 358-day Bones/Tears season display
 - Independent lunar phase and 31-hour lunar clock display
 - Low, High, and Parted tide status with elapsed period time
-- Smooth progress for five independent fictional orbital cycles
-- Circular Dominant Pull clustering with deterministic proximity tie-breaking
+- Smooth progress for six independent fictional orbital cycles
+- Circular Dominant Pull clustering with deterministic fixed-priority tie-breaking
 - Smooth second-level progress for the lunar cycle, lunar phase, current season, year, day, and hour
 - Collapsible, two-space-formatted JSON snapshot containing season, lunar, tide, and orbital state
 - Copy button that creates and copies one fresh, coherent snapshot
@@ -119,10 +120,10 @@ The application validates an explicit `PORT` and listens on `0.0.0.0`, which is 
 `GET /health` returns:
 
 ```json
-{"ok":true,"version":"v5.2"}
+{"ok":true,"version":"v5.3"}
 ```
 
-The copied calendar JSON schema is `"calendarVersion":"v6"`. V5.2 adds `fictional.progress` with six continuous second-level progress values; the application release version and JSON schema version are intentionally independent.
+The copied calendar JSON schema is `"calendarVersion":"v7"`. V5.3 adds the Moon to `fictional.orbits.bodies`, renames orbital tie-break rank metadata, uses the `fixed_priority` method, and evaluates all twenty trios. The application release version and JSON schema version are intentionally independent.
 
 ## Architecture
 
@@ -130,7 +131,7 @@ The frontend uses vanilla HTML, CSS, and JavaScript ES modules. [`public/calenda
 
 ## Deploying to Heroku
 
-Insidia v5.2 is prepared for Heroku's native GitHub automatic deployment integration. No GitHub Actions workflow exists for v5.2.
+Insidia v5.3 is prepared for Heroku's native GitHub automatic deployment integration. No GitHub Actions workflow exists for v5.3.
 
 ### Requirements
 
@@ -150,7 +151,7 @@ web: npm start
 2. Select **GitHub** as the deployment method and connect `FelipeBudinich/insidia`.
 3. Select the deployment branch, normally `main`.
 4. Enable **Automatic Deploys** for that branch.
-5. Leave **Wait for CI to pass before deploy** disabled for v5.2 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
+5. Leave **Wait for CI to pass before deploy** disabled for v5.3 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
 
 Heroku builds and releases successful GitHub pushes directly; no Heroku Git remote, deployment script, or committed deployment credential is required.
 
@@ -173,7 +174,7 @@ https://your-app-name.herokuapp.com/
 https://your-app-name.herokuapp.com/health
 ```
 
-The health endpoint must return `{"ok":true,"version":"v5.2"}`. To inspect logs and dyno status:
+The health endpoint must return `{"ok":true,"version":"v5.3"}`. To inspect logs and dyno status:
 
 ```sh
 heroku logs --tail --app <app-name>
@@ -228,7 +229,7 @@ npm test
 npm audit --omit=dev
 ```
 
-The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, orbital resets, circular wrap-around, all ten Dominant Pull combinations, tie-break rules, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
+The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, orbital resets, Moon independence, circular wrap-around, all twenty Dominant Pull combinations, fixed-priority tie-break rules, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
 
 ## License
 

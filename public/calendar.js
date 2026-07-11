@@ -50,11 +50,12 @@ export const SEASONAL_CYCLE_LENGTH_DAYS = SEASONS.reduce(
 );
 
 export const CELESTIAL_BODIES = [
-  { id: 'mercury', name: 'Mercury', symbol: '☿', orbitalPeriodDays: 89, earthProximityRank: 3 },
-  { id: 'venus', name: 'Venus', symbol: '♀', orbitalPeriodDays: 223, earthProximityRank: 1 },
-  { id: 'mars', name: 'Mars', symbol: '♂', orbitalPeriodDays: 683, earthProximityRank: 2 },
-  { id: 'jupiter', name: 'Jupiter', symbol: '♃', orbitalPeriodDays: 4337, earthProximityRank: 4 },
-  { id: 'saturn', name: 'Saturn', symbol: '♄', orbitalPeriodDays: 7919, earthProximityRank: 5 }
+  { id: 'mercury', name: 'Mercury', symbol: '☿', orbitalPeriodDays: 89, tieBreakPriorityRank: 3 },
+  { id: 'venus', name: 'Venus', symbol: '♀', orbitalPeriodDays: 223, tieBreakPriorityRank: 1 },
+  { id: 'mars', name: 'Mars', symbol: '♂', orbitalPeriodDays: 683, tieBreakPriorityRank: 2 },
+  { id: 'jupiter', name: 'Jupiter', symbol: '♃', orbitalPeriodDays: 4337, tieBreakPriorityRank: 4 },
+  { id: 'saturn', name: 'Saturn', symbol: '♄', orbitalPeriodDays: 7919, tieBreakPriorityRank: 5 },
+  { id: 'moon', name: 'Moon', symbol: '☾', orbitalPeriodDays: 29, tieBreakPriorityRank: 6 }
 ];
 
 export const ORBITAL_SPAN_TIE_EPSILON = 1e-12;
@@ -171,29 +172,37 @@ function compareNumberVectors(firstVector, secondVector) {
   return 0;
 }
 
-function getEarthProximityVector(candidate) {
+function getTieBreakPriorityVector(candidate) {
   return candidate.members
-    .map((member) => member.earthProximityRank)
+    .map((member) => member.tieBreakPriorityRank)
     .sort((first, second) => second - first);
 }
 
 function getCanonicalVector(candidate) {
   return candidate.members
-    .map((member) => CELESTIAL_BODIES.findIndex((body) => body.id === member.id))
-    .sort((first, second) => first - second);
+    .map((member) => member.id)
+    .sort();
+}
+
+function compareStringVectors(firstVector, secondVector) {
+  for (let index = 0; index < firstVector.length; index += 1) {
+    if (firstVector[index] < secondVector[index]) return -1;
+    if (firstVector[index] > secondVector[index]) return 1;
+  }
+  return 0;
 }
 
 export function calculateDominantPull(bodyStates) {
   if (!Array.isArray(bodyStates) || bodyStates.length !== CELESTIAL_BODIES.length) {
-    throw new TypeError('bodyStates must contain exactly five body states');
+    throw new TypeError(`bodyStates must contain exactly ${CELESTIAL_BODIES.length} body states`);
   }
   bodyStates.forEach((bodyState, index) => {
     if (!bodyState || typeof bodyState !== 'object') {
       throw new TypeError(`bodyStates[${index}] must be an object`);
     }
     assertProgressFraction(bodyState.progressFraction, `bodyStates[${index}].progressFraction`);
-    if (!Number.isInteger(bodyState.earthProximityRank)) {
-      throw new TypeError(`bodyStates[${index}].earthProximityRank must be an integer`);
+    if (!Number.isInteger(bodyState.tieBreakPriorityRank)) {
+      throw new TypeError(`bodyStates[${index}].tieBreakPriorityRank must be an integer`);
     }
   });
 
@@ -215,11 +224,11 @@ export function calculateDominantPull(bodyStates) {
     (candidate) => Math.abs(candidate.spanFraction - minimumSpan) <= ORBITAL_SPAN_TIE_EPSILON
   );
   tiedCandidates.sort((firstCandidate, secondCandidate) => {
-    const proximityComparison = compareNumberVectors(
-      getEarthProximityVector(firstCandidate),
-      getEarthProximityVector(secondCandidate)
+    const priorityComparison = compareNumberVectors(
+      getTieBreakPriorityVector(firstCandidate),
+      getTieBreakPriorityVector(secondCandidate)
     );
-    return proximityComparison || compareNumberVectors(
+    return priorityComparison || compareStringVectors(
       getCanonicalVector(firstCandidate),
       getCanonicalVector(secondCandidate)
     );
@@ -229,7 +238,7 @@ export function calculateDominantPull(bodyStates) {
   const spanFraction = winner.spanFraction;
   return {
     members: [...winner.members]
-      .sort((first, second) => first.earthProximityRank - second.earthProximityRank)
+      .sort((first, second) => first.tieBreakPriorityRank - second.tieBreakPriorityRank)
       .map(({ id, name, symbol }) => ({ id, name, symbol })),
     selectionMethod: 'smallest_circular_arc',
     evaluatedCombinationCount: candidates.length,
@@ -238,7 +247,7 @@ export function calculateDominantPull(bodyStates) {
     alignmentPercentage: (1 - spanFraction) * 100,
     tieBreak: {
       applied: tiedCandidates.length > 1,
-      method: 'earth_proximity',
+      method: 'fixed_priority',
       tiedCombinationCount: tiedCandidates.length
     }
   };
@@ -478,7 +487,7 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
   const formattedLunarTime = formatLunarTime(calendarValue.lunar);
   const formattedTideTime = formatTideTime(calendarValue.lunar);
   return {
-    calendarVersion: 'v6',
+    calendarVersion: 'v7',
     source: {
       unixMilliseconds: realUnixMilliseconds,
       isoUtc: new Date(realUnixMilliseconds).toISOString()
@@ -537,7 +546,7 @@ export function createCalendarJson(calendarValue, realUnixMilliseconds) {
           name: body.name,
           symbol: body.symbol,
           orbitalPeriodDays: body.orbitalPeriodDays,
-          earthProximityRank: body.earthProximityRank,
+          tieBreakPriorityRank: body.tieBreakPriorityRank,
           orbit: body.orbit,
           dayOfOrbit: body.dayOfOrbit,
           progressFraction: body.progressFraction,
