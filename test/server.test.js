@@ -91,7 +91,7 @@ test('GET and HEAD root redirect securely to the calendar route', async () => {
   }
 });
 
-test('GET and HEAD health return the v5.5 availability response', async () => {
+test('GET and HEAD health return the v6 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -99,7 +99,7 @@ test('GET and HEAD health return the v5.5 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v5.5"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v6"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -124,7 +124,7 @@ test('all three HTML routes serve secure no-cache documents with shared navigati
       assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8', page.path);
       assert.equal(getResponse.headers['cache-control'], 'no-cache', page.path);
       assert.match(getResponse.body, new RegExp(`<title>${page.title}</title>`), page.path);
-      assert.match(getResponse.body, /aria-label="Application version 5\.5">v5\.5/, page.path);
+      assert.match(getResponse.body, /aria-label="Application version 6">v6/, page.path);
       assert.match(getResponse.body, /<nav class="primary-nav" aria-label="Primary">/, page.path);
       for (const [href, label] of [
         ['/calendar.html', 'Calendar'],
@@ -151,20 +151,29 @@ test('all three HTML routes serve secure no-cache documents with shared navigati
   }
 });
 
-test('calendar route preserves the complete v5.4 dashboard and JSON output', async () => {
+test('calendar route shows only calendar, lunar, selected progress, and JSON output', async () => {
   const server = await startTestServer();
   try {
     const response = await request(server, '/calendar.html');
     for (const requiredContent of [
       'Fictional Calendar', 'Month 1 · Day 1', 'Week 1 · Day 1 of 7',
-      'Season', 'Bones', 'Lunar Cycle', 'Tide', 'Low',
-      'Celestial Orbits', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Moon',
-      'Orbital Pulls', 'Dominant Pull', 'Minor Pull', 'Negative Pull',
-      'Progress', 'Lunar Cycle', 'Current Phase', 'Current Season',
+      'Lunar Cycle', 'Rebirth', 'Lunar Day 1 of 13 · Cycle 1', 'Lunar time 00:00:00',
+      'Progress', 'Lunar Cycle', 'Current Phase',
       'Current Year', 'Current Day', 'Current Hour', 'JSON output', 'Copy JSON',
       'Epoch: 1970-01-01 00:00:00 UTC'
     ]) {
       assert.ok(response.body.includes(requiredContent), requiredContent);
+    }
+    for (const removedMarkup of [
+      'class="season-section"',
+      'data-tide-name',
+      'class="orbital-section"',
+      'data-pull-key="dominantPull"',
+      'data-pull-key="minorPull"',
+      'data-pull-key="negativePull"',
+      'data-progress-key="season"'
+    ]) {
+      assert.ok(!response.body.includes(removedMarkup), removedMarkup);
     }
     assert.match(response.body, /src="\/calendar-page\.js"/);
   } finally {
@@ -290,6 +299,7 @@ test('static JavaScript and CSS use explicit types and no-cache', async () => {
 test('all page modules use the shared live-state scheduler and shared renderers', async () => {
   const liveState = await readFile(path.join(projectDirectory, 'public/live-state.js'), 'utf8');
   const renderers = await readFile(path.join(projectDirectory, 'public/renderers.js'), 'utf8');
+  const calendarPage = await readFile(path.join(projectDirectory, 'public/calendar-page.js'), 'utf8');
   const pageModuleNames = ['calendar-page.js', 'treasure-page.js', 'weather-page.js'];
 
   assert.match(liveState, /calculateFictionalCalendar\(realUnixMilliseconds\)/);
@@ -299,6 +309,18 @@ test('all page modules use the shared live-state scheduler and shared renderers'
   assert.ok(!renderers.includes('Date.now'));
   assert.ok(!renderers.includes('calculateFictionalCalendar'));
   assert.ok(!renderers.includes('innerHTML'));
+  for (const removedCalendarBinding of [
+    'createSeasonRenderer',
+    'createTideRenderer',
+    'createCelestialOrbitsRenderer',
+    'createOrbitalPullsRenderer',
+    'data-season-',
+    'data-tide-',
+    'data-orbital-body',
+    'data-pull-key'
+  ]) {
+    assert.ok(!calendarPage.includes(removedCalendarBinding), removedCalendarBinding);
+  }
 
   for (const moduleName of pageModuleNames) {
     const moduleText = await readFile(path.join(projectDirectory, 'public', moduleName), 'utf8');
@@ -446,7 +468,7 @@ test('Procfile and package metadata are ready for Heroku', async () => {
   ]);
   const packageJson = JSON.parse(packageText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '5.5.0');
+  assert.equal(packageJson.version, '6.0.0');
   assert.equal(packageJson.engines.node, '24.x');
 });
 
@@ -457,6 +479,12 @@ test('calendar JSON schema is v8 with all three orbital pulls', () => {
   assert.equal(snapshot.fictional.lunar.phase.name, 'Rebirth');
   assert.equal(snapshot.fictional.lunar.tide.name, 'Low');
   assert.equal(snapshot.fictional.orbits.bodies.length, 6);
+  assert.ok(snapshot.fictional.season);
+  assert.ok(snapshot.fictional.lunar.tide);
+  assert.ok(snapshot.fictional.orbits.dominantPull);
+  assert.ok(snapshot.fictional.orbits.minorPull);
+  assert.ok(snapshot.fictional.orbits.negativePull);
+  assert.ok(snapshot.fictional.progress.season);
   assert.deepEqual(
     Object.keys(snapshot.fictional.orbits).filter((key) => key.endsWith('Pull')),
     ['dominantPull', 'minorPull', 'negativePull']

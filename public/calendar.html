@@ -18,7 +18,7 @@
       <section class="calendar-card" aria-labelledby="page-title">
         <header class="heading">
           <p id="page-title">Fictional Calendar</p>
-          <span class="version" aria-label="Application version 5.5">v5.5</span>
+          <span class="version" aria-label="Application version 6">v6</span>
         </header>
 
         <p id="fictional-time" class="time" aria-live="off">00:00:00</p>
@@ -30,117 +30,12 @@
         <p id="fictional-metadata" class="metadata">Week 1 · Day 1 of 7 · Day 1 of 353</p>
       </section>
 
-      <section class="season-section" aria-labelledby="season-heading">
-        <p id="season-heading" class="section-label">Season</p>
-        <p id="season-name" class="season-name" data-season-name>Bones</p>
-        <p id="season-metadata" class="season-metadata" data-season-metadata>Day 1 of 179 · Seasonal Cycle 1</p>
-        <p id="season-cycle-metadata" class="season-cycle-metadata" data-season-cycle-metadata>Seasonal Day 1 of 358 · Next: Tears</p>
-      </section>
-
       <section class="lunar-section" aria-labelledby="lunar-heading">
         <p id="lunar-heading" class="section-label">Lunar Cycle</p>
-        <div class="lunar-grid">
-          <div class="lunar-group" aria-label="Current lunar phase">
-            <p class="group-label">Phase</p>
-            <p id="lunar-phase" class="lunar-name">Rebirth</p>
-            <p id="lunar-metadata" class="lunar-metadata">Lunar Day 1 of 13 · Cycle 1</p>
-            <p id="lunar-time" class="lunar-time">Lunar time 00:00:00</p>
-          </div>
-          <div class="lunar-group" aria-label="Current tide">
-            <p class="group-label">Tide</p>
-            <p id="tide-name" class="lunar-name" data-tide-name>Low</p>
-            <p id="tide-metadata" class="lunar-metadata" data-tide-metadata>Hour 1 of 17</p>
-            <p id="tide-time" class="lunar-time" data-tide-time>00:00:00 into Low</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="orbital-section" aria-labelledby="orbital-heading">
-        <p id="orbital-heading" class="section-label">Celestial Orbits</p>
-        <div id="orbital-bodies" class="orbital-bodies">
-          <article class="orbital-body" data-orbital-body="mercury">
-            <p class="orbital-name"><span aria-hidden="true">☿</span> Mercury</p>
-            <p class="orbital-period">89 fictional days</p>
-            <p class="orbital-metadata" data-orbital-metadata>Orbit 1 · Day 1 of 89</p>
-            <div class="orbital-progress-row">
-              <progress max="1" value="0" aria-label="Mercury orbital progress"></progress>
-              <span class="orbital-percentage" data-orbital-percentage>0.000000%</span>
-            </div>
-          </article>
-          <article class="orbital-body" data-orbital-body="venus">
-            <p class="orbital-name"><span aria-hidden="true">♀</span> Venus</p>
-            <p class="orbital-period">223 fictional days</p>
-            <p class="orbital-metadata" data-orbital-metadata>Orbit 1 · Day 1 of 223</p>
-            <div class="orbital-progress-row">
-              <progress max="1" value="0" aria-label="Venus orbital progress"></progress>
-              <span class="orbital-percentage" data-orbital-percentage>0.000000%</span>
-            </div>
-          </article>
-          <article class="orbital-body" data-orbital-body="mars">
-            <p class="orbital-name"><span aria-hidden="true">♂</span> Mars</p>
-            <p class="orbital-period">683 fictional days</p>
-            <p class="orbital-metadata" data-orbital-metadata>Orbit 1 · Day 1 of 683</p>
-            <div class="orbital-progress-row">
-              <progress max="1" value="0" aria-label="Mars orbital progress"></progress>
-              <span class="orbital-percentage" data-orbital-percentage>0.000000%</span>
-            </div>
-          </article>
-          <article class="orbital-body" data-orbital-body="jupiter">
-            <p class="orbital-name"><span aria-hidden="true">♃</span> Jupiter</p>
-            <p class="orbital-period">4,337 fictional days</p>
-            <p class="orbital-metadata" data-orbital-metadata>Orbit 1 · Day 1 of 4337</p>
-            <div class="orbital-progress-row">
-              <progress max="1" value="0" aria-label="Jupiter orbital progress"></progress>
-              <span class="orbital-percentage" data-orbital-percentage>0.000000%</span>
-            </div>
-          </article>
-          <article class="orbital-body" data-orbital-body="saturn">
-            <p class="orbital-name"><span aria-hidden="true">♄</span> Saturn</p>
-            <p class="orbital-period">7,919 fictional days</p>
-            <p class="orbital-metadata" data-orbital-metadata>Orbit 1 · Day 1 of 7919</p>
-            <div class="orbital-progress-row">
-              <progress max="1" value="0" aria-label="Saturn orbital progress"></progress>
-              <span class="orbital-percentage" data-orbital-percentage>0.000000%</span>
-            </div>
-          </article>
-          <article class="orbital-body" data-orbital-body="moon">
-            <p class="orbital-name"><span aria-hidden="true">☾</span> Moon</p>
-            <p class="orbital-period">13 lunar days</p>
-            <p class="orbital-metadata" data-orbital-metadata>Orbit 1 · Day 1 of 13</p>
-            <div class="orbital-progress-row">
-              <progress max="1" value="0" aria-label="Moon orbital progress"></progress>
-              <span class="orbital-percentage" data-orbital-percentage>0.000000%</span>
-            </div>
-          </article>
-        </div>
-
-        <section class="orbital-pulls" aria-labelledby="orbital-pulls-heading">
-          <p id="orbital-pulls-heading" class="section-label">Orbital Pulls</p>
-          <div class="pull-grid">
-            <article class="pull-card" data-pull-key="dominantPull">
-              <p class="group-label">Dominant Pull</p>
-              <p class="pull-members" data-pull-members>Moon · Venus · Mars</p>
-              <p class="pull-detail" data-pull-span>Circular span 0.000000%</p>
-              <p class="pull-detail" data-pull-alignment>Alignment 100.000000%</p>
-              <p class="pull-selection" data-pull-selection>Fixed-priority tie-break applied among 20 tied trios</p>
-            </article>
-            <article class="pull-card" data-pull-key="minorPull">
-              <p class="group-label">Minor Pull</p>
-              <p class="pull-members" data-pull-members>Moon · Venus · Mercury</p>
-              <p class="pull-detail" data-pull-span>Circular span 0.000000%</p>
-              <p class="pull-detail" data-pull-alignment>Alignment 100.000000%</p>
-              <p class="pull-selection" data-pull-selection>Fixed-priority tie-break applied among 20 tied trios</p>
-            </article>
-            <article class="pull-card" data-pull-key="negativePull">
-              <p class="group-label">Negative Pull</p>
-              <p class="pull-members" data-pull-members>Moon · Venus · Mars</p>
-              <p class="pull-detail" data-pull-span>Circular span 0.000000%</p>
-              <p class="pull-detail" data-pull-alignment>Alignment 100.000000%</p>
-              <p class="pull-selection" data-pull-selection>Fixed-priority tie-break applied among 20 tied trios</p>
-            </article>
-          </div>
-        </section>
-        <p class="orbital-clarification">Pulls measure fictional orbital-phase clustering, not physical gravity.</p>
+        <p class="group-label">Phase</p>
+        <p id="lunar-phase" class="lunar-name">Rebirth</p>
+        <p id="lunar-metadata" class="lunar-metadata">Lunar Day 1 of 13 · Cycle 1</p>
+        <p id="lunar-time" class="lunar-time">Lunar time 00:00:00</p>
       </section>
 
       <section class="progress-section" aria-labelledby="progress-heading">
@@ -159,13 +54,6 @@
               <span data-progress-percentage>0.000000%</span>
             </div>
             <progress max="1" value="0" aria-label="Current Phase progress"></progress>
-          </div>
-          <div class="progress-item" data-progress-key="season">
-            <div class="progress-heading-row">
-              <span>Current Season</span>
-              <span data-progress-percentage>0.000000%</span>
-            </div>
-            <progress max="1" value="0" aria-label="Current Season progress"></progress>
           </div>
           <div class="progress-item" data-progress-key="year">
             <div class="progress-heading-row">

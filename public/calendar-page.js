@@ -5,12 +5,6 @@ import {
   formatLunarTime
 } from './calendar.js';
 import { captureLiveState, startLiveState } from './live-state.js';
-import {
-  createCelestialOrbitsRenderer,
-  createOrbitalPullsRenderer,
-  createSeasonRenderer,
-  createTideRenderer
-} from './renderers.js';
 
 const timeElement = document.querySelector('#fictional-time');
 const yearElement = document.querySelector('#fictional-year');
@@ -33,11 +27,6 @@ const jsonElement = document.querySelector('#json-output');
 const copyButton = document.querySelector('#copy-json');
 const copyStatusElement = document.querySelector('#copy-status');
 
-const renderSeason = createSeasonRenderer(document);
-const renderTide = createTideRenderer(document);
-const renderCelestialOrbits = createCelestialOrbitsRenderer(document);
-const renderOrbitalPulls = createOrbitalPullsRenderer(document);
-
 let currentJsonSnapshot = '';
 
 function renderCalendarPage(calendarValue, realUnixMilliseconds) {
@@ -50,16 +39,11 @@ function renderCalendarPage(calendarValue, realUnixMilliseconds) {
   metadataElement.textContent = `Week ${calendarValue.weekOfYear} · Day ${calendarValue.dayOfWeek} of 7 · Day ${calendarValue.dayOfYear} of 353`;
   accessibleDateElement.textContent = formattedDate;
 
-  renderSeason(calendarValue);
   lunarPhaseElement.textContent = calendarValue.lunar.phase.name;
   lunarMetadataElement.textContent = `Lunar Day ${calendarValue.lunar.day} of ${calendarValue.lunar.cycleLengthDays} · Cycle ${calendarValue.lunar.cycle}`;
   lunarTimeElement.textContent = `Lunar time ${formatLunarTime(calendarValue.lunar)}`;
-  renderTide(calendarValue);
-  renderCelestialOrbits(calendarValue);
-  renderOrbitalPulls(calendarValue);
-
-  for (const [key, progressValue] of Object.entries(calendarValue.progress)) {
-    const elements = progressElements.get(key);
+  for (const [key, elements] of progressElements) {
+    const progressValue = calendarValue.progress[key];
     elements.bar.value = progressValue.fraction;
     elements.percentage.textContent = progressValue.formatted;
   }

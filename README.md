@@ -2,7 +2,7 @@
 
 Insidia is a live fictional clock, calendar, season cycle, lunar cycle, tide cycle, and six-body orbital alignment model. All fictional calculations run in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
 
-**Current release:** v5.5
+**Current release:** v6
 
 ## Fictional time and calendar
 
@@ -126,22 +126,22 @@ The application validates an explicit `PORT` and listens on `0.0.0.0`, which is 
 | Route | Purpose |
 |---|---|
 | `/` | Redirects to `/calendar.html` |
-| `/calendar.html` | Complete fictional calendar dashboard |
-| `/treasure.html` | Tide, celestial orbits, and orbital pulls |
-| `/weather.html` | Current Bones or Tears season |
+| `/calendar.html` | Calendar, lunar phase and timing, selected progress values, and complete JSON output |
+| `/treasure.html` | Tide, celestial orbits, and all orbital pulls |
+| `/weather.html` | Season and season progress |
 | `/health` | Application health response |
 
-All three HTML pages use normal navigation links and calculate the same complete fictional state from the same Unix epoch through one shared browser scheduler. Each page displays a different subset of that state. Reloading or switching routes never resets a cycle because no fictional counters are stored in memory, local storage, or on the server. The Node.js server stores no fictional state and handles only static files, the health response, and the root redirect.
+All three HTML pages use normal navigation links and calculate the same complete fictional state from the same Unix epoch through one shared browser scheduler. Each page displays a different subset of that state. Calendar no longer shows visual cards for Season, Tide, Celestial Orbits, or Orbital Pulls, but its JSON output still exports the complete state, including those fields and season progress. Reloading or switching routes never resets a cycle because no fictional counters are stored in memory, local storage, or on the server. The Node.js server stores no fictional state and handles only static files, the health response, and the root redirect.
 
 ## Health check and JSON schema
 
 `GET /health` returns:
 
 ```json
-{"ok":true,"version":"v5.5"}
+{"ok":true,"version":"v6"}
 ```
 
-The copied calendar JSON schema remains `"calendarVersion":"v8"`. V5.5 changes document routing and presentation without restructuring the fictional snapshot. The application release version and JSON schema version are intentionally independent.
+The copied calendar JSON schema remains `"calendarVersion":"v8"`. V6 simplifies the Calendar presentation without changing calculations or restructuring the complete fictional snapshot. The application release version and JSON schema version are intentionally independent.
 
 ## Architecture
 
@@ -149,7 +149,7 @@ The frontend uses three real HTML documents, vanilla CSS, and JavaScript ES modu
 
 ## Deploying to Heroku
 
-Insidia v5.5 remains prepared for Heroku's native GitHub automatic deployment integration. The routing change does not alter the Procfile or automatic deployment configuration. No GitHub Actions workflow exists for v5.5.
+Insidia v6 remains prepared for Heroku's native GitHub automatic deployment integration. The UI change does not alter the Procfile or automatic deployment configuration. No GitHub Actions workflow exists for v6.
 
 ### Requirements
 
@@ -169,7 +169,7 @@ web: npm start
 2. Select **GitHub** as the deployment method and connect `FelipeBudinich/insidia`.
 3. Select the deployment branch, normally `main`.
 4. Enable **Automatic Deploys** for that branch.
-5. Leave **Wait for CI to pass before deploy** disabled for v5.5 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
+5. Leave **Wait for CI to pass before deploy** disabled for v6 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
 
 Heroku builds and releases successful GitHub pushes directly; no Heroku Git remote, deployment script, or committed deployment credential is required.
 
@@ -192,7 +192,7 @@ https://your-app-name.herokuapp.com/
 https://your-app-name.herokuapp.com/health
 ```
 
-The health endpoint must return `{"ok":true,"version":"v5.5"}`. To inspect logs and dyno status:
+The health endpoint must return `{"ok":true,"version":"v6"}`. To inspect logs and dyno status:
 
 ```sh
 heroku logs --tail --app <app-name>
@@ -220,7 +220,7 @@ For custom domains, use Heroku Automated Certificate Management or another prope
 ```text
 .
 ├── public/
-│   ├── calendar.html       # Complete dashboard route
+│   ├── calendar.html       # Calendar, lunar, progress, and complete JSON route
 │   ├── treasure.html       # Tide, orbit, and pull route
 │   ├── weather.html        # Season route
 │   ├── calendar.js         # Pure fictional-state calculations
