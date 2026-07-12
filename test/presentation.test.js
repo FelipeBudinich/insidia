@@ -217,11 +217,29 @@ test('yearly reign names reset without resetting the underlying rotation', async
   ]) assert.equal(formatMonthReignName(calculateMonthRulershipState(year, month), presentationContext), expected);
 });
 
+test('presentation context exposes cloned, deeply frozen month-reign entities', async () => {
+  const source = await productionNomenclature();
+  const presentationContext = await context('en', source);
+  const ruler = presentationContext.getMonthRuler('ruler-01');
+  const ordinal = presentationContext.getReignOrdinal('reign-ordinal-01');
+  assert.notEqual(ruler, source.calendar.monthReign.rulers[0]);
+  assert.notEqual(ordinal, source.calendar.monthReign.ordinals[0]);
+  assert.equal(Object.isFrozen(ruler), true);
+  assert.equal(Object.isFrozen(ordinal), true);
+  assert.throws(() => { ruler.name = 'Changed'; }, TypeError);
+  assert.throws(() => { ordinal.name = 'Changed'; }, TypeError);
+  assert.equal(presentationContext.getMonthRuler('ruler-01').name, 'Orgolio');
+  assert.equal(presentationContext.getReignOrdinal('reign-ordinal-01').name, 'Prime');
+});
+
 test('Inter Regnum dates use weekday, Roman day, and configured period name', async () => {
   const state = calculateCalendarState(29 * weekdayDayMilliseconds);
   const display = createDisplayData(state, await context('en'));
   assert.equal(state.calendar.period.interRegnumId, 'interregnum-01');
   assert.equal(state.calendar.weekdayId, 'weekday-02');
+  assert.equal(Object.hasOwn(state.calendar.period, 'rulership'), false);
+  assert.equal(display.calendar.month, null);
+  assert.deepEqual(display.calendar.interRegnum, { id: 'interregnum-01', name: 'Inter Regnum 1 → 2' });
   assert.equal(display.calendar.periodLabel, 'Dies Martis · I Inter Regnum 1 → 2');
 });
 
@@ -468,4 +486,23 @@ test('production JavaScript has no runtime universe selection, cookies, or local
 test('core source remains proper-noun free', async () => {
   const source = await readFile(path.join(root, 'public', 'core', 'rules.js'), 'utf8') + await readFile(path.join(root, 'public', 'core', 'mechanics.js'), 'utf8');
   for (const name of ['Insidia','Annus Solis','Cyclus Lunae','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),'Ossos','Lacrimas','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna',...LUNAR_PHASE_NAMES,'Marea basse','Attraction dominante', ...WEEKDAYS.map(({ name }) => name)]) assert.ok(!containsProperNoun(source, name), name);
+});
+
+test('month-reign proper nouns occur only in nomenclature, tests, and documentation', async () => {
+  const forbiddenProductionFiles = [
+    'core/rules.js', 'core/mechanics.js',
+    'calendario.html', 'destino.html', 'tempore.html',
+    'locales/en.json', 'locales/es.json',
+    'calendario-page.js', 'destino-page.js', 'tempore-page.js', 'renderers.js',
+    'presentation.js', 'nomenclature.js', 'nomenclature-loader.js'
+  ];
+  const monthProperNouns = [
+    'Regno de', ...MONTH_RULERS.map(({ name }) => name), ...REIGN_ORDINALS.map(({ name }) => name)
+  ];
+  for (const file of forbiddenProductionFiles) {
+    const source = await readFile(path.join(root, 'public', file), 'utf8');
+    for (const properNoun of monthProperNouns) {
+      assert.equal(containsProperNoun(source, properNoun), false, `${file}: ${properNoun}`);
+    }
+  }
 });

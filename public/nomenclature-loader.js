@@ -61,6 +61,9 @@ function validateEntities(items, expectedIds, label, entityKeys) {
   if (JSON.stringify([...ids].sort()) !== JSON.stringify([...expectedIds].sort())) {
     throw new Error(`${label} must contain exact required IDs`);
   }
+  if (JSON.stringify(ids) !== JSON.stringify(expectedIds)) {
+    throw new Error(`${label} must use canonical ID ordering`);
+  }
   items.forEach((item, index) => {
     assertExactKeys(item, entityKeys, `${label}[${index}]`);
     assertNonEmptyString(item.id, `${label}[${index}].id`);

@@ -126,19 +126,28 @@ test('month-reign nomenclature requires exact rulers, ordinals, and name-only en
   const duplicateRuler = structuredClone(valid); duplicateRuler.calendar.monthReign.rulers[1].id = 'ruler-01';
   const unknownRuler = structuredClone(valid); unknownRuler.calendar.monthReign.rulers[1].id = 'ruler-99';
   const emptyRuler = structuredClone(valid); emptyRuler.calendar.monthReign.rulers[0].name = '';
+  const whitespaceRuler = structuredClone(valid); whitespaceRuler.calendar.monthReign.rulers[0].name = '   ';
+  const nonStringRuler = structuredClone(valid); nonStringRuler.calendar.monthReign.rulers[0].name = 1;
+  const reorderedRulers = structuredClone(valid); reorderedRulers.calendar.monthReign.rulers.reverse();
   const rulerShortName = structuredClone(valid); rulerShortName.calendar.monthReign.rulers[0].shortName = 'O';
   const missingOrdinal = structuredClone(valid); missingOrdinal.calendar.monthReign.ordinals.pop();
   const duplicateOrdinal = structuredClone(valid); duplicateOrdinal.calendar.monthReign.ordinals[1].id = 'reign-ordinal-01';
   const unknownOrdinal = structuredClone(valid); unknownOrdinal.calendar.monthReign.ordinals[1].id = 'reign-ordinal-99';
   const emptyOrdinal = structuredClone(valid); emptyOrdinal.calendar.monthReign.ordinals[0].name = '';
+  const whitespaceOrdinal = structuredClone(valid); whitespaceOrdinal.calendar.monthReign.ordinals[0].name = '   ';
+  const nonStringOrdinal = structuredClone(valid); nonStringOrdinal.calendar.monthReign.ordinals[0].name = 1;
+  const reorderedOrdinals = structuredClone(valid); reorderedOrdinals.calendar.monthReign.ordinals.reverse();
   const missingName = structuredClone(valid); delete missingName.calendar.monthReign.name;
   const emptyName = structuredClone(valid); emptyName.calendar.monthReign.name = '';
+  const whitespaceName = structuredClone(valid); whitespaceName.calendar.monthReign.name = '   ';
+  const nonStringName = structuredClone(valid); nonStringName.calendar.monthReign.name = 1;
   const staticMonths = structuredClone(valid); staticMonths.calendar.months = [];
   const mechanicalSkip = structuredClone(valid); mechanicalSkip.calendar.monthReign.skippedRegularTurn = true;
   const mechanicalDuration = structuredClone(valid); mechanicalDuration.calendar.monthReign.durationDays = 29;
   for (const invalid of [
-    missingRuler, duplicateRuler, unknownRuler, emptyRuler, rulerShortName,
-    missingOrdinal, duplicateOrdinal, unknownOrdinal, emptyOrdinal, missingName, emptyName,
+    missingRuler, duplicateRuler, unknownRuler, emptyRuler, whitespaceRuler, nonStringRuler, reorderedRulers, rulerShortName,
+    missingOrdinal, duplicateOrdinal, unknownOrdinal, emptyOrdinal, whitespaceOrdinal, nonStringOrdinal, reorderedOrdinals,
+    missingName, emptyName, whitespaceName, nonStringName,
     staticMonths, mechanicalSkip, mechanicalDuration
   ]) assert.throws(() => validateNomenclature(invalid));
 });

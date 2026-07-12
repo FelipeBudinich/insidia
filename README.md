@@ -76,14 +76,14 @@ Changing locale translates Outcome types and generic UI prose without changing c
 - 59 seconds = 1 minute; 61 minutes = 1 hour; 23 hours = 1 calendar day
 - 7 days = 1 week
 - 11 × 29-day months, ten 3-day Inter Regna, and one 4-day final Inter Regnum = 353 days
-- Eight rulers rotate across calendar months without resetting at year boundaries. The repeating 15-month effective sequence is rulers 1–8, then rulers 1–7; ruler 8's next regular opportunity is skipped before the sequence repeats.
+- Eight rulers rotate across calendar months without resetting at year boundaries. Pigritia governs its first regular opportunity, declines its next, returns for the following one, and continues alternating that way indefinitely. The exact repeating 15-month effective sequence is Orgolio, Rabia, Gula, Invidia, Avaritia, Vanitate, Luxuria, Pigritia, Orgolio, Rabia, Gula, Invidia, Avaritia, Vanitate, Luxuria. The next block begins with the single Orgolio reign that replaces Pigritia's skipped regular opportunity, followed immediately by Rabia.
 - Inter Regna do not advance the ruler rotation. Reign ordinals count each effective ruler's appearances within the current year and reset at the new year without resetting the underlying rotation.
 - Two continuous 179-day seasons = a 358-day seasonal cycle
 - 31-hour lunar days and 13-day lunar cycles
 - Tides last 17, 13, and 1 lunar hours
 - Six deterministic circular orbits and three ranked three-body pulls
 
-The epoch is `1970-01-01T00:00:00.000Z`. Mechanical modules own stable IDs, durations, ordering, orbital periods, tie-breaking, thresholds, calculations, and relationships. They never contain configured proper nouns, localized text, symbols, or formatted display values. Month state keeps the skipped opportunity, regular ruler, and effective ruler separate; v8.8 uses `source: "base_rotation"`, so the regular ruler is also effective. That distinction is an explicit seam for future forced or conspiracy-based rulership without changing the base rotation or its Pigritia skip.
+The epoch is `1970-01-01T00:00:00.000Z`. Mechanical modules own stable IDs, durations, ordering, orbital periods, tie-breaking, thresholds, calculations, and relationships. They never contain configured proper nouns, localized text, symbols, or formatted display values. Month state keeps the skipped opportunity, regular ruler, and effective ruler separate; v8.8 uses `source: "base_rotation"`, so the regular ruler is also effective. A future conspiracy will change only the targeted month's effective ruler, never the underlying rotation, its next opportunity, or Pigritia's regular skip alternation. Pigritia skips only a regular opportunity: a conspiracy-forced Pigritia reign remains effective and is never removed by that skip rule. Yearly reign counts will be recomputed from effective rulers, including earlier overrides in the same year.
 
 Raw calendar state retains numeric `year`, `weekOfYear`, `dayOfYear`, `dayOfWeek`, and period-day values. Raw lunar state likewise retains cycle, day, cycle length, and phase ID. Roman conversion and in-universe names exist only in the presentation layer.
 

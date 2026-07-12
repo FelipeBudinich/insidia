@@ -109,6 +109,23 @@ test('the alternating ruler skip consumes the replacement position exactly once'
   assert.equal(twentyThird.skippedRegularTurn, false);
 });
 
+test('the alternating ruler governs and skips every other regular opportunity', () => {
+  for (const [absoluteMonthIndex, regularRulerId, skippedRegularTurn] of [
+    [7, 'ruler-08', false],
+    [15, 'ruler-01', true],
+    [22, 'ruler-08', false],
+    [30, 'ruler-01', true],
+    [37, 'ruler-08', false],
+    [45, 'ruler-01', true]
+  ]) {
+    assert.deepEqual(calculateRegularMonthRulership(absoluteMonthIndex), {
+      opportunityRulerId: 'ruler-08',
+      regularRulerId,
+      skippedRegularTurn
+    });
+  }
+});
+
 test('month rotation continues across years while reign counts reset yearly', () => {
   const yearOneMonthEleven = calculateMonthRulershipState(0, 10);
   const yearTwoMonthOne = calculateMonthRulershipState(1, 0);
@@ -132,11 +149,15 @@ test('Inter Regna neither contain rulership nor advance the regular rotation', (
 });
 
 test('month-rulership inputs are validated', () => {
-  for (const value of [-1, 1.5, NaN, Infinity]) assert.throws(() => calculateRegularMonthRulership(value), RangeError);
+  for (const value of [-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => calculateRegularMonthRulership(value), RangeError);
+  }
   assert.throws(() => calculateRegularMonthRulership('1'), TypeError);
-  for (const args of [[-1, 0], [0, -1], [0, 11], [0, 1.5]]) {
+  for (const args of [[-1, 0], [0, -1], [0, 11], [0, 1.5], [NaN, 0], [Infinity, 0], [Number.MAX_SAFE_INTEGER, 0]]) {
     assert.throws(() => calculateMonthRulershipState(...args), RangeError);
   }
+  assert.throws(() => calculateMonthRulershipState('0', 0), TypeError);
+  assert.throws(() => calculateMonthRulershipState(0, '0'), TypeError);
 });
 
 test('invalid inputs are rejected', () => {
