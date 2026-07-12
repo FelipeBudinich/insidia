@@ -2,7 +2,7 @@
 
 Insidia is a live fictional clock, calendar, season cycle, lunar cycle, tide cycle, and six-body orbital alignment model. All fictional calculations run in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
 
-**Current release:** v6.2
+**Current release:** v6.3
 
 ## Fictional time and calendar
 
@@ -67,17 +67,17 @@ Fixed priority is used only to break equal-span ties. Its order is Moon, Venus, 
 
 Alignment percentage is 100 minus the circular-span percentage and does not affect selection. Pulls measure fictional orbital-phase clustering, not physical gravity.
 
-## Drop
+## Outcome
 
-Treasure begins with a tide-driven Drop selection derived from the already-calculated orbital pulls and raw normalized orbital progress:
+The Outcome page begins with an Outcome card containing a tide-driven selection derived from the already-calculated orbital pulls and raw normalized orbital progress:
 
 - **High:** selects the most-complete member of Dominant Pull.
 - **Low:** selects the least-complete member of Minor Pull.
 - **Parted:** selects the median-progress member of Negative Pull.
 
-Equal progress is resolved by the fixed priority Moon, Venus, Mars, Mercury, Jupiter, Saturn, with canonical IDs as the final fallback. Drop is fictional and does not represent physical falling objects or real gravitational behavior.
+Equal progress is resolved by the fixed priority Moon, Venus, Mars, Mercury, Jupiter, Saturn, with canonical IDs as the final fallback. The Outcome is fictional and does not represent physical falling objects or real gravitational behavior.
 
-The Drop reward is derived only from raw current fictional-hour progress: **Common** applies through 85%, **Uncommon** applies above 85% through 99%, and **Rare** applies strictly above 99%. Attempts until Rare count one attempt for each whole percentage point needed to exceed 99%; the count is zero once the reward is Rare. The selected body's displayed orbital progress remains separate from the hour progress that determines reward.
+The Outcome reward is derived only from raw current fictional-hour progress: **Common** applies through 85%, **Uncommon** applies above 85% through 99%, and **Rare** applies strictly above 99%. Attempts until Rare count one attempt for each whole percentage point needed to exceed 99%; the count is zero once the reward is Rare. The selected body's displayed orbital progress remains separate from the hour progress that determines reward.
 
 ## Continuous progress
 
@@ -85,7 +85,7 @@ The Progress card tracks the current lunar cycle, lunar phase, 179-day season, 3
 
 Season progress measures only the current Bones or Tears season, not the full 358-day seasonal cycle. Lunar-phase progress uses the 31-hour lunar day, while lunar-cycle progress spans all 13 lunar days.
 
-Treasure ends with a separate Progress card that displays only the already-calculated current fictional-hour progress.
+The Outcome page ends with a separate Progress card that displays only the already-calculated current fictional-hour progress.
 
 ## Epoch
 
@@ -140,8 +140,9 @@ The application validates an explicit `PORT` and listens on `0.0.0.0`, which is 
 | Route | Purpose |
 |---|---|
 | `/` | Redirects to `/calendar.html` |
-| `/calendar.html` | Calendar, lunar phase and timing, selected progress values, and complete JSON output |
-| `/treasure.html` | Drop, Tide, Orbital Pulls, Celestial Orbits, and current-hour Progress, in that order |
+| `/calendar.html` | Calendar and lunar dashboard |
+| `/outcome.html` | Outcome, tide, orbital pulls, celestial orbits, and hour progress |
+| `/treasure.html` | Redirects to `/outcome.html` |
 | `/weather.html` | Season and season progress |
 | `/health` | Application health response |
 
@@ -152,10 +153,10 @@ All three HTML pages use normal navigation links and calculate the same complete
 `GET /health` returns:
 
 ```json
-{"ok":true,"version":"v6.2"}
+{"ok":true,"version":"v6.3"}
 ```
 
-The copied calendar JSON schema remains `"calendarVersion":"v8"`. V6.2 adds Drop reward state and current-hour Treasure presentation internally without adding Drop or reward to the copied JSON. The application release version and JSON schema version are intentionally independent.
+The copied calendar JSON schema remains `"calendarVersion":"v8"`. V6.3 renames the page and visible card to Outcome without changing the internal derived state or adding an Outcome or reward object to the copied JSON. The application release version and JSON schema version are intentionally independent.
 
 ## Architecture
 
@@ -163,7 +164,7 @@ The frontend uses three real HTML documents, vanilla CSS, and JavaScript ES modu
 
 ## Deploying to Heroku
 
-Insidia v6.2 remains prepared for Heroku's native GitHub automatic deployment integration. The UI change does not alter the Procfile or automatic deployment configuration. No GitHub Actions workflow exists for v6.2.
+Insidia v6.3 remains prepared for Heroku's native GitHub automatic deployment integration. The routing and UI terminology change does not alter the Procfile or automatic deployment configuration. No GitHub Actions workflow exists for v6.3.
 
 ### Requirements
 
@@ -183,7 +184,7 @@ web: npm start
 2. Select **GitHub** as the deployment method and connect `FelipeBudinich/insidia`.
 3. Select the deployment branch, normally `main`.
 4. Enable **Automatic Deploys** for that branch.
-5. Leave **Wait for CI to pass before deploy** disabled for v6.2 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
+5. Leave **Wait for CI to pass before deploy** disabled for v6.3 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
 
 Heroku builds and releases successful GitHub pushes directly; no Heroku Git remote, deployment script, or committed deployment credential is required.
 
@@ -206,7 +207,7 @@ https://your-app-name.herokuapp.com/
 https://your-app-name.herokuapp.com/health
 ```
 
-The health endpoint must return `{"ok":true,"version":"v6.2"}`. To inspect logs and dyno status:
+The health endpoint must return `{"ok":true,"version":"v6.3"}`. To inspect logs and dyno status:
 
 ```sh
 heroku logs --tail --app <app-name>
@@ -235,13 +236,13 @@ For custom domains, use Heroku Automated Certificate Management or another prope
 .
 ├── public/
 │   ├── calendar.html       # Calendar, lunar, progress, and complete JSON route
-│   ├── treasure.html       # Drop, tide, pull, orbit, and hour-progress route
+│   ├── outcome.html        # Outcome, tide, pull, orbit, and hour-progress route
 │   ├── weather.html        # Season route
 │   ├── calendar.js         # Pure fictional-state calculations
 │   ├── live-state.js       # Shared drift-resistant scheduler
 │   ├── renderers.js        # Shared focused-state renderers
 │   ├── calendar-page.js    # Calendar page binding and JSON copy behavior
-│   ├── treasure-page.js    # Treasure page binding
+│   ├── outcome-page.js     # Outcome page binding
 │   ├── weather-page.js     # Weather page binding
 │   └── styles.css          # Shared responsive styling
 ├── test/
@@ -268,7 +269,7 @@ npm test
 npm audit --omit=dev
 ```
 
-The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, reward thresholds and attempts, tide-driven Drop selection, planetary and Moon orbital resets, Moon/lunar-cycle synchronization, circular wrap-around, all twenty orbital pull candidates, grouped epsilon ranking, Minor and Negative Pull selection, raw-fraction ordering, fixed-priority tie-break rules, all three HTML routes and their navigation, shared scheduler architecture, redirects, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
+The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, reward thresholds and attempts, tide-driven Outcome selection, planetary and Moon orbital resets, Moon/lunar-cycle synchronization, circular wrap-around, all twenty orbital pull candidates, grouped epsilon ranking, Minor and Negative Pull selection, raw-fraction ordering, fixed-priority tie-break rules, all three HTML routes and their navigation, the legacy route redirect, shared scheduler architecture, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
 
 ## License
 

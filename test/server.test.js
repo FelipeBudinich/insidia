@@ -91,7 +91,23 @@ test('GET and HEAD root redirect securely to the calendar route', async () => {
   }
 });
 
-test('GET and HEAD health return the v6.2 availability response', async () => {
+test('GET and HEAD legacy Treasure route redirect to Outcome without caching', async () => {
+  const server = await startTestServer();
+  try {
+    for (const method of ['GET', 'HEAD']) {
+      const response = await request(server, '/treasure.html', { method });
+      assert.equal(response.statusCode, 302, method);
+      assert.equal(response.headers.location, '/outcome.html', method);
+      assert.equal(response.headers['cache-control'], 'no-store', method);
+      assert.equal(response.body, '', method);
+      assertSecurityHeaders(response.headers);
+    }
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('GET and HEAD health return the v6.3 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -99,7 +115,7 @@ test('GET and HEAD health return the v6.2 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v6.2"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v6.3"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -113,7 +129,7 @@ test('all three HTML routes serve secure no-cache documents with shared navigati
   const server = await startTestServer();
   const pageDefinitions = [
     { path: '/calendar.html', activeLabel: 'Calendar', title: 'Calendar · Insidia' },
-    { path: '/treasure.html', activeLabel: 'Treasure', title: 'Treasure · Insidia' },
+    { path: '/outcome.html', activeLabel: 'Outcome', title: 'Outcome · Insidia' },
     { path: '/weather.html', activeLabel: 'Weather', title: 'Weather · Insidia' }
   ];
   try {
@@ -124,11 +140,11 @@ test('all three HTML routes serve secure no-cache documents with shared navigati
       assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8', page.path);
       assert.equal(getResponse.headers['cache-control'], 'no-cache', page.path);
       assert.match(getResponse.body, new RegExp(`<title>${page.title}</title>`), page.path);
-      assert.match(getResponse.body, /aria-label="Application version 6\.2">v6\.2/, page.path);
+      assert.match(getResponse.body, /aria-label="Application version 6\.3">v6\.3/, page.path);
       assert.match(getResponse.body, /<nav class="primary-nav" aria-label="Primary">/, page.path);
       for (const [href, label] of [
         ['/calendar.html', 'Calendar'],
-        ['/treasure.html', 'Treasure'],
+        ['/outcome.html', 'Outcome'],
         ['/weather.html', 'Weather']
       ]) {
         assert.match(getResponse.body, new RegExp(`<a href="${href}"(?: aria-current="page")?>${label}</a>`), page.path);
@@ -181,12 +197,12 @@ test('calendar route shows only calendar, lunar, selected progress, and JSON out
   }
 });
 
-test('treasure route orders Drop, Tide, Pulls, all six Orbits, and final hour Progress', async () => {
+test('Outcome route begins with Outcome and retains its fields before Tide, Pulls, Orbits, and Progress', async () => {
   const server = await startTestServer();
   try {
-    const response = await request(server, '/treasure.html');
+    const response = await request(server, '/outcome.html');
     for (const requiredContent of [
-      'Drop', '☾</span> Moon', 'Reward: Common', 'Attempts until Rare: 100',
+      'Outcome', '☾</span> Moon', 'Reward: Common', 'Attempts until Rare: 100',
       'Low · Minor Pull', 'Orbital progress: 0.000000%',
       'Furthest from orbit completion', 'Fixed-priority tie-break applied',
       'Tide', 'Low', 'Hour 1 of 17', '00:00:00 into Low', 'Celestial Orbits',
@@ -198,17 +214,26 @@ test('treasure route orders Drop, Tide, Pulls, all six Orbits, and final hour Pr
     ]) {
       assert.ok(response.body.includes(requiredContent), requiredContent);
     }
-    const dropIndex = response.body.indexOf('id="drop-heading"');
+    const outcomeIndex = response.body.indexOf('id="outcome-heading"');
     const tideIndex = response.body.indexOf('id="tide-heading"');
     const pullsIndex = response.body.indexOf('id="orbital-pulls-heading"');
     const orbitsIndex = response.body.indexOf('id="orbital-heading"');
     const progressIndex = response.body.indexOf('id="progress-heading"');
     const footerIndex = response.body.indexOf('<footer>');
-    assert.ok(dropIndex < tideIndex, 'Drop must appear before Tide');
+    assert.ok(outcomeIndex < tideIndex, 'Outcome must appear before Tide');
     assert.ok(tideIndex < pullsIndex, 'Tide must appear before Orbital Pulls');
     assert.ok(pullsIndex < orbitsIndex, 'Orbital Pulls must appear before Celestial Orbits');
     assert.ok(orbitsIndex < progressIndex, 'Celestial Orbits must appear before Progress');
     assert.ok(progressIndex < footerIndex, 'Progress must be the final card before the footer');
+    assert.match(
+      response.body,
+      /<main class="container">\s*<section class="drop-section focused-section" aria-labelledby="outcome-heading">/
+    );
+    assert.ok(!response.body.includes('class="page-header"'));
+    assert.ok(!response.body.includes('class="page-kicker"'));
+    assert.ok(!response.body.includes('<h1>Treasure</h1>'));
+    assert.ok(!response.body.includes('<h1>Outcome</h1>'));
+    assert.ok(!response.body.includes('Treasure · Insidia'));
 
     const dropFieldIds = [
       'drop-body', 'drop-reward', 'drop-attempts', 'drop-source',
@@ -225,7 +250,7 @@ test('treasure route orders Drop, Tide, Pulls, all six Orbits, and final hour Pr
       assert.ok(!progressCard.includes(excludedRow), excludedRow);
     }
     assert.equal((response.body.match(/0\.000000%/g) ?? []).length >= 9, true);
-    assert.match(response.body, /src="\/treasure-page\.js"/);
+    assert.match(response.body, /src="\/outcome-page\.js"/);
     assert.ok(!response.body.includes('JSON output'));
   } finally {
     await stopServer(server);
@@ -312,7 +337,7 @@ test('static JavaScript and CSS use explicit types and no-cache', async () => {
     const css = await request(server, '/styles.css');
     for (const scriptPath of [
       '/calendar.js', '/live-state.js', '/renderers.js',
-      '/calendar-page.js', '/treasure-page.js', '/weather-page.js'
+      '/calendar-page.js', '/outcome-page.js', '/weather-page.js'
     ]) {
       const javascript = await request(server, scriptPath);
       assert.equal(javascript.statusCode, 200, scriptPath);
@@ -331,7 +356,7 @@ test('all page modules use the shared live-state scheduler and shared renderers'
   const liveState = await readFile(path.join(projectDirectory, 'public/live-state.js'), 'utf8');
   const renderers = await readFile(path.join(projectDirectory, 'public/renderers.js'), 'utf8');
   const calendarPage = await readFile(path.join(projectDirectory, 'public/calendar-page.js'), 'utf8');
-  const pageModuleNames = ['calendar-page.js', 'treasure-page.js', 'weather-page.js'];
+  const pageModuleNames = ['calendar-page.js', 'outcome-page.js', 'weather-page.js'];
 
   assert.match(liveState, /calculateFictionalCalendar\(realUnixMilliseconds\)/);
   assert.match(liveState, /const realUnixMilliseconds = Date\.now\(\)/);
@@ -364,12 +389,19 @@ test('all page modules use the shared live-state scheduler and shared renderers'
     assert.ok(!moduleText.includes('calculateFictionalCalendar'), moduleName);
     assert.ok(!moduleText.includes('innerHTML'), moduleName);
   }
-  const treasurePage = await readFile(path.join(projectDirectory, 'public/treasure-page.js'), 'utf8');
-  const dropCall = treasurePage.indexOf('renderDrop(calendarValue.drop)');
-  const tideCall = treasurePage.indexOf('renderTide(calendarValue)');
-  const pullsCall = treasurePage.indexOf('renderOrbitalPulls(calendarValue)');
-  const orbitsCall = treasurePage.indexOf('renderCelestialOrbits(calendarValue)');
-  assert.ok(dropCall < tideCall && tideCall < pullsCall && pullsCall < orbitsCall);
+  const outcomePage = await readFile(path.join(projectDirectory, 'public/outcome-page.js'), 'utf8');
+  const outcomeCall = outcomePage.indexOf('renderOutcome(calendarValue.drop)');
+  const tideCall = outcomePage.indexOf('renderTide(calendarValue)');
+  const pullsCall = outcomePage.indexOf('renderOrbitalPulls(calendarValue)');
+  const orbitsCall = outcomePage.indexOf('renderCelestialOrbits(calendarValue)');
+  assert.ok(outcomeCall < tideCall && tideCall < pullsCall && pullsCall < orbitsCall);
+
+  for (const removedFile of ['treasure.html', 'treasure-page.js']) {
+    await assert.rejects(
+      readFile(path.join(projectDirectory, 'public', removedFile), 'utf8'),
+      { code: 'ENOENT' }
+    );
+  }
 
   await assert.rejects(
     readFile(path.join(projectDirectory, 'public/index.html'), 'utf8'),
@@ -506,7 +538,7 @@ test('Procfile and package metadata are ready for Heroku', async () => {
   ]);
   const packageJson = JSON.parse(packageText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '6.2.0');
+  assert.equal(packageJson.version, '6.3.0');
   assert.equal(packageJson.engines.node, '24.x');
 });
 
@@ -538,7 +570,7 @@ test('retired orbital metadata and Moon duration references are absent', async (
     'public/calendar.js',
     'public/calendar.html',
     'public/renderers.js',
-    'public/treasure.html',
+    'public/outcome.html',
     'public/weather.html',
     'test/calendar.test.js',
     'test/drop.test.js',

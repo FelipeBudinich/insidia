@@ -3,28 +3,23 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Live fictional tides, celestial orbits, and orbital pulls for Insidia.">
-    <title>Treasure · Insidia</title>
+    <meta name="description" content="Live fictional outcomes, tides, celestial orbits, and orbital pulls for Insidia.">
+    <title>Outcome · Insidia</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
     <div class="page-shell">
       <nav class="primary-nav" aria-label="Primary">
         <a href="/calendar.html">Calendar</a>
-        <a href="/treasure.html" aria-current="page">Treasure</a>
+        <a href="/outcome.html" aria-current="page">Outcome</a>
         <a href="/weather.html">Weather</a>
       </nav>
       <main class="container">
-        <header class="page-header">
-          <div>
-            <p class="page-kicker">Insidia</p>
-            <h1>Treasure</h1>
+        <section class="drop-section focused-section" aria-labelledby="outcome-heading">
+          <div class="heading outcome-heading">
+            <p id="outcome-heading" class="section-label">Outcome</p>
+            <span class="version" aria-label="Application version 6.3">v6.3</span>
           </div>
-          <span class="version" aria-label="Application version 6.2">v6.2</span>
-        </header>
-
-        <section class="drop-section focused-section" aria-labelledby="drop-heading">
-          <p id="drop-heading" class="section-label">Drop</p>
           <p id="drop-body" class="drop-body"><span aria-hidden="true">☾</span> Moon</p>
           <p id="drop-reward" class="drop-reward">Reward: Common</p>
           <p id="drop-attempts" class="drop-attempts">Attempts until Rare: 100</p>
@@ -143,6 +138,6 @@
         <footer>Epoch: 1970-01-01 00:00:00 UTC</footer>
       </main>
     </div>
-    <script type="module" src="/treasure-page.js"></script>
+    <script type="module" src="/outcome-page.js"></script>
   </body>
 </html>

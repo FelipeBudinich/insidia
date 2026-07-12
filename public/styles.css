@@ -80,6 +80,8 @@ body {
 }
 
 .heading p { margin: 0; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.outcome-heading { margin-bottom: 1rem; }
+.outcome-heading .section-label { margin-bottom: 0; }
 .version { color: color-mix(in srgb, CanvasText 70%, Canvas); font-size: 0.875rem; }
 
 .time {
