@@ -294,19 +294,11 @@ export function createStaticServer(options = {}) {
       return;
     }
 
-    if (requestUrl.pathname === '/treasure.html') {
-      sendResponse(response, method, environment, 302, {
-        'Cache-Control': 'no-store',
-        Location: '/outcome.html'
-      });
-      return;
-    }
-
     if (requestUrl.pathname === '/health') {
       sendResponse(response, method, environment, 200, {
         'Cache-Control': 'no-store',
         'Content-Type': 'application/json; charset=utf-8'
-      }, JSON.stringify({ ok: true, version: 'v6.4' }));
+      }, JSON.stringify({ ok: true, version: 'v6.5' }));
       return;
     }
 

@@ -318,10 +318,6 @@ export function calculateOrbitalPulls(bodyStates) {
   };
 }
 
-export function calculateDominantPull(bodyStates) {
-  return calculateOrbitalPulls(bodyStates).dominantPull;
-}
-
 export function calculateOrbitalState(totalFictionalSeconds) {
   assertValidTotalFictionalSeconds(totalFictionalSeconds);
 
@@ -352,7 +348,7 @@ export function calculateOrbitalState(totalFictionalSeconds) {
   return { bodies, ...calculateOrbitalPulls(bodies) };
 }
 
-const DROP_TIDE_RULES = Object.freeze({
+const OUTCOME_TIDE_RULES = Object.freeze({
   high: {
     pullKey: 'dominantPull',
     sourcePull: { id: 'dominant', name: 'Dominant Pull' },
@@ -373,13 +369,13 @@ const DROP_TIDE_RULES = Object.freeze({
   }
 });
 
-export function calculateDropState(tide, orbitalState) {
+export function calculateOutcomeState(tide, orbitalState) {
   if (!tide || typeof tide !== 'object' || typeof tide.id !== 'string') {
     throw new TypeError('tide must be an object with an id');
   }
-  const rule = DROP_TIDE_RULES[tide.id];
+  const rule = OUTCOME_TIDE_RULES[tide.id];
   if (!rule) {
-    throw new RangeError(`Unsupported tide id for Drop: ${tide.id}`);
+    throw new RangeError(`Unsupported tide id for Outcome: ${tide.id}`);
   }
   if (!orbitalState || !Array.isArray(orbitalState.bodies)) {
     throw new TypeError('orbitalState must contain a bodies array');
@@ -393,7 +389,7 @@ export function calculateDropState(tide, orbitalState) {
   const members = sourcePull.members.map((member) => {
     const body = bodiesById.get(member.id);
     if (!body) {
-      throw new Error(`Drop source pull member is missing from orbital bodies: ${member.id}`);
+      throw new Error(`Outcome source pull member is missing from orbital bodies: ${member.id}`);
     }
     assertProgressFraction(body.progressFraction, `body ${body.id} progressFraction`);
     if (!Number.isInteger(body.tieBreakPriorityRank)) {
@@ -448,7 +444,7 @@ export function calculateDropState(tide, orbitalState) {
   };
 }
 
-export function calculateDropReward(hourProgressFraction) {
+export function calculateOutcomeReward(hourProgressFraction) {
   assertProgressFraction(hourProgressFraction, 'hourProgressFraction');
 
   const hourProgressPercentage = hourProgressFraction * 100;
@@ -618,9 +614,9 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
 
   const season = calculateSeasonState(totalElapsedDays);
   const progress = calculateProgressState(totalSeconds, season, lunar);
-  const drop = {
-    ...calculateDropState(lunar.tide, orbits),
-    reward: calculateDropReward(progress.hour.fraction)
+  const outcome = {
+    ...calculateOutcomeState(lunar.tide, orbits),
+    reward: calculateOutcomeReward(progress.hour.fraction)
   };
 
   return {
@@ -635,7 +631,7 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
     season,
     lunar,
     orbits,
-    drop,
+    outcome,
     progress
   };
 }
@@ -653,10 +649,6 @@ export function formatLunarTime(lunarValue) {
 export function formatTideTime(lunarValue) {
   const { hour, minute, second } = lunarValue.tide.timeInPeriod;
   return `${padTwo(hour)}:${padTwo(minute)}:${padTwo(second)}`;
-}
-
-export function formatSeason(seasonValue) {
-  return `${seasonValue.name} · Day ${seasonValue.day} of ${seasonValue.lengthDays} · Seasonal Cycle ${seasonValue.cycle}`;
 }
 
 export function formatOrbitalPercentage(progressFraction) {

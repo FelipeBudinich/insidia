@@ -10,7 +10,6 @@ import {
   ORBITAL_SPAN_TIE_EPSILON,
   REAL_MS_PER_FICTIONAL_SECOND,
   calculateCircularSpan,
-  calculateDominantPull,
   calculateFictionalCalendar,
   calculateOrbitalState,
   calculateOrbitalPulls,
@@ -27,6 +26,10 @@ function createSyntheticStates(progressFractions) {
     ...body,
     progressFraction: progressFractions[index]
   }));
+}
+
+function dominantPullFor(bodyStates) {
+  return calculateOrbitalPulls(bodyStates).dominantPull;
 }
 
 function memberIds(dominantPull) {
@@ -249,26 +252,26 @@ test('pull ranking uses raw spans when formatted percentages are identical', () 
 });
 
 test('Dominant Pull selects the basic closest trio', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0.01, 0.02, 0.40, 0.80, 0.60]));
+  const dominantPull = dominantPullFor(createSyntheticStates([0, 0.01, 0.02, 0.40, 0.80, 0.60]));
   assert.deepEqual(memberIds(dominantPull), ['venus', 'mars', 'mercury']);
   approximatelyEqual(dominantPull.spanFraction, 0.02);
 });
 
 test('Dominant Pull recognizes a trio across circular wrap-around', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0.99, 0, 0.01, 0.40, 0.70, 0.50]));
+  const dominantPull = dominantPullFor(createSyntheticStates([0.99, 0, 0.01, 0.40, 0.70, 0.50]));
   assert.deepEqual(memberIds(dominantPull), ['venus', 'mars', 'mercury']);
   approximatelyEqual(dominantPull.spanFraction, 0.02);
 });
 
 test('Moon-containing trio wins across circular wrap-around when strictly narrowest', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0.30, 0, 0.01, 0.50, 0.70, 0.99]));
+  const dominantPull = dominantPullFor(createSyntheticStates([0.30, 0, 0.01, 0.50, 0.70, 0.99]));
   assert.deepEqual(memberIds(dominantPull), ['moon', 'venus', 'mars']);
   approximatelyEqual(dominantPull.spanFraction, 0.02);
   assert.equal(dominantPull.tieBreak.applied, false);
 });
 
 test('Moon-containing trio wins when its span is strictly smaller', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0.20, 0.80, 0.50, 0.501, 0.502]));
+  const dominantPull = dominantPullFor(createSyntheticStates([0, 0.20, 0.80, 0.50, 0.501, 0.502]));
   assert.deepEqual(memberIds(dominantPull), ['moon', 'jupiter', 'saturn']);
   approximatelyEqual(dominantPull.spanFraction, 0.002);
   assert.equal(dominantPull.tieBreak.applied, false);
@@ -276,7 +279,7 @@ test('Moon-containing trio wins when its span is strictly smaller', () => {
 
 test('required five-position example selects 0%, 10%, and 27%', () => {
   const states = createSyntheticStates([0.10, 0.27, 0.50, 0.80, 0, 0.60]);
-  const dominantPull = calculateDominantPull(states);
+  const dominantPull = dominantPullFor(states);
   const positionsById = new Map(states.map((body) => [body.id, body.progressFraction]));
   const winningPositions = memberIds(dominantPull).map((id) => positionsById.get(id)).sort((first, second) => first - second);
   assert.deepEqual(winningPositions, [0, 0.10, 0.27]);
@@ -286,34 +289,34 @@ test('required five-position example selects 0%, 10%, and 27%', () => {
 });
 
 test('equal-span tie selects the highest-priority trio including Moon', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0, 0, 0, 0, 0]));
+  const dominantPull = dominantPullFor(createSyntheticStates([0, 0, 0, 0, 0, 0]));
   assert.deepEqual(memberIds(dominantPull), ['moon', 'venus', 'mars']);
   assert.equal(dominantPull.tieBreak.applied, true);
   assert.ok(dominantPull.tieBreak.tiedCombinationCount > 1);
 });
 
 test('fixed-priority tie-break minimizes the lowest-priority member first', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0, 1 / 12, 2 / 12, 0, 1 / 12, 0.60]));
+  const dominantPull = dominantPullFor(createSyntheticStates([0, 1 / 12, 2 / 12, 0, 1 / 12, 0.60]));
   assert.deepEqual(memberIds(dominantPull), ['venus', 'mercury', 'jupiter']);
   approximatelyEqual(dominantPull.spanFraction, 1 / 12);
   assert.equal(dominantPull.tieBreak.applied, true);
 });
 
 test('a strictly smaller lower-priority trio overrides fixed priority', () => {
-  const dominantPull = calculateDominantPull(createSyntheticStates([0, 0.20, 0.50, 0.501, 0.502, 0.80]));
+  const dominantPull = dominantPullFor(createSyntheticStates([0, 0.20, 0.50, 0.501, 0.502, 0.80]));
   assert.deepEqual(memberIds(dominantPull), ['mars', 'jupiter', 'saturn']);
   approximatelyEqual(dominantPull.spanFraction, 0.002);
   assert.equal(dominantPull.tieBreak.applied, false);
 });
 
 test('span differences inside epsilon tie while larger differences do not', () => {
-  const withinEpsilon = calculateDominantPull(createSyntheticStates([
+  const withinEpsilon = dominantPullFor(createSyntheticStates([
     0.40 - (ORBITAL_SPAN_TIE_EPSILON / 2), 0.42, 0.50, 0.58, 0.60, 0.90
   ]));
   assert.deepEqual(memberIds(withinEpsilon), ['venus', 'mars', 'mercury']);
   assert.equal(withinEpsilon.tieBreak.applied, true);
 
-  const outsideEpsilon = calculateDominantPull(createSyntheticStates([
+  const outsideEpsilon = dominantPullFor(createSyntheticStates([
     0.40 - (ORBITAL_SPAN_TIE_EPSILON * 10), 0.42, 0.50, 0.58, 0.60, 0.90
   ]));
   assert.deepEqual(memberIds(outsideEpsilon), ['mars', 'jupiter', 'saturn']);

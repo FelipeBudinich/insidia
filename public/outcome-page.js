@@ -1,7 +1,7 @@
 import { startLiveState } from './live-state.js';
 import {
   createCelestialOrbitsRenderer,
-  createDropRenderer as createOutcomeRenderer,
+  createOutcomeRenderer,
   createHourProgressRenderer,
   createOrbitalPullsRenderer,
   createTideRenderer
@@ -14,7 +14,7 @@ const renderCelestialOrbits = createCelestialOrbitsRenderer(document);
 const renderOrbitalPulls = createOrbitalPullsRenderer(document);
 
 startLiveState((calendarValue) => {
-  renderOutcome(calendarValue.drop);
+  renderOutcome(calendarValue.outcome);
   renderTide(calendarValue);
   renderOrbitalPulls(calendarValue);
   renderCelestialOrbits(calendarValue);

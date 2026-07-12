@@ -13,8 +13,7 @@ import {
   SEASON_LENGTH_DAYS,
   calculateFictionalCalendar,
   calculateSeasonState,
-  createCalendarJson,
-  formatSeason
+  createCalendarJson
 } from '../public/calendar.js';
 
 function timestampForFictionalSeconds(seconds) {
@@ -46,7 +45,6 @@ test('the epoch begins with Bones on the first seasonal day', () => {
     lengthDays: 179,
     next: { id: 'tears', name: 'Tears' }
   });
-  assert.equal(formatSeason(season), 'Bones · Day 1 of 179 · Seasonal Cycle 1');
 });
 
 test('Bones ends on seasonal day 179 and Tears begins on day 180', () => {

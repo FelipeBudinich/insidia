@@ -35,27 +35,6 @@ function renderCalendarPage(calendarValue, realUnixMilliseconds) {
   jsonElement.textContent = currentJsonSnapshot;
 }
 
-function copyWithLegacyCommand(text) {
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', '');
-  textarea.setAttribute('aria-hidden', 'true');
-  textarea.style.position = 'fixed';
-  textarea.style.inset = '0 auto auto 0';
-  textarea.style.width = '1px';
-  textarea.style.height = '1px';
-  textarea.style.padding = '0';
-  textarea.style.border = '0';
-  textarea.style.opacity = '0';
-  document.body.append(textarea);
-  textarea.focus({ preventScroll: true });
-  textarea.select();
-  textarea.setSelectionRange(0, textarea.value.length);
-  const copied = document.execCommand('copy');
-  textarea.remove();
-  if (!copied) throw new Error('Copy command was unavailable');
-}
-
 function copyWithClipboardApi(text) {
   return new Promise((resolve, reject) => {
     const timeoutId = window.setTimeout(
@@ -76,15 +55,10 @@ function copyWithClipboardApi(text) {
 }
 
 async function copyText(text) {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await copyWithClipboardApi(text);
-      return;
-    } catch {
-      // Embedded browsers may expose the API without granting write permission.
-    }
+  if (!navigator.clipboard?.writeText) {
+    throw new Error('Clipboard API is unavailable');
   }
-  copyWithLegacyCommand(text);
+  await copyWithClipboardApi(text);
 }
 
 copyButton.addEventListener('click', async () => {

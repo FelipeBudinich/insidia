@@ -91,23 +91,7 @@ test('GET and HEAD root redirect securely to the calendar route', async () => {
   }
 });
 
-test('GET and HEAD legacy Treasure route redirect to Outcome without caching', async () => {
-  const server = await startTestServer();
-  try {
-    for (const method of ['GET', 'HEAD']) {
-      const response = await request(server, '/treasure.html', { method });
-      assert.equal(response.statusCode, 302, method);
-      assert.equal(response.headers.location, '/outcome.html', method);
-      assert.equal(response.headers['cache-control'], 'no-store', method);
-      assert.equal(response.body, '', method);
-      assertSecurityHeaders(response.headers);
-    }
-  } finally {
-    await stopServer(server);
-  }
-});
-
-test('GET and HEAD health return the v6.4 availability response', async () => {
+test('GET and HEAD health return the v6.5 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -115,7 +99,7 @@ test('GET and HEAD health return the v6.4 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v6.4"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v6.5"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -140,7 +124,7 @@ test('all three HTML routes serve secure no-cache documents with shared navigati
       assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8', page.path);
       assert.equal(getResponse.headers['cache-control'], 'no-cache', page.path);
       assert.match(getResponse.body, new RegExp(`<title>${page.title}</title>`), page.path);
-      assert.match(getResponse.body, /aria-label="Application version 6\.4">v6\.4/, page.path);
+      assert.match(getResponse.body, /aria-label="Application version 6\.5">v6\.5/, page.path);
       assert.match(getResponse.body, /<nav class="primary-nav" aria-label="Primary">/, page.path);
       for (const [href, label] of [
         ['/calendar.html', 'Calendar'],
@@ -231,20 +215,18 @@ test('Outcome route begins with Outcome and retains its fields before Tide, Pull
     assert.ok(progressIndex < footerIndex, 'Progress must be the final card before the footer');
     assert.match(
       response.body,
-      /<main class="container">\s*<section class="drop-section focused-section" aria-labelledby="outcome-heading">/
+      /<main class="container">\s*<section class="outcome-section focused-section" aria-labelledby="outcome-heading">/
     );
     assert.ok(!response.body.includes('class="page-header"'));
     assert.ok(!response.body.includes('class="page-kicker"'));
-    assert.ok(!response.body.includes('<h1>Treasure</h1>'));
     assert.ok(!response.body.includes('<h1>Outcome</h1>'));
-    assert.ok(!response.body.includes('Treasure · Insidia'));
 
-    const dropFieldIds = [
-      'drop-body', 'drop-reward', 'drop-attempts', 'drop-source',
-      'drop-progress', 'drop-rule', 'drop-tiebreak'
+    const outcomeFieldIds = [
+      'outcome-body', 'outcome-reward', 'outcome-attempts', 'outcome-source',
+      'outcome-progress', 'outcome-rule', 'outcome-tiebreak'
     ];
-    const dropFieldIndexes = dropFieldIds.map((id) => response.body.indexOf(`id="${id}"`));
-    assert.deepEqual([...dropFieldIndexes].sort((a, b) => a - b), dropFieldIndexes);
+    const outcomeFieldIndexes = outcomeFieldIds.map((id) => response.body.indexOf(`id="${id}"`));
+    assert.deepEqual([...outcomeFieldIndexes].sort((a, b) => a - b), outcomeFieldIndexes);
 
     const progressCard = response.body.slice(progressIndex, footerIndex);
     assert.equal((response.body.match(/id="progress-heading"/g) ?? []).length, 1);
@@ -304,7 +286,7 @@ test('weather route orders Time, Season, and exactly three selected Progress row
 test('unknown routes and directories return generic 404 responses', async () => {
   const server = await startTestServer();
   try {
-    for (const requestPath of ['/does-not-exist', '/public/', '/index.html', '/app.js']) {
+    for (const requestPath of ['/does-not-exist', '/missing.html', '/missing.js', '/public/']) {
       const response = await request(server, requestPath);
       assert.equal(response.statusCode, 404);
       assert.equal(response.body, 'Not Found');
@@ -378,6 +360,27 @@ test('static JavaScript and CSS use explicit types and no-cache', async () => {
   }
 });
 
+test('calendar copy uses the Clipboard API and keeps the manual-selection failure state', async () => {
+  const [calendarPage, calendarHtml] = await Promise.all([
+    readFile(path.join(projectDirectory, 'public/calendar-page.js'), 'utf8'),
+    readFile(path.join(projectDirectory, 'public/calendar.html'), 'utf8')
+  ]);
+  const deprecatedCommand = ['exec', 'Command'].join('');
+  const removedHelper = ['copyWith', 'LegacyCommand'].join('');
+  const hiddenInputElement = ['text', 'area'].join('');
+
+  assert.match(calendarPage, /navigator\.clipboard\.writeText\(text\)/);
+  assert.match(calendarPage, /Clipboard API is unavailable/);
+  assert.match(
+    calendarPage,
+    /Unable to copy\. Select the JSON and copy it manually\./
+  );
+  assert.ok(!calendarPage.includes(deprecatedCommand));
+  assert.ok(!calendarPage.includes(removedHelper));
+  assert.ok(!calendarPage.includes(hiddenInputElement));
+  assert.match(calendarHtml, /<pre id="json-output" tabindex="0">/);
+});
+
 test('all page modules use the shared live-state scheduler and shared renderers', async () => {
   const liveState = await readFile(path.join(projectDirectory, 'public/live-state.js'), 'utf8');
   const renderers = await readFile(path.join(projectDirectory, 'public/renderers.js'), 'utf8');
@@ -391,7 +394,7 @@ test('all page modules use the shared live-state scheduler and shared renderers'
   assert.ok(!renderers.includes('Date.now'));
   assert.ok(!renderers.includes('calculateFictionalCalendar'));
   assert.ok(!renderers.includes('innerHTML'));
-  assert.match(renderers, /export function createDropRenderer/);
+  assert.match(renderers, /export function createOutcomeRenderer/);
   for (const removedCalendarBinding of [
     'createSeasonRenderer',
     'createTideRenderer',
@@ -423,7 +426,7 @@ test('all page modules use the shared live-state scheduler and shared renderers'
   }
   const outcomePage = await readFile(path.join(projectDirectory, 'public/outcome-page.js'), 'utf8');
   const weatherPage = await readFile(path.join(projectDirectory, 'public/weather-page.js'), 'utf8');
-  const outcomeCall = outcomePage.indexOf('renderOutcome(calendarValue.drop)');
+  const outcomeCall = outcomePage.indexOf('renderOutcome(calendarValue.outcome)');
   const tideCall = outcomePage.indexOf('renderTide(calendarValue)');
   const pullsCall = outcomePage.indexOf('renderOrbitalPulls(calendarValue)');
   const orbitsCall = outcomePage.indexOf('renderCelestialOrbits(calendarValue)');
@@ -438,13 +441,6 @@ test('all page modules use the shared live-state scheduler and shared renderers'
   assert.match(renderers, /\['day', '#day-progress', '#day-progress-value'\]/);
   assert.match(renderers, /\['hour', '#hour-progress', '#hour-progress-value'\]/);
   assert.match(renderers, /row\.progress\.value = progressValue\.percentage/);
-
-  for (const removedFile of ['treasure.html', 'treasure-page.js']) {
-    await assert.rejects(
-      readFile(path.join(projectDirectory, 'public', removedFile), 'utf8'),
-      { code: 'ENOENT' }
-    );
-  }
 
   await assert.rejects(
     readFile(path.join(projectDirectory, 'public/index.html'), 'utf8'),
@@ -574,15 +570,20 @@ test('malformed raw HTTP invokes a generic client error response', async () => {
   }
 });
 
-test('Procfile and package metadata are ready for Heroku', async () => {
-  const [procfile, packageText] = await Promise.all([
+test('Procfile and Node 24 package metadata are synchronized for Heroku', async () => {
+  const [procfile, packageText, lockText, nvmrc] = await Promise.all([
     readFile(path.join(projectDirectory, 'Procfile'), 'utf8'),
-    readFile(path.join(projectDirectory, 'package.json'), 'utf8')
+    readFile(path.join(projectDirectory, 'package.json'), 'utf8'),
+    readFile(path.join(projectDirectory, 'package-lock.json'), 'utf8'),
+    readFile(path.join(projectDirectory, '.nvmrc'), 'utf8')
   ]);
   const packageJson = JSON.parse(packageText);
+  const packageLock = JSON.parse(lockText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '6.4.0');
+  assert.equal(packageJson.version, '6.5.0');
   assert.equal(packageJson.engines.node, '24.x');
+  assert.equal(packageLock.packages[''].engines.node, '24.x');
+  assert.equal(nvmrc.trim(), '24');
 });
 
 test('calendar JSON schema is v8 with all three orbital pulls', () => {
@@ -600,7 +601,7 @@ test('calendar JSON schema is v8 with all three orbital pulls', () => {
   assert.ok(snapshot.fictional.orbits.minorPull);
   assert.ok(snapshot.fictional.orbits.negativePull);
   assert.ok(snapshot.fictional.progress.season);
-  assert.equal('drop' in snapshot.fictional, false);
+  assert.equal('outcome' in snapshot.fictional, false);
   assert.deepEqual(
     Object.keys(snapshot.fictional.orbits).filter((key) => key.endsWith('Pull')),
     ['dominantPull', 'minorPull', 'negativePull']
@@ -620,7 +621,7 @@ test('retired orbital metadata and Moon duration references are absent', async (
     'public/outcome.html',
     'public/weather.html',
     'test/calendar.test.js',
-    'test/drop.test.js',
+    'test/outcome.test.js',
     'test/lunar.test.js',
     'test/orbits.test.js',
     'test/progress.test.js',
