@@ -2,7 +2,7 @@
 
 Insidia is a live fictional clock, calendar, season cycle, lunar cycle, tide cycle, and six-body orbital alignment model. All fictional calculations run in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
 
-**Current release:** v6.1
+**Current release:** v6.2
 
 ## Fictional time and calendar
 
@@ -77,11 +77,15 @@ Treasure begins with a tide-driven Drop selection derived from the already-calcu
 
 Equal progress is resolved by the fixed priority Moon, Venus, Mars, Mercury, Jupiter, Saturn, with canonical IDs as the final fallback. Drop is fictional and does not represent physical falling objects or real gravitational behavior.
 
+The Drop reward is derived only from raw current fictional-hour progress: **Common** applies through 85%, **Uncommon** applies above 85% through 99%, and **Rare** applies strictly above 99%. Attempts until Rare count one attempt for each whole percentage point needed to exceed 99%; the count is zero once the reward is Rare. The selected body's displayed orbital progress remains separate from the hour progress that determines reward.
+
 ## Continuous progress
 
 The Progress card tracks the current lunar cycle, lunar phase, 179-day season, 353-day calendar year, 23-hour calendar day, and 61-minute fictional hour. Each fraction includes the current fictional second, remains between 0 and 1, and resets at its own boundary. Display percentages are truncated to six decimal places so the final second before a boundary never appears as a false 100%.
 
 Season progress measures only the current Bones or Tears season, not the full 358-day seasonal cycle. Lunar-phase progress uses the 31-hour lunar day, while lunar-cycle progress spans all 13 lunar days.
+
+Treasure ends with a separate Progress card that displays only the already-calculated current fictional-hour progress.
 
 ## Epoch
 
@@ -137,7 +141,7 @@ The application validates an explicit `PORT` and listens on `0.0.0.0`, which is 
 |---|---|
 | `/` | Redirects to `/calendar.html` |
 | `/calendar.html` | Calendar, lunar phase and timing, selected progress values, and complete JSON output |
-| `/treasure.html` | Drop, Tide, Orbital Pulls, and Celestial Orbits, in that order |
+| `/treasure.html` | Drop, Tide, Orbital Pulls, Celestial Orbits, and current-hour Progress, in that order |
 | `/weather.html` | Season and season progress |
 | `/health` | Application health response |
 
@@ -148,10 +152,10 @@ All three HTML pages use normal navigation links and calculate the same complete
 `GET /health` returns:
 
 ```json
-{"ok":true,"version":"v6.1"}
+{"ok":true,"version":"v6.2"}
 ```
 
-The copied calendar JSON schema remains `"calendarVersion":"v8"`. V6.1 adds Drop to internal live state and Treasure presentation without adding it to the copied JSON. The application release version and JSON schema version are intentionally independent.
+The copied calendar JSON schema remains `"calendarVersion":"v8"`. V6.2 adds Drop reward state and current-hour Treasure presentation internally without adding Drop or reward to the copied JSON. The application release version and JSON schema version are intentionally independent.
 
 ## Architecture
 
@@ -159,7 +163,7 @@ The frontend uses three real HTML documents, vanilla CSS, and JavaScript ES modu
 
 ## Deploying to Heroku
 
-Insidia v6.1 remains prepared for Heroku's native GitHub automatic deployment integration. The UI change does not alter the Procfile or automatic deployment configuration. No GitHub Actions workflow exists for v6.1.
+Insidia v6.2 remains prepared for Heroku's native GitHub automatic deployment integration. The UI change does not alter the Procfile or automatic deployment configuration. No GitHub Actions workflow exists for v6.2.
 
 ### Requirements
 
@@ -179,7 +183,7 @@ web: npm start
 2. Select **GitHub** as the deployment method and connect `FelipeBudinich/insidia`.
 3. Select the deployment branch, normally `main`.
 4. Enable **Automatic Deploys** for that branch.
-5. Leave **Wait for CI to pass before deploy** disabled for v6.1 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
+5. Leave **Wait for CI to pass before deploy** disabled for v6.2 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
 
 Heroku builds and releases successful GitHub pushes directly; no Heroku Git remote, deployment script, or committed deployment credential is required.
 
@@ -202,7 +206,7 @@ https://your-app-name.herokuapp.com/
 https://your-app-name.herokuapp.com/health
 ```
 
-The health endpoint must return `{"ok":true,"version":"v6.1"}`. To inspect logs and dyno status:
+The health endpoint must return `{"ok":true,"version":"v6.2"}`. To inspect logs and dyno status:
 
 ```sh
 heroku logs --tail --app <app-name>
@@ -231,7 +235,7 @@ For custom domains, use Heroku Automated Certificate Management or another prope
 .
 ├── public/
 │   ├── calendar.html       # Calendar, lunar, progress, and complete JSON route
-│   ├── treasure.html       # Drop, tide, pull, and orbit route
+│   ├── treasure.html       # Drop, tide, pull, orbit, and hour-progress route
 │   ├── weather.html        # Season route
 │   ├── calendar.js         # Pure fictional-state calculations
 │   ├── live-state.js       # Shared drift-resistant scheduler
@@ -242,6 +246,7 @@ For custom domains, use Heroku Automated Certificate Management or another prope
 │   └── styles.css          # Shared responsive styling
 ├── test/
 │   ├── calendar.test.js
+│   ├── drop.test.js
 │   ├── lunar.test.js
 │   ├── orbits.test.js
 │   ├── progress.test.js
@@ -263,7 +268,7 @@ npm test
 npm audit --omit=dev
 ```
 
-The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, planetary and Moon orbital resets, Moon/lunar-cycle synchronization, circular wrap-around, all twenty orbital pull candidates, grouped epsilon ranking, Minor and Negative Pull selection, raw-fraction ordering, fixed-priority tie-break rules, all three HTML routes and their navigation, shared scheduler architecture, redirects, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
+The suite covers calendar and season boundaries, lunar phases and tides, six second-level progress boundaries, reward thresholds and attempts, tide-driven Drop selection, planetary and Moon orbital resets, Moon/lunar-cycle synchronization, circular wrap-around, all twenty orbital pull candidates, grouped epsilon ranking, Minor and Negative Pull selection, raw-fraction ordering, fixed-priority tie-break rules, all three HTML routes and their navigation, shared scheduler architecture, redirects, HTTP methods, cache/security headers, path containment, canonical redirects, port and origin validation, and SIGTERM shutdown.
 
 ## License
 

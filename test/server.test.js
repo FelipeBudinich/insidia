@@ -91,7 +91,7 @@ test('GET and HEAD root redirect securely to the calendar route', async () => {
   }
 });
 
-test('GET and HEAD health return the v6.1 availability response', async () => {
+test('GET and HEAD health return the v6.2 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -99,7 +99,7 @@ test('GET and HEAD health return the v6.1 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v6.1"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v6.2"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -124,7 +124,7 @@ test('all three HTML routes serve secure no-cache documents with shared navigati
       assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8', page.path);
       assert.equal(getResponse.headers['cache-control'], 'no-cache', page.path);
       assert.match(getResponse.body, new RegExp(`<title>${page.title}</title>`), page.path);
-      assert.match(getResponse.body, /aria-label="Application version 6\.1">v6\.1/, page.path);
+      assert.match(getResponse.body, /aria-label="Application version 6\.2">v6\.2/, page.path);
       assert.match(getResponse.body, /<nav class="primary-nav" aria-label="Primary">/, page.path);
       for (const [href, label] of [
         ['/calendar.html', 'Calendar'],
@@ -181,17 +181,20 @@ test('calendar route shows only calendar, lunar, selected progress, and JSON out
   }
 });
 
-test('treasure route orders Drop, Tide, Pulls, and all six Orbits', async () => {
+test('treasure route orders Drop, Tide, Pulls, all six Orbits, and final hour Progress', async () => {
   const server = await startTestServer();
   try {
     const response = await request(server, '/treasure.html');
     for (const requiredContent of [
-      'Drop', '☾</span> Moon', '0.000000% complete', 'Low · Minor Pull',
+      'Drop', '☾</span> Moon', 'Reward: Common', 'Attempts until Rare: 100',
+      'Low · Minor Pull', 'Orbital progress: 0.000000%',
       'Furthest from orbit completion', 'Fixed-priority tie-break applied',
       'Tide', 'Low', 'Hour 1 of 17', '00:00:00 into Low', 'Celestial Orbits',
       'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Moon',
       'Dominant Pull', 'Minor Pull', 'Negative Pull',
-      'Pulls measure fictional orbital-phase clustering, not physical gravity.'
+      'Pulls measure fictional orbital-phase clustering, not physical gravity.',
+      'Progress', 'Current Hour', 'id="hour-progress" max="100" value="0"',
+      'id="hour-progress-value">0.000000%'
     ]) {
       assert.ok(response.body.includes(requiredContent), requiredContent);
     }
@@ -199,9 +202,28 @@ test('treasure route orders Drop, Tide, Pulls, and all six Orbits', async () => 
     const tideIndex = response.body.indexOf('id="tide-heading"');
     const pullsIndex = response.body.indexOf('id="orbital-pulls-heading"');
     const orbitsIndex = response.body.indexOf('id="orbital-heading"');
+    const progressIndex = response.body.indexOf('id="progress-heading"');
+    const footerIndex = response.body.indexOf('<footer>');
     assert.ok(dropIndex < tideIndex, 'Drop must appear before Tide');
     assert.ok(tideIndex < pullsIndex, 'Tide must appear before Orbital Pulls');
     assert.ok(pullsIndex < orbitsIndex, 'Orbital Pulls must appear before Celestial Orbits');
+    assert.ok(orbitsIndex < progressIndex, 'Celestial Orbits must appear before Progress');
+    assert.ok(progressIndex < footerIndex, 'Progress must be the final card before the footer');
+
+    const dropFieldIds = [
+      'drop-body', 'drop-reward', 'drop-attempts', 'drop-source',
+      'drop-progress', 'drop-rule', 'drop-tiebreak'
+    ];
+    const dropFieldIndexes = dropFieldIds.map((id) => response.body.indexOf(`id="${id}"`));
+    assert.deepEqual([...dropFieldIndexes].sort((a, b) => a - b), dropFieldIndexes);
+
+    const progressCard = response.body.slice(progressIndex, footerIndex);
+    assert.equal((response.body.match(/id="progress-heading"/g) ?? []).length, 1);
+    for (const excludedRow of [
+      'Lunar Cycle', 'Current Phase', 'Current Season', 'Current Year', 'Current Day'
+    ]) {
+      assert.ok(!progressCard.includes(excludedRow), excludedRow);
+    }
     assert.equal((response.body.match(/0\.000000%/g) ?? []).length >= 9, true);
     assert.match(response.body, /src="\/treasure-page\.js"/);
     assert.ok(!response.body.includes('JSON output'));
@@ -484,7 +506,7 @@ test('Procfile and package metadata are ready for Heroku', async () => {
   ]);
   const packageJson = JSON.parse(packageText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '6.1.0');
+  assert.equal(packageJson.version, '6.2.0');
   assert.equal(packageJson.engines.node, '24.x');
 });
 

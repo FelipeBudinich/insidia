@@ -3,12 +3,62 @@ import test from 'node:test';
 import {
   CALENDAR_EPOCH_UNIX_MS,
   CELESTIAL_BODIES,
+  calculateDropReward,
   calculateDropState,
   calculateFictionalCalendar,
   calculateOrbitalState,
   createCalendarJson,
   formatOrbitalPercentage
 } from '../public/calendar.js';
+
+test('Drop reward uses the exact raw hour-progress thresholds', () => {
+  for (const [percentage, expectedId, expectedName] of [
+    [0, 'common', 'Common'],
+    [84.999, 'common', 'Common'],
+    [85, 'common', 'Common'],
+    [85.001, 'uncommon', 'Uncommon'],
+    [98.999, 'uncommon', 'Uncommon'],
+    [99, 'uncommon', 'Uncommon'],
+    [99.001, 'rare', 'Rare']
+  ]) {
+    const reward = calculateDropReward(percentage / 100);
+    assert.equal(reward.id, expectedId, `${percentage}% id`);
+    assert.equal(reward.name, expectedName, `${percentage}% name`);
+    assert.equal(reward.hourProgressFraction, percentage / 100);
+    assert.equal(reward.hourProgressPercentage, percentage);
+  }
+});
+
+test('attempts until Rare count whole percentage-point attempts needed to exceed 99%', () => {
+  for (const [percentage, expectedAttempts] of [
+    [0, 100], [50, 50], [85, 15], [85.1, 14],
+    [98, 2], [98.2, 1], [99, 1], [99.1, 0]
+  ]) {
+    assert.equal(
+      calculateDropReward(percentage / 100).attemptsUntilRare,
+      expectedAttempts,
+      `${percentage}%`
+    );
+  }
+});
+
+test('Drop reward compares raw progress rather than its six-decimal display', () => {
+  const exactBoundary = 0.85;
+  const justAboveBoundary = 0.850000000001;
+  assert.equal(
+    formatOrbitalPercentage(exactBoundary),
+    formatOrbitalPercentage(justAboveBoundary)
+  );
+  assert.equal(calculateDropReward(exactBoundary).id, 'common');
+  assert.equal(calculateDropReward(justAboveBoundary).id, 'uncommon');
+});
+
+test('Drop reward rejects fractions outside the finite half-open unit interval', () => {
+  for (const invalid of [Number.NaN, Number.POSITIVE_INFINITY, -0.001, 1]) {
+    assert.throws(() => calculateDropReward(invalid), /hourProgressFraction/);
+  }
+  assert.throws(() => calculateDropReward('0.5'), /hourProgressFraction must be a number/);
+});
 
 const TIDES = Object.freeze({
   high: { id: 'high', name: 'High' },
@@ -177,6 +227,14 @@ test('epoch integrates Low Drop from Minor Pull without changing public JSON', (
   assert.deepEqual(value.drop.sourcePull, { id: 'minor', name: 'Minor Pull' });
   assert.equal(value.drop.body.id, 'moon');
   assert.equal(value.drop.body.formattedProgress, '0.000000%');
+  assert.deepEqual(value.drop.reward, {
+    id: 'common',
+    name: 'Common',
+    hourProgressFraction: 0,
+    hourProgressPercentage: 0,
+    attemptsUntilRare: 100
+  });
+  assert.equal(value.progress.hour.formatted, '0.000000%');
   assert.equal(value.drop.tieBreak.applied, true);
   assert.equal(value.drop.tieBreak.tiedBodyCount, 3);
 

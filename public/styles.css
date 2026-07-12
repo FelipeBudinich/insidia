@@ -121,6 +121,8 @@ body {
 
 .drop-section p { margin: 0; }
 .drop-body { font-size: clamp(1.6rem, 7vw, 2.2rem); font-weight: 750; }
+.drop-reward { margin-top: 0.75rem !important; font-size: 1.1rem; font-weight: 700; }
+.drop-attempts { margin-top: 0.2rem !important; font-variant-numeric: tabular-nums; }
 .drop-progress { margin-top: 0.2rem !important; font-size: 1rem; font-variant-numeric: tabular-nums; }
 .drop-source { margin-top: 1rem !important; font-weight: 700; }
 .drop-rule { margin-top: 0.2rem !important; color: color-mix(in srgb, CanvasText 78%, Canvas); }

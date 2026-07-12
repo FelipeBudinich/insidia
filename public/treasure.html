@@ -20,14 +20,16 @@
             <p class="page-kicker">Insidia</p>
             <h1>Treasure</h1>
           </div>
-          <span class="version" aria-label="Application version 6.1">v6.1</span>
+          <span class="version" aria-label="Application version 6.2">v6.2</span>
         </header>
 
         <section class="drop-section focused-section" aria-labelledby="drop-heading">
           <p id="drop-heading" class="section-label">Drop</p>
           <p id="drop-body" class="drop-body"><span aria-hidden="true">☾</span> Moon</p>
-          <p id="drop-progress" class="drop-progress">0.000000% complete</p>
+          <p id="drop-reward" class="drop-reward">Reward: Common</p>
+          <p id="drop-attempts" class="drop-attempts">Attempts until Rare: 100</p>
           <p id="drop-source" class="drop-source">Low · Minor Pull</p>
+          <p id="drop-progress" class="drop-progress">Orbital progress: 0.000000%</p>
           <p id="drop-rule" class="drop-rule">Furthest from orbit completion</p>
           <p id="drop-tiebreak" class="drop-tiebreak">Fixed-priority tie-break applied</p>
         </section>
@@ -126,6 +128,17 @@
             </article>
           </div>
 
+        </section>
+
+        <section class="progress-section" aria-labelledby="progress-heading">
+          <p id="progress-heading" class="section-label">Progress</p>
+          <div class="progress-item">
+            <div class="progress-heading-row">
+              <label for="hour-progress">Current Hour</label>
+              <span id="hour-progress-value">0.000000%</span>
+            </div>
+            <progress id="hour-progress" max="100" value="0">0%</progress>
+          </div>
         </section>
         <footer>Epoch: 1970-01-01 00:00:00 UTC</footer>
       </main>

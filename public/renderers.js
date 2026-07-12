@@ -19,6 +19,8 @@ const DROP_RULE_LABELS = Object.freeze({
 
 export function createDropRenderer(root = document) {
   const bodyElement = requireElement(root, '#drop-body');
+  const rewardElement = requireElement(root, '#drop-reward');
+  const attemptsElement = requireElement(root, '#drop-attempts');
   const progressElement = requireElement(root, '#drop-progress');
   const sourceElement = requireElement(root, '#drop-source');
   const ruleElement = requireElement(root, '#drop-rule');
@@ -26,12 +28,24 @@ export function createDropRenderer(root = document) {
 
   return function renderDrop(drop) {
     bodyElement.textContent = `${drop.body.symbol} ${drop.body.name}`;
-    progressElement.textContent = `${drop.body.formattedProgress} complete`;
+    rewardElement.textContent = `Reward: ${drop.reward.name}`;
+    attemptsElement.textContent = `Attempts until Rare: ${drop.reward.attemptsUntilRare}`;
+    progressElement.textContent = `Orbital progress: ${drop.body.formattedProgress}`;
     sourceElement.textContent = `${drop.tide.name} · ${drop.sourcePull.name}`;
     ruleElement.textContent = DROP_RULE_LABELS[drop.selectionRule];
-    tieBreakElement.textContent = drop.tieBreak.applied
-      ? 'Fixed-priority tie-break applied'
-      : 'No fixed-priority tie-break';
+    tieBreakElement.hidden = !drop.tieBreak.applied;
+    tieBreakElement.textContent = 'Fixed-priority tie-break applied';
+  };
+}
+
+export function createHourProgressRenderer(root = document) {
+  const progressElement = requireElement(root, '#hour-progress');
+  const valueElement = requireElement(root, '#hour-progress-value');
+
+  return function renderHourProgress(calendarValue) {
+    const hourProgress = calendarValue.progress.hour;
+    progressElement.value = hourProgress.percentage;
+    valueElement.textContent = hourProgress.formatted;
   };
 }
 
