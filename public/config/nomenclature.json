@@ -1,8 +1,13 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "application": {
     "displayName": "Insidia"
   },
+  "pages": [
+    { "id": "page-01", "name": "Calendario" },
+    { "id": "page-02", "name": "Destino" },
+    { "id": "page-03", "name": "Tempore" }
+  ],
   "calendar": {
     "months": [
       { "id": "month-01", "name": "Month 1", "shortName": "1" },

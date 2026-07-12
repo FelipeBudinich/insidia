@@ -177,12 +177,12 @@ function createCanonicalLocation(canonicalOrigin, requestUrl) {
   return canonicalUrl.toString();
 }
 
-function createCalendarRedirectLocation(requestUrl) {
+function createRootRedirectLocation(requestUrl) {
   const parameters = new URLSearchParams();
   const locale = requestUrl.searchParams.get('locale');
   if (locale) parameters.set('locale', locale);
   const query = parameters.toString();
-  return `/calendar.html${query ? `?${query}` : ''}`;
+  return `/calendario.html${query ? `?${query}` : ''}`;
 }
 
 function writeClientError(socket, environment) {
@@ -297,7 +297,7 @@ export function createStaticServer(options = {}) {
     if (requestUrl.pathname === '/') {
       sendResponse(response, method, environment, 302, {
         'Cache-Control': 'no-store',
-        Location: createCalendarRedirectLocation(requestUrl)
+        Location: createRootRedirectLocation(requestUrl)
       });
       return;
     }
@@ -306,7 +306,7 @@ export function createStaticServer(options = {}) {
       sendResponse(response, method, environment, 200, {
         'Cache-Control': 'no-store',
         'Content-Type': 'application/json; charset=utf-8'
-      }, JSON.stringify({ ok: true, version: 'v8.1' }));
+      }, JSON.stringify({ ok: true, version: 'v8.2' }));
       return;
     }
 

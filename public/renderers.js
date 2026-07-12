@@ -41,7 +41,7 @@ export function formatAttemptsUntilRare(outcome, context) {
   });
 }
 
-export function createOutcomeRenderer(root, context) {
+export function createOutcomeRenderer(root, context, pageId) {
   const elements = Object.fromEntries(['body', 'type', 'attempts', 'progress', 'source', 'rule', 'tiebreak']
     .map((key) => [key, requireElement(root, `#outcome-${key}`)]));
   return (outcome) => {
@@ -50,7 +50,7 @@ export function createOutcomeRenderer(root, context) {
     const pull = context.getPull(outcome.sourcePullId);
     const type = context.getOutcomeType(outcome.outcomeTypeId);
     elements.body.textContent = `${body.symbol} ${body.name}`;
-    elements.type.textContent = context.format('outcome.type', { outcomeLabel: context.message('label.outcome'), name: type.name });
+    elements.type.textContent = context.format('outcome.type', { pageName: context.getPage(pageId).name, name: type.name });
     elements.attempts.textContent = formatAttemptsUntilRare(outcome, context);
     elements.progress.textContent = context.format('outcome.progress', { progressLabel: context.message('label.orbitalProgress'), percentage: formatPercentage(outcome.bodyState.progressFraction) });
     elements.source.textContent = context.format('outcome.source', { tideName: tide.name, pullName: pull.name });

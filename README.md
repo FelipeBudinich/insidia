@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.1 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v8.2 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
@@ -19,9 +19,9 @@ Open [http://localhost:3000](http://localhost:3000). Set `PORT` to override port
 Locale is the only presentation option accepted through the query string:
 
 ```text
-/calendar.html?locale=en
-/outcome.html?locale=en
-/weather.html?locale=es
+/calendario.html?locale=en
+/destino.html?locale=en
+/tempore.html?locale=es
 ```
 
 English is the default. Unknown locale IDs resolve to the default declared in `public/locales/index.json`; known malformed locale files stop bootstrap visibly. Navigation preserves only the resolved `locale` value and drops unrelated parameters.
@@ -37,6 +37,8 @@ public/config/nomenclature.json
 ```
 
 The browser always loads it from the fixed same-origin URL `/config/nomenclature.json`. Editing this file and redeploying is sufficient to rename the application/world, months, weekdays, Inter Regna, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. JavaScript and HTML changes are not required.
+
+Calendario, Destino, and Tempore are in-game page proper nouns stored in the same file under stable page IDs. Locale changes never translate them. Their routes are fixed application infrastructure and are not generated from the configured names.
 
 The nomenclature file contains names and symbols only. Validation requires complete canonical ID coverage and rejects missing, duplicate, unknown, empty, or non-string entities; wrong schema versions; Outcome types; locale messages or templates; and mechanical fields such as durations, orbital periods, priorities, and thresholds. A missing, malformed, or invalid file stops live rendering and shows the accessible configuration-error view—there are no hard-coded or partial fallbacks.
 
@@ -79,7 +81,7 @@ The project has no framework, build system, database, backend time API, WebSocke
 - Outcome begins directly with the selected celestial object and retains its classification, tide, Pull, orbit, and progress data without a visible Outcome card title.
 - Weather begins directly with the Time card, including both fictional and lunar clocks, then shows Season and Progress. It has no separate page-header card.
 
-Every page preserves a visually hidden localized page heading for document structure and displays the application name, localized epoch, and v8.1 version in its footer.
+Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.2 version in its footer.
 
 ## JSON schema v10
 
@@ -98,14 +100,16 @@ The v10 schema contains no universe-selection metadata. Removing the visible JSO
 
 | Route | Purpose |
 |---|---|
-| `/` | Redirect to `/calendar.html`, preserving only a non-empty locale |
-| `/calendar.html` | Date, calendar metadata, lunar phase, lunar day, and lunar cycle; no visible clock, JSON, or card title |
-| `/weather.html` | Begins with fictional/lunar Time, followed by Season and Progress; no separate page header |
-| `/outcome.html` | Begins with the selected celestial object, followed by Outcome, tide, pulls, orbits, and hour progress |
+| `/` | Redirect to `/calendario.html`, preserving only a non-empty locale |
+| `/calendario.html` | Calendar date and lunar-cycle information; no visible clock, JSON, or card title |
+| `/destino.html` | Outcome selection, tides, pulls, orbits, and hour progress |
+| `/tempore.html` | Fictional times, season, and selected progress |
 | `/config/nomenclature.json` | The one read-only nomenclature configuration |
-| `/health` | `{"ok":true,"version":"v8.1"}` |
+| `/health` | `{"ok":true,"version":"v8.2"}` |
 
 Static `.html`, `.css`, `.js`, and `.json` responses use explicit MIME types and `Cache-Control: no-cache`. The server prevents traversal and dotfile access, returns generic errors, provides CSP and related security headers, supports `GET`/`HEAD`, preserves canonical HTTPS redirect precedence, and shuts down gracefully.
+
+The former English page paths and modules are intentionally unsupported. They have no redirects, aliases, compatibility files, or duplicate pages and return ordinary static 404 responses.
 
 ## Editing nomenclature
 
@@ -122,6 +126,8 @@ Static `.html`, `.css`, `.js`, and `.json` responses use explicit MIME types and
 3. Translate every message, template, and Outcome-type name without changing keys, IDs, or named placeholders.
 4. Run `npm test`.
 
+The nomenclature file uses schema version 2, including the three page-name entries. Locale files use schema version 2 after moving page proper nouns out of locale ownership. The Calendar JSON API remains schema v10.
+
 ## Project structure
 
 ```text
@@ -129,12 +135,13 @@ public/
   config/nomenclature.json
   core/{rules,mechanics,formatting}.js
   locales/{index,en,es}.json
-  {calendar,outcome,weather}.html
-  {calendar,outcome,weather}-page.js
+  {calendario,destino,tempore}.html
+  {calendario,destino,tempore}-page.js
   app-bootstrap.js
   locale-loader.js
   nomenclature-loader.js
   nomenclature.js
+  page-definitions.js
   presentation-context-loader.js
   presentation.js
   live-state.js

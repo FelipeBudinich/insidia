@@ -8,18 +8,19 @@ import {
   TIDE_RULES,
   WEEKDAY_IDS
 } from './core/rules.js';
+import { PAGE_IDS } from './page-definitions.js';
 
 export const NOMENCLATURE_PATH = '/config/nomenclature.json';
 
 const TOP_LEVEL_KEYS = Object.freeze([
-  'schemaVersion', 'application', 'calendar', 'seasons', 'lunarPhases',
+  'schemaVersion', 'application', 'pages', 'calendar', 'seasons', 'lunarPhases',
   'tides', 'celestialBodies', 'pulls'
 ]);
 
 const FORBIDDEN_KEYS = new Set([
   'durationDays', 'durationHours', 'orbitalPeriod', 'orbitalPeriodDays',
   'orbitalPeriodLunarDays', 'tieBreakPriorityRank', 'threshold',
-  'maximumPercentage', 'outcomeTypes', 'messages', 'templates'
+  'maximumPercentage', 'outcomeTypes', 'messages', 'templates', 'route'
 ]);
 
 function assertObject(value, label) {
@@ -70,9 +71,10 @@ function validateEntities(items, expectedIds, label, entityKeys) {
 
 export function validateNomenclature(nomenclature) {
   assertExactKeys(nomenclature, TOP_LEVEL_KEYS, 'nomenclature');
-  if (nomenclature.schemaVersion !== 1) throw new Error('nomenclature schemaVersion must be 1');
+  if (nomenclature.schemaVersion !== 2) throw new Error('nomenclature schemaVersion must be 2');
   assertExactKeys(nomenclature.application, ['displayName'], 'nomenclature.application');
   assertNonEmptyString(nomenclature.application.displayName, 'nomenclature.application.displayName');
+  validateEntities(nomenclature.pages, PAGE_IDS, 'nomenclature.pages', ['id', 'name']);
   assertExactKeys(nomenclature.calendar, ['months', 'weekdays', 'interRegna'], 'nomenclature.calendar');
   validateEntities(nomenclature.calendar.months, MONTH_IDS, 'nomenclature.calendar.months', ['id', 'name', 'shortName']);
   validateEntities(nomenclature.calendar.weekdays, WEEKDAY_IDS, 'nomenclature.calendar.weekdays', ['id', 'name', 'shortName']);
@@ -103,5 +105,6 @@ export async function loadNomenclature(options = {}) {
   } catch {
     throw new Error(`Malformed JSON: ${url.pathname}`);
   }
-  return { schemaVersion: 1, nomenclature: validateNomenclature(nomenclature) };
+  const validated = validateNomenclature(nomenclature);
+  return { schemaVersion: validated.schemaVersion, nomenclature: validated };
 }

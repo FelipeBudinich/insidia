@@ -1,17 +1,16 @@
 export const MESSAGE_KEYS = Object.freeze([
-  'nav.aria', 'nav.calendar', 'nav.outcome', 'nav.weather',
-  'page.calendar', 'page.outcome', 'page.weather',
+  'nav.aria',
   'section.time', 'section.season', 'section.lunar', 'section.tide', 'section.pulls', 'section.orbits', 'section.progress', 'section.json',
   'label.phase', 'label.year', 'label.month', 'label.week', 'label.day', 'label.hour', 'label.lunarDay', 'label.cycle', 'label.orbit', 'label.seasonalDay', 'label.next', 'label.progress',
   'label.currentFictionalTime', 'label.currentLunarTime', 'label.currentLunarDay', 'label.currentDay', 'label.currentHour',
-  'label.outcome', 'label.attemptsUntilRare', 'label.orbitalProgress', 'label.circularSpan', 'label.alignment', 'label.epoch', 'label.copyJson',
+  'label.attemptsUntilRare', 'label.orbitalProgress', 'label.circularSpan', 'label.alignment', 'label.epoch', 'label.copyJson',
   'status.copied', 'status.copyFailure', 'status.tieBreakApplied',
   'selection.selection-rule-01', 'selection.selection-rule-02', 'selection.selection-rule-03',
   'clarification.pulls', 'accessibility.applicationVersion', 'accessibility.seasonProgress', 'accessibility.copyStatus', 'error.configuration'
 ]);
 
 export const TEMPLATE_KEYS = Object.freeze([
-  'document.title', 'document.calendarDescription', 'document.outcomeDescription', 'document.weatherDescription',
+  'document.title', 'document.page-01Description', 'document.page-02Description', 'document.page-03Description',
   'accessibility.version', 'accessibility.orbitProgress',
   'calendar.monthPeriod', 'calendar.interPeriod', 'calendar.formattedDate', 'calendar.metadata',
   'lunar.metadata', 'season.metadata', 'season.cycle', 'season.next', 'season.progress',
@@ -59,7 +58,7 @@ function validateOutcomeTypes(outcomeTypes) {
 
 export function validateLocale(locale) {
   if (!locale || typeof locale !== 'object' || Array.isArray(locale)) throw new TypeError('locale must be an object');
-  if (locale.schemaVersion !== 1) throw new Error('locale schemaVersion must be 1');
+  if (locale.schemaVersion !== 2) throw new Error('locale schemaVersion must be 2');
   assertNonEmpty(locale.id, 'locale.id');
   assertNonEmpty(locale.languageTag, 'locale.languageTag');
   validateOutcomeTypes(locale.outcomeTypes);

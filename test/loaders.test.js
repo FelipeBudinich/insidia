@@ -43,7 +43,7 @@ test('there is exactly one production nomenclature JSON file and no universe inf
 
 test('loadNomenclature always requests the one fixed same-origin path', async () => {
   const requests = [];
-  const result = await loadNomenclature({ fetchFn: localFetch(new Map(), requests), baseUrl: 'http://app.test/outcome.html?anything=config' });
+  const result = await loadNomenclature({ fetchFn: localFetch(new Map(), requests), baseUrl: 'http://app.test/destino.html?anything=config' });
   assert.equal(NOMENCLATURE_PATH, '/config/nomenclature.json');
   assert.deepEqual(requests, ['/config/nomenclature.json']);
   assert.equal(result.nomenclature.application.displayName, 'Insidia');
@@ -61,7 +61,7 @@ test('nomenclature loader rejects IDs, alternate paths, and other source options
 test('query parameters cannot change the nomenclature request', async () => {
   for (const query of ['?locale=es', '?nomenclature=other', '?universe=other&locale=es', '?path=/evil.json']) {
     const requests = [];
-    await loadNomenclature({ fetchFn: localFetch(new Map(), requests), baseUrl: `http://app.test/calendar.html${query}` });
+    await loadNomenclature({ fetchFn: localFetch(new Map(), requests), baseUrl: `http://app.test/calendario.html${query}` });
     assert.deepEqual(requests, ['/config/nomenclature.json']);
   }
 });
@@ -69,6 +69,7 @@ test('query parameters cannot change the nomenclature request', async () => {
 test('production nomenclature validates complete neutral ID coverage', async () => {
   const value = validateNomenclature(await readJson(nomenclaturePath));
   assert.equal(value.calendar.months.length, 11);
+  assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03']);
   assert.equal(value.calendar.weekdays.length, 7);
   assert.equal(value.calendar.interRegna.length, 11);
   assert.equal(value.seasons.length, 2);
@@ -85,8 +86,21 @@ test('nomenclature validation rejects missing, duplicate, unknown, and invalid e
   const unknown = structuredClone(valid); unknown.seasons[1].id = 'season-99';
   const empty = structuredClone(valid); empty.seasons[0].name = '';
   const nonString = structuredClone(valid); nonString.celestialBodies[0].symbol = 7;
-  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 2;
+  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 3;
   for (const invalid of [missing, duplicate, unknown, empty, nonString, wrongSchema]) {
+    assert.throws(() => validateNomenclature(invalid));
+  }
+});
+
+test('nomenclature page names require exact IDs, valid names, and no route fields', async () => {
+  const valid = await readJson(nomenclaturePath);
+  const missing = structuredClone(valid); missing.pages.pop();
+  const duplicate = structuredClone(valid); duplicate.pages[2].id = 'page-02';
+  const unknown = structuredClone(valid); unknown.pages[2].id = 'page-99';
+  const empty = structuredClone(valid); empty.pages[0].name = '';
+  const nonString = structuredClone(valid); nonString.pages[0].name = 7;
+  const route = structuredClone(valid); route.pages[0].route = '/other.html';
+  for (const invalid of [missing, duplicate, unknown, empty, nonString, route]) {
     assert.throws(() => validateNomenclature(invalid));
   }
 });
@@ -132,9 +146,9 @@ test('missing or invalid nomenclature prevents rendering and shows an accessible
   for (const replacement of ['missing', invalid]) {
     const documentRoot = configurationErrorDocument();
     let rendererCreated = false;
-    const result = await bootstrapPage('calendar', () => { rendererCreated = true; }, {
+    const result = await bootstrapPage('page-01', () => { rendererCreated = true; }, {
       documentRoot,
-      locationLike: { href: 'http://app.test/calendar.html?locale=en' },
+      locationLike: { href: 'http://app.test/calendario.html?locale=en' },
       fetchFn: localFetch(new Map([[NOMENCLATURE_PATH, replacement]]))
     });
     assert.equal(result, null);
@@ -146,9 +160,9 @@ test('missing or invalid nomenclature prevents rendering and shows an accessible
 });
 
 test('locale-only query parsing defaults, resolves Spanish, and ignores all other parameters', () => {
-  assert.deepEqual(requestedPresentationOptions('http://app.test/calendar.html'), { requestedLocaleId: undefined });
-  assert.deepEqual(requestedPresentationOptions('http://app.test/calendar.html?locale=es'), { requestedLocaleId: 'es' });
-  assert.deepEqual(requestedPresentationOptions('http://app.test/calendar.html?universe=other&locale=es&unused=x'), { requestedLocaleId: 'es' });
+  assert.deepEqual(requestedPresentationOptions('http://app.test/calendario.html'), { requestedLocaleId: undefined });
+  assert.deepEqual(requestedPresentationOptions('http://app.test/calendario.html?locale=es'), { requestedLocaleId: 'es' });
+  assert.deepEqual(requestedPresentationOptions('http://app.test/calendario.html?universe=other&locale=es&unused=x'), { requestedLocaleId: 'es' });
 });
 
 test('locale loader resolves Spanish and falls back from an unknown locale to English', async () => {
@@ -163,6 +177,13 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
   assert.deepEqual(Object.values(english.outcomeTypes).map(({ name }) => name), ['Common', 'Uncommon', 'Rare']);
   assert.deepEqual(Object.values(spanish.outcomeTypes).map(({ name }) => name), ['Común', 'Poco común', 'Raro']);
+  assert.equal(english.schemaVersion, 2);
+  assert.equal(spanish.schemaVersion, 2);
+  for (const locale of [english, spanish]) {
+    for (const key of ['nav.calendar','nav.outcome','nav.weather','page.calendar','page.outcome','page.weather','label.outcome']) {
+      assert.equal(Object.hasOwn(locale.messages, key), false, key);
+    }
+  }
   const invalid = structuredClone(spanish); delete invalid.outcomeTypes['outcome-tier-01'];
   await assert.rejects(() => loadLocale({ requestedId: 'es', fetchFn: localFetch(new Map([['/locales/es.json', invalid]])), baseUrl: 'http://app.test/' }));
 });

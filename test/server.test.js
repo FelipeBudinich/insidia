@@ -41,13 +41,13 @@ function assertSecurityHeaders(headers) {
 test('root redirect preserves only a non-empty locale for GET and HEAD', async () => {
   const server = await start();
   const cases = [
-    ['/', '/calendar.html'],
-    ['/?locale=es', '/calendar.html?locale=es'],
-    ['/?universe=other&locale=es', '/calendar.html?locale=es'],
-    ['/?universe=other', '/calendar.html'],
-    ['/?locale=es&unused=value', '/calendar.html?locale=es'],
-    ['/?unused=value&locale=en', '/calendar.html?locale=en'],
-    ['/?locale=', '/calendar.html']
+    ['/', '/calendario.html'],
+    ['/?locale=es', '/calendario.html?locale=es'],
+    ['/?universe=other&locale=es', '/calendario.html?locale=es'],
+    ['/?universe=other', '/calendario.html'],
+    ['/?locale=es&unused=value', '/calendario.html?locale=es'],
+    ['/?unused=value&locale=en', '/calendario.html?locale=en'],
+    ['/?locale=', '/calendario.html']
   ];
   try {
     for (const [requestPath, location] of cases) {
@@ -73,7 +73,7 @@ test('canonical HTTPS redirect takes precedence and preserves the original reque
   } finally { await stop(server); }
 });
 
-test('health reports v8.1 JSON for GET and HEAD', async () => {
+test('health reports v8.2 JSON for GET and HEAD', async () => {
   const server = await start();
   try {
     const get = await request(server, '/health');
@@ -81,7 +81,7 @@ test('health reports v8.1 JSON for GET and HEAD', async () => {
     assert.equal(get.status, 200);
     assert.equal(get.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(get.headers['cache-control'], 'no-store');
-    assert.deepEqual(JSON.parse(get.body), { ok: true, version: 'v8.1' });
+    assert.deepEqual(JSON.parse(get.body), { ok: true, version: 'v8.2' });
     assert.equal(head.status, 200);
     assert.equal(head.body, '');
     assertSecurityHeaders(get.headers);
@@ -104,19 +104,51 @@ test('fixed nomenclature has JSON MIME, no-cache, and no configurable endpoint',
   } finally { await stop(server); }
 });
 
-test('HTML, modules, and locale JSON retain MIME, caching, and security headers', async () => {
+test('new HTML pages, modules, and locale JSON retain MIME, caching, and security headers', async () => {
   const server = await start();
   try {
     for (const [file, type] of [
-      ['/calendar.html', 'text/html; charset=utf-8'],
+      ['/calendario.html', 'text/html; charset=utf-8'],
+      ['/destino.html', 'text/html; charset=utf-8'],
+      ['/tempore.html', 'text/html; charset=utf-8'],
+      ['/calendario-page.js', 'text/javascript; charset=utf-8'],
+      ['/destino-page.js', 'text/javascript; charset=utf-8'],
+      ['/tempore-page.js', 'text/javascript; charset=utf-8'],
       ['/core/mechanics.js', 'text/javascript; charset=utf-8'],
       ['/locales/en.json', 'application/json; charset=utf-8']
     ]) {
       const response = await request(server, file);
+      const head = await request(server, file, { method: 'HEAD' });
       assert.equal(response.status, 200, file);
       assert.equal(response.headers['content-type'], type, file);
       assert.equal(response.headers['cache-control'], 'no-cache', file);
       assertSecurityHeaders(response.headers);
+      assert.equal(head.status, 200, `HEAD ${file}`);
+      assert.equal(head.body, '', `HEAD ${file}`);
+      assert.equal(head.headers['content-type'], type, `HEAD ${file}`);
+      assert.equal(head.headers['cache-control'], 'no-cache', `HEAD ${file}`);
+    }
+  } finally { await stop(server); }
+});
+
+test('former HTML routes and page modules are ordinary generic 404s for GET and HEAD', async () => {
+  const server = await start();
+  const oldPaths = [
+    '/calendar.html','/outcome.html','/weather.html',
+    '/calendar-page.js','/outcome-page.js','/weather-page.js'
+  ];
+  try {
+    for (const requestPath of oldPaths) {
+      const get = await request(server, requestPath);
+      const head = await request(server, requestPath, { method: 'HEAD' });
+      assert.equal(get.status, 404, requestPath);
+      assert.equal(get.body, 'Not Found', requestPath);
+      assert.equal(get.headers['cache-control'], 'no-store');
+      assertSecurityHeaders(get.headers);
+      assert.equal(head.status, 404, requestPath);
+      assert.equal(head.body, '');
+      assert.equal(head.headers['cache-control'], 'no-store');
+      assertSecurityHeaders(head.headers);
     }
   } finally { await stop(server); }
 });

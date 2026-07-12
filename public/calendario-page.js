@@ -1,7 +1,7 @@
 import { bootstrapPage } from './app-bootstrap.js';
 import { createDisplayData } from './presentation.js';
 
-bootstrapPage('calendar', (root, context) => {
+function createCalendarioPageRenderer(root, context) {
   const year = root.querySelector('#fictional-year');
   const period = root.querySelector('#fictional-period');
   const metadata = root.querySelector('#fictional-metadata');
@@ -9,7 +9,7 @@ bootstrapPage('calendar', (root, context) => {
   const phase = root.querySelector('#lunar-phase');
   const lunarMetadata = root.querySelector('#lunar-metadata');
 
-  return function renderCalendar(state) {
+  return function renderCalendario(state) {
     const display = createDisplayData(state, context);
     year.textContent = `${context.message('label.year')} ${state.calendar.year}`;
     period.textContent = display.calendar.periodLabel;
@@ -24,4 +24,6 @@ bootstrapPage('calendar', (root, context) => {
       cycle: state.lunar.cycle
     });
   };
-});
+}
+
+bootstrapPage('page-01', createCalendarioPageRenderer);

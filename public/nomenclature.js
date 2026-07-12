@@ -24,6 +24,7 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
   const nomenclature = nomenclatureResult.nomenclature;
   const locale = localeResult.locale;
   const maps = {
+    pages: mapItems(nomenclature.pages),
     months: mapItems(nomenclature.calendar.months),
     weekdays: mapItems(nomenclature.calendar.weekdays),
     interRegna: mapItems(nomenclature.calendar.interRegna),
@@ -41,6 +42,7 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
     nomenclatureSchemaVersion: nomenclatureResult.schemaVersion,
     localeSchemaVersion: localeResult.schemaVersion,
     languageTag: locale.languageTag,
+    getPage: (id) => requireMapped(maps.pages, id, 'page'),
     getMonth: (id) => requireMapped(maps.months, id, 'month'),
     getWeekday: (id) => requireMapped(maps.weekdays, id, 'weekday'),
     getInterRegnum: (id) => requireMapped(maps.interRegna, id, 'interregnum'),

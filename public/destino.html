@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en" aria-busy="true">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Live fictional outcome state."><title>Outcome</title><link rel="stylesheet" href="/styles.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Live selected outcome state."><title>…</title><link rel="stylesheet" href="/styles.css"></head>
 <body><div class="page-shell">
-  <nav class="primary-nav" aria-label="Navigation"><a data-page-link="calendar" href="/calendar.html"></a><a data-page-link="outcome" href="/outcome.html" aria-current="page"></a><a data-page-link="weather" href="/weather.html"></a></nav>
+  <nav class="primary-nav" aria-label="Navigation"><a data-page-id="page-01" href="/calendario.html"></a><a data-page-id="page-02" href="/destino.html" aria-current="page"></a><a data-page-id="page-03" href="/tempore.html"></a></nav>
   <main class="container">
-    <h1 id="outcome-page-heading" class="visually-hidden" data-message-key="page.outcome"></h1>
-    <section class="outcome-section" aria-labelledby="outcome-page-heading"><p id="outcome-body" class="outcome-body"></p><p id="outcome-type" class="outcome-type"></p><p id="outcome-attempts" class="outcome-attempts"></p><p id="outcome-source" class="outcome-source"></p><p id="outcome-progress" class="outcome-progress"></p><p id="outcome-rule" class="outcome-rule"></p><p id="outcome-tiebreak" class="outcome-tiebreak" hidden></p></section>
+    <h1 id="page-heading" class="visually-hidden" data-page-name></h1>
+    <section class="outcome-section" aria-labelledby="page-heading"><p id="outcome-body" class="outcome-body"></p><p id="outcome-type" class="outcome-type"></p><p id="outcome-attempts" class="outcome-attempts"></p><p id="outcome-source" class="outcome-source"></p><p id="outcome-progress" class="outcome-progress"></p><p id="outcome-rule" class="outcome-rule"></p><p id="outcome-tiebreak" class="outcome-tiebreak" hidden></p></section>
     <section class="lunar-section" aria-labelledby="tide-heading"><p id="tide-heading" class="section-label" data-message-key="section.tide"></p><p class="lunar-name" data-tide-name></p><p class="lunar-metadata" data-tide-metadata></p><p class="lunar-time" data-tide-time></p></section>
     <section class="orbital-pulls" aria-labelledby="pulls-heading"><p id="pulls-heading" class="section-label" data-message-key="section.pulls"></p><div class="pull-grid">
       <article class="pull-card" data-pull-id="pull-01"><p class="group-label" data-pull-name></p><p class="pull-members" data-pull-members></p><p class="pull-detail" data-pull-span></p><p class="pull-detail" data-pull-alignment></p><p class="pull-selection" data-pull-selection></p></article>
@@ -21,7 +21,7 @@
       <article class="orbital-body" data-body-id="body-06"><p class="orbital-name" data-orbital-name></p><p class="orbital-period" data-orbital-period></p><p class="orbital-metadata" data-orbital-metadata></p><div class="orbital-progress-row"><progress max="1" value="0"></progress><span class="orbital-percentage" data-orbital-percentage></span></div></article>
     </div></section>
     <section class="progress-section" aria-labelledby="progress-heading"><p id="progress-heading" class="section-label" data-message-key="section.progress"></p><div class="progress-item"><div class="progress-heading-row"><label for="hour-progress" data-message-key="label.currentHour"></label><span id="hour-progress-value">0.000000%</span></div><progress id="hour-progress" max="100" value="0"></progress></div></section>
-    <footer><span data-application-name></span><span aria-hidden="true"> · </span><span data-epoch></span><span aria-hidden="true"> · </span><span class="version footer-version" data-version>v8.1</span></footer>
+    <footer><span data-application-name></span><span aria-hidden="true"> · </span><span data-epoch></span><span aria-hidden="true"> · </span><span class="version footer-version" data-version>v8.2</span></footer>
   </main>
-</div><script type="module" src="/outcome-page.js"></script></body>
+</div><script type="module" src="/destino-page.js"></script></body>
 </html>

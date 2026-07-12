@@ -1,40 +1,40 @@
 import { loadLocale } from './locale-loader.js';
 import { loadNomenclature } from './nomenclature-loader.js';
 import { createPresentationContext } from './nomenclature.js';
+import { getPageDefinition } from './page-definitions.js';
 import { requestedPresentationOptions } from './presentation-context-loader.js';
 import { startLiveState } from './live-state.js';
 
-const APPLICATION_VERSION = '8.1';
+const APPLICATION_VERSION = '8.2';
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
-
-function pageMessageKey(pageId) {
-  return `page.${pageId}`;
-}
-
-function documentDescriptionKey(pageId) {
-  return `document.${pageId}Description`;
-}
 
 export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
   documentRoot.documentElement.lang = context.languageTag;
-  const pageName = context.message(pageMessageKey(pageId));
+  const page = context.getPage(pageId);
+  const pageDefinition = getPageDefinition(pageId);
   documentRoot.title = context.format('document.title', {
-    pageName,
+    pageName: page.name,
     applicationName: context.applicationDisplayName
   });
   const metaDescription = documentRoot.querySelector('meta[name="description"]');
   if (metaDescription) {
-    metaDescription.setAttribute('content', context.format(documentDescriptionKey(pageId), {
+    metaDescription.setAttribute('content', context.format(pageDefinition.descriptionTemplateKey, {
+      pageName: page.name,
       applicationName: context.applicationDisplayName
     }));
   }
   const nav = documentRoot.querySelector('.primary-nav');
   nav.setAttribute('aria-label', context.message('nav.aria'));
   const query = new URLSearchParams({ locale: context.resolvedLocaleId }).toString();
-  for (const link of documentRoot.querySelectorAll('[data-page-link]')) {
-    const targetPage = link.dataset.pageLink;
-    link.textContent = context.message(`nav.${targetPage}`);
-    link.setAttribute('href', `/${targetPage}.html?${query}`);
+  for (const link of documentRoot.querySelectorAll('[data-page-id]')) {
+    const targetPageId = link.dataset.pageId;
+    const targetPage = context.getPage(targetPageId);
+    const targetDefinition = getPageDefinition(targetPageId);
+    link.textContent = targetPage.name;
+    link.setAttribute('href', `${targetDefinition.route}?${query}`);
+  }
+  for (const element of documentRoot.querySelectorAll('[data-page-name]')) {
+    element.textContent = page.name;
   }
   for (const element of documentRoot.querySelectorAll('[data-message-key]')) {
     element.textContent = context.message(element.dataset.messageKey);
@@ -43,7 +43,7 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
     element.textContent = context.applicationDisplayName;
   }
   for (const element of documentRoot.querySelectorAll('[data-version]')) {
-    element.textContent = 'v8.1';
+    element.textContent = 'v8.2';
     element.setAttribute('aria-label', context.format('accessibility.version', {
       label: context.message('accessibility.applicationVersion'),
       version: APPLICATION_VERSION
