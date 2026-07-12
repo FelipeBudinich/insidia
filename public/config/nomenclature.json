@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "application": {
     "displayName": "Insidia"
   },
@@ -50,6 +50,9 @@
     { "id": "season-01", "name": "Ossos" },
     { "id": "season-02", "name": "Lacrimas" }
   ],
+  "lunarCycle": {
+    "name": "Cyclus Lunae"
+  },
   "lunarPhases": [
     { "id": "phase-01", "name": "Renascimento" },
     { "id": "phase-02", "name": "Corno" },

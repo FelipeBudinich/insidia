@@ -1,7 +1,7 @@
 export const MESSAGE_KEYS = Object.freeze([
   'nav.aria',
-  'section.time', 'section.season', 'section.lunar', 'section.tide', 'section.pulls', 'section.orbits', 'section.progress', 'section.json',
-  'label.phase', 'label.year', 'label.month', 'label.week', 'label.day', 'label.hour', 'label.lunarDay', 'label.cycle', 'label.orbit', 'label.seasonalDay', 'label.next', 'label.progress',
+  'section.time', 'section.season', 'section.tide', 'section.pulls', 'section.orbits', 'section.progress', 'section.json',
+  'label.year', 'label.month', 'label.week', 'label.day', 'label.hour', 'label.cycle', 'label.orbit', 'label.seasonalDay', 'label.next', 'label.progress',
   'label.currentFictionalTime', 'label.currentLunarTime', 'label.currentLunarDay', 'label.currentDay', 'label.currentHour',
   'label.attemptsUntilRare', 'label.orbitalProgress', 'label.circularSpan', 'label.alignment', 'label.epoch', 'label.copyJson',
   'status.copied', 'status.copyFailure', 'status.tieBreakApplied',
@@ -13,7 +13,7 @@ export const TEMPLATE_KEYS = Object.freeze([
   'document.title', 'document.page-01Description', 'document.page-02Description', 'document.page-03Description',
   'accessibility.version', 'accessibility.orbitProgress',
   'calendar.formattedYear', 'calendar.monthPeriod', 'calendar.interPeriod', 'calendar.formattedDate',
-  'lunar.metadata', 'season.metadata', 'season.cycle', 'season.next', 'season.progress',
+  'lunar.summary', 'season.metadata', 'season.cycle', 'season.next', 'season.progress',
   'tide.metadata', 'tide.time', 'outcome.type', 'outcome.attempts', 'outcome.source', 'outcome.progress',
   'orbit.calendarPeriod', 'orbit.lunarPeriod', 'orbit.metadata',
   'pull.members', 'pull.span', 'pull.alignment', 'pull.tie', 'pull.noTie', 'footer.epoch'
@@ -65,7 +65,7 @@ function validateOutcomeTypes(outcomeTypes) {
 
 export function validateLocale(locale) {
   if (!locale || typeof locale !== 'object' || Array.isArray(locale)) throw new TypeError('locale must be an object');
-  if (locale.schemaVersion !== 3) throw new Error('locale schemaVersion must be 3');
+  if (locale.schemaVersion !== 4) throw new Error('locale schemaVersion must be 4');
   assertNonEmpty(locale.id, 'locale.id');
   assertNonEmpty(locale.languageTag, 'locale.languageTag');
   validateOutcomeTypes(locale.outcomeTypes);

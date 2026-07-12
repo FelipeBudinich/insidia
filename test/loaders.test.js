@@ -4,7 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { bootstrapPage } from '../public/app-bootstrap.js';
-import { DEFAULT_LOCALE_ID, LOCALE_FILES, loadLocale, validateLocale } from '../public/locale-loader.js';
+import { DEFAULT_LOCALE_ID, LOCALE_FILES, MESSAGE_KEYS, TEMPLATE_KEYS, loadLocale, validateLocale } from '../public/locale-loader.js';
 import { loadNomenclature, NOMENCLATURE_PATH, validateNomenclature } from '../public/nomenclature-loader.js';
 import { loadPresentationContext, requestedPresentationOptions } from '../public/presentation-context-loader.js';
 import { formatTemplate } from '../public/templates.js';
@@ -74,7 +74,9 @@ test('query parameters cannot change the nomenclature request', async () => {
 
 test('production nomenclature validates complete neutral ID coverage', async () => {
   const value = validateNomenclature(await readJson(nomenclaturePath));
-  assert.equal(value.schemaVersion, 4);
+  assert.equal(value.schemaVersion, 5);
+  assert.deepEqual(value.lunarCycle, { name: 'Cyclus Lunae' });
+  assert.deepEqual(Object.keys(value.lunarCycle), ['name']);
   assert.equal(value.calendar.yearName, 'Annus Solis');
   assert.deepEqual(Object.keys(value.calendar).sort(), ['interRegna', 'months', 'weekdays', 'yearName']);
   assert.equal(value.calendar.months.length, 11);
@@ -96,8 +98,24 @@ test('nomenclature validation rejects missing, duplicate, unknown, and invalid e
   const unknown = structuredClone(valid); unknown.seasons[1].id = 'season-99';
   const empty = structuredClone(valid); empty.seasons[0].name = '';
   const nonString = structuredClone(valid); nonString.celestialBodies[0].symbol = 7;
-  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 5;
+  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 6;
   for (const invalid of [missing, duplicate, unknown, empty, nonString, wrongSchema]) {
+    assert.throws(() => validateNomenclature(invalid));
+  }
+});
+
+test('lunar-cycle nomenclature requires exactly one non-empty name', async () => {
+  const valid = await readJson(nomenclaturePath);
+  const missingCycle = structuredClone(valid); delete missingCycle.lunarCycle;
+  const missingName = structuredClone(valid); delete missingName.lunarCycle.name;
+  const empty = structuredClone(valid); empty.lunarCycle.name = '';
+  const whitespace = structuredClone(valid); whitespace.lunarCycle.name = '   ';
+  const nonString = structuredClone(valid); nonString.lunarCycle.name = 1234;
+  const id = structuredClone(valid); id.lunarCycle.id = 'lunar-cycle-01';
+  const label = structuredClone(valid); label.lunarCycle.label = 'Cycle';
+  const cycleName = structuredClone(valid); cycleName.lunarCycle.cycleName = 'Cycle';
+  const mechanical = structuredClone(valid); mechanical.lunarCycle.durationDays = 13;
+  for (const invalid of [missingCycle, missingName, empty, whitespace, nonString, id, label, cycleName, mechanical]) {
     assert.throws(() => validateNomenclature(invalid));
   }
 });
@@ -198,7 +216,8 @@ test('missing or invalid nomenclature prevents rendering and shows a localized a
   const invalid = structuredClone(valid); invalid.calendar.months.pop();
   const invalidWeekday = structuredClone(valid); invalidWeekday.calendar.weekdays[0].symbol = '☾';
   const invalidYearName = structuredClone(valid); invalidYearName.calendar.yearName = '';
-  for (const replacement of ['missing', invalid, invalidWeekday, invalidYearName]) {
+  const invalidLunarCycle = structuredClone(valid); invalidLunarCycle.lunarCycle.name = '';
+  for (const replacement of ['missing', invalid, invalidWeekday, invalidYearName, invalidLunarCycle]) {
     for (const [localeId, message, languageTag] of [
       ['en', 'Unable to load the application or locale configuration.', 'en'],
       ['es', 'No se pudo cargar la configuración de la aplicación o del idioma.', 'es']
@@ -300,8 +319,8 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
   assert.deepEqual(Object.values(english.outcomeTypes).map(({ name }) => name), ['Common', 'Uncommon', 'Rare']);
   assert.deepEqual(Object.values(spanish.outcomeTypes).map(({ name }) => name), ['Común', 'Poco común', 'Raro']);
-  assert.equal(english.schemaVersion, 3);
-  assert.equal(spanish.schemaVersion, 3);
+  assert.equal(english.schemaVersion, 4);
+  assert.equal(spanish.schemaVersion, 4);
   const calendarTemplates = {
     'calendar.formattedYear': '{yearName} {yearRoman}',
     'calendar.monthPeriod': '{weekdayName} · {dayRoman} {monthName}',
@@ -311,7 +330,16 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
   for (const locale of [english, spanish]) {
     for (const [key, value] of Object.entries(calendarTemplates)) assert.equal(locale.templates[key], value, key);
     assert.equal(Object.hasOwn(locale.templates, 'calendar.metadata'), false);
+    assert.equal(locale.templates['lunar.summary'], '{phaseName} • {cycleName} {cycleRoman}');
+    assert.equal(Object.hasOwn(locale.templates, 'lunar.metadata'), false);
+    for (const key of ['section.lunar', 'label.phase', 'label.lunarDay']) assert.equal(Object.hasOwn(locale.messages, key), false, key);
+    assert.equal(locale.messages['label.cycle'] !== undefined, true);
+    assert.doesNotMatch(JSON.stringify(locale), /Morditura|Cyclus Lunae/);
   }
+  for (const key of ['section.lunar', 'label.phase', 'label.lunarDay']) assert.equal(MESSAGE_KEYS.includes(key), false, key);
+  assert.equal(MESSAGE_KEYS.includes('label.cycle'), true);
+  assert.equal(TEMPLATE_KEYS.includes('lunar.metadata'), false);
+  assert.equal(TEMPLATE_KEYS.includes('lunar.summary'), true);
   for (const locale of [english, spanish]) {
     for (const key of ['nav.calendar','nav.outcome','nav.weather','page.calendar','page.outcome','page.weather','label.outcome']) {
       assert.equal(Object.hasOwn(locale.messages, key), false, key);

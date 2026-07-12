@@ -24,7 +24,7 @@ test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async
 
 test('Calendario preserves date and lunar structures in visible order', async () => {
   const html = await readPublic('calendario.html');
-  for (const id of ['fictional-year','fictional-period','fictional-date-accessible','lunar-phase','lunar-metadata']) {
+  for (const id of ['fictional-year','fictional-period','fictional-date-accessible','lunar-summary']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.doesNotMatch(html, /fictional-metadata|class="metadata"/);
@@ -39,6 +39,17 @@ test('Calendario preserves date and lunar structures in visible order', async ()
   const lunarIndex = html.indexOf('<section class="lunar-section"');
   const footerIndex = html.indexOf('<footer>');
   assert.ok(calendarIndex < lunarIndex && lunarIndex < footerIndex);
+});
+
+test('Calendario lunar card has exactly one self-labelled dynamic summary line', async () => {
+  const html = await readPublic('calendario.html');
+  const start = html.indexOf('<section class="lunar-section"');
+  const section = html.slice(start, html.indexOf('</section>', start) + '</section>'.length);
+  assert.match(section, /<section class="lunar-section" aria-labelledby="lunar-summary">/);
+  assert.match(section, /<p id="lunar-summary" class="lunar-name lunar-summary"><\/p>/);
+  assert.equal((section.match(/<p\b/g) ?? []).length, 1);
+  assert.doesNotMatch(section, /lunar-heading|section\.lunar|label\.phase|lunar-phase|lunar-metadata|data-message-key/);
+  assert.doesNotMatch(html, /Lunar Cycle|Phase|Lunar Day|Ciclo lunar|Fase|Día lunar/);
 });
 
 test('Destino preserves its title removal and begins with the selected body', async () => {
@@ -67,14 +78,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(script, /bootstrapPage\('page-03', createTemporePageRenderer\)/);
 });
 
-test('each renamed page has one localized v8.6 footer version', async () => {
+test('each renamed page has one localized v8.7 footer version', async () => {
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.6/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.7/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -105,14 +116,26 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   ]) assert.ok(!css.includes(selector), selector);
   assert.doesNotMatch(css, /(^|\n)button\s*\{|(^|\n)pre\s*\{|(^|\n)summary\s*\{/);
   assert.match(css, /\.footer-version\s*\{\s*white-space:\s*nowrap;/);
+  assert.match(css, /\.lunar-summary\s*\{\s*margin-top:\s*0;/);
+  for (const preserved of ['.section-label', '.group-label', '.lunar-metadata', '.lunar-time', '.lunar-name']) assert.ok(css.includes(preserved), preserved);
 });
 
-test('JSON serialization remains schema v12 with calendar time intact', async () => {
+test('JSON serialization remains schema v13 with calendar time intact', async () => {
   const [presentation, mechanics] = await Promise.all([readPublic('presentation.js'), readPublic('core/mechanics.js')]);
   assert.match(presentation, /export function createCalendarJson/);
-  assert.match(presentation, /calendarVersion: 'v12'/);
+  assert.match(presentation, /calendarVersion: 'v13'/);
   assert.match(presentation, /time: formatClock\(state\.calendar\.time\)/);
   assert.match(mechanics, /time: \{ hour, minute, second \}/);
+});
+
+test('Calendario renderer consumes only the formatted lunar summary', async () => {
+  const renderer = await readPublic('calendario-page.js');
+  for (const removed of [
+    '#lunar-phase', '#lunar-metadata', 'lunar.metadata', 'label.lunarDay',
+    'cycleLengthDays', 'state.lunar.day', 'formatRomanNumeral', 'display.lunar.phase.name'
+  ]) assert.ok(!renderer.includes(removed), removed);
+  assert.match(renderer, /lunarSummary\.textContent = display\.lunar\.formattedSummary/);
+  assert.match(renderer, /querySelector\('#lunar-summary'\)/);
 });
 
 test('Calendario rendering path omits removed numeric progress indicators', async () => {

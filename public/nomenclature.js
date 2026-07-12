@@ -40,6 +40,7 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
     resolvedLocaleId: localeResult.resolvedLocaleId,
     applicationDisplayName: nomenclature.application.displayName,
     calendarYearName: nomenclature.calendar.yearName,
+    lunarCycleName: nomenclature.lunarCycle.name,
     nomenclatureSchemaVersion: nomenclatureResult.schemaVersion,
     localeSchemaVersion: localeResult.schemaVersion,
     languageTag: locale.languageTag,

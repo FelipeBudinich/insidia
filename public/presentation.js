@@ -32,6 +32,15 @@ export function formatFictionalDate(state, context) {
   });
 }
 
+export function formatLunarSummary(state, context) {
+  const phase = context.getLunarPhase(state.lunar.phaseId);
+  return context.format('lunar.summary', {
+    phaseName: phase.name,
+    cycleName: context.lunarCycleName,
+    cycleRoman: formatRomanNumeral(state.lunar.cycle)
+  });
+}
+
 function displayPull(pull, context) {
   return {
     id: pull.id,
@@ -66,6 +75,9 @@ export function createDisplayData(state, context) {
     },
     lunar: {
       phase: { id: state.lunar.phaseId, name: context.getLunarPhase(state.lunar.phaseId).name },
+      cycleName: context.lunarCycleName,
+      formattedCycle: formatRomanNumeral(state.lunar.cycle),
+      formattedSummary: formatLunarSummary(state, context),
       tide: { id: state.lunar.tide.id, name: context.getTide(state.lunar.tide.id).name },
       time: formatClock(state.lunar.time),
       tideTime: formatClock(state.lunar.tide.timeInPeriod)
@@ -99,7 +111,7 @@ function copyRawState(state) {
 
 export function createCalendarJson(state, realUnixMilliseconds, context) {
   return {
-    calendarVersion: 'v12',
+    calendarVersion: 'v13',
     nomenclature: {
       schemaVersion: context.nomenclatureSchemaVersion,
       applicationDisplayName: context.applicationDisplayName

@@ -14,7 +14,7 @@ export const NOMENCLATURE_PATH = '/config/nomenclature.json';
 
 const TOP_LEVEL_KEYS = Object.freeze([
   'schemaVersion', 'application', 'pages', 'calendar', 'seasons', 'lunarPhases',
-  'tides', 'celestialBodies', 'pulls'
+  'lunarCycle', 'tides', 'celestialBodies', 'pulls'
 ]);
 
 const FORBIDDEN_KEYS = new Set([
@@ -71,7 +71,7 @@ function validateEntities(items, expectedIds, label, entityKeys) {
 
 export function validateNomenclature(nomenclature) {
   assertExactKeys(nomenclature, TOP_LEVEL_KEYS, 'nomenclature');
-  if (nomenclature.schemaVersion !== 4) throw new Error('nomenclature schemaVersion must be 4');
+  if (nomenclature.schemaVersion !== 5) throw new Error('nomenclature schemaVersion must be 5');
   assertExactKeys(nomenclature.application, ['displayName'], 'nomenclature.application');
   assertNonEmptyString(nomenclature.application.displayName, 'nomenclature.application.displayName');
   validateEntities(nomenclature.pages, PAGE_IDS, 'nomenclature.pages', ['id', 'name']);
@@ -81,6 +81,8 @@ export function validateNomenclature(nomenclature) {
   validateEntities(nomenclature.calendar.weekdays, WEEKDAY_IDS, 'nomenclature.calendar.weekdays', ['id', 'name']);
   validateEntities(nomenclature.calendar.interRegna, INTER_REGNUM_IDS, 'nomenclature.calendar.interRegna', ['id', 'name']);
   validateEntities(nomenclature.seasons, SEASON_RULES.map(({ id }) => id), 'nomenclature.seasons', ['id', 'name']);
+  assertExactKeys(nomenclature.lunarCycle, ['name'], 'nomenclature.lunarCycle');
+  assertNonEmptyString(nomenclature.lunarCycle.name, 'nomenclature.lunarCycle.name');
   validateEntities(nomenclature.lunarPhases, LUNAR_PHASE_RULES.map(({ id }) => id), 'nomenclature.lunarPhases', ['id', 'name']);
   validateEntities(nomenclature.tides, TIDE_RULES.map(({ id }) => id), 'nomenclature.tides', ['id', 'name']);
   validateEntities(nomenclature.celestialBodies, CELESTIAL_BODY_RULES.map(({ id }) => id), 'nomenclature.celestialBodies', ['id', 'name', 'symbol']);
