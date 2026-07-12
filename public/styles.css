@@ -119,7 +119,7 @@ body {
 
 .outcome-section p { margin: 0; }
 .outcome-body { font-size: clamp(1.6rem, 7vw, 2.2rem); font-weight: 750; }
-.outcome-reward { margin-top: 0.75rem !important; font-size: 1.1rem; font-weight: 700; }
+.outcome-type { margin-top: 0.75rem !important; font-size: 1.1rem; font-weight: 700; }
 .outcome-attempts { margin-top: 0.2rem !important; font-variant-numeric: tabular-nums; }
 .outcome-progress { margin-top: 0.2rem !important; font-size: 1rem; font-variant-numeric: tabular-nums; }
 .outcome-source { margin-top: 1rem !important; font-weight: 700; }

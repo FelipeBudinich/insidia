@@ -51,7 +51,7 @@ const OUTCOME_RULE_LABELS = Object.freeze({
 
 export function createOutcomeRenderer(root = document) {
   const bodyElement = requireElement(root, '#outcome-body');
-  const rewardElement = requireElement(root, '#outcome-reward');
+  const outcomeTypeElement = requireElement(root, '#outcome-type');
   const attemptsElement = requireElement(root, '#outcome-attempts');
   const progressElement = requireElement(root, '#outcome-progress');
   const sourceElement = requireElement(root, '#outcome-source');
@@ -60,8 +60,8 @@ export function createOutcomeRenderer(root = document) {
 
   return function renderOutcome(outcome) {
     bodyElement.textContent = `${outcome.body.symbol} ${outcome.body.name}`;
-    rewardElement.textContent = `Reward: ${outcome.reward.name}`;
-    attemptsElement.textContent = `Attempts until Rare: ${outcome.reward.attemptsUntilRare}`;
+    outcomeTypeElement.textContent = `Outcome: ${outcome.outcomeType.name}`;
+    attemptsElement.textContent = `Attempts until Rare: ${outcome.outcomeType.attemptsUntilRare}`;
     progressElement.textContent = `Orbital progress: ${outcome.body.formattedProgress}`;
     sourceElement.textContent = `${outcome.tide.name} · ${outcome.sourcePull.name}`;
     ruleElement.textContent = OUTCOME_RULE_LABELS[outcome.selectionRule];

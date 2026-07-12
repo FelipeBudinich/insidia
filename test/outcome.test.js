@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import * as calendarApi from '../public/calendar.js';
 import {
   CALENDAR_EPOCH_UNIX_MS,
   CELESTIAL_BODIES,
-  calculateOutcomeReward,
+  calculateOutcomeType,
   calculateOutcomeState,
   calculateFictionalCalendar,
   calculateOrbitalState,
@@ -11,7 +12,7 @@ import {
   formatOrbitalPercentage
 } from '../public/calendar.js';
 
-test('Outcome reward uses the exact raw hour-progress thresholds', () => {
+test('Outcome type uses the exact raw hour-progress thresholds', () => {
   for (const [percentage, expectedId, expectedName] of [
     [0, 'common', 'Common'],
     [84.999, 'common', 'Common'],
@@ -21,11 +22,11 @@ test('Outcome reward uses the exact raw hour-progress thresholds', () => {
     [99, 'uncommon', 'Uncommon'],
     [99.001, 'rare', 'Rare']
   ]) {
-    const reward = calculateOutcomeReward(percentage / 100);
-    assert.equal(reward.id, expectedId, `${percentage}% id`);
-    assert.equal(reward.name, expectedName, `${percentage}% name`);
-    assert.equal(reward.hourProgressFraction, percentage / 100);
-    assert.equal(reward.hourProgressPercentage, percentage);
+    const outcomeType = calculateOutcomeType(percentage / 100);
+    assert.equal(outcomeType.id, expectedId, `${percentage}% id`);
+    assert.equal(outcomeType.name, expectedName, `${percentage}% name`);
+    assert.equal(outcomeType.hourProgressFraction, percentage / 100);
+    assert.equal(outcomeType.hourProgressPercentage, percentage);
   }
 });
 
@@ -35,29 +36,29 @@ test('attempts until Rare count whole percentage-point attempts needed to exceed
     [98, 2], [98.2, 1], [99, 1], [99.1, 0]
   ]) {
     assert.equal(
-      calculateOutcomeReward(percentage / 100).attemptsUntilRare,
+      calculateOutcomeType(percentage / 100).attemptsUntilRare,
       expectedAttempts,
       `${percentage}%`
     );
   }
 });
 
-test('Outcome reward compares raw progress rather than its six-decimal display', () => {
+test('Outcome type compares raw progress rather than its six-decimal display', () => {
   const exactBoundary = 0.85;
   const justAboveBoundary = 0.850000000001;
   assert.equal(
     formatOrbitalPercentage(exactBoundary),
     formatOrbitalPercentage(justAboveBoundary)
   );
-  assert.equal(calculateOutcomeReward(exactBoundary).id, 'common');
-  assert.equal(calculateOutcomeReward(justAboveBoundary).id, 'uncommon');
+  assert.equal(calculateOutcomeType(exactBoundary).id, 'common');
+  assert.equal(calculateOutcomeType(justAboveBoundary).id, 'uncommon');
 });
 
-test('Outcome reward rejects fractions outside the finite half-open unit interval', () => {
+test('Outcome type rejects fractions outside the finite half-open unit interval', () => {
   for (const invalid of [Number.NaN, Number.POSITIVE_INFINITY, -0.001, 1]) {
-    assert.throws(() => calculateOutcomeReward(invalid), /hourProgressFraction/);
+    assert.throws(() => calculateOutcomeType(invalid), /hourProgressFraction/);
   }
-  assert.throws(() => calculateOutcomeReward('0.5'), /hourProgressFraction must be a number/);
+  assert.throws(() => calculateOutcomeType('0.5'), /hourProgressFraction must be a number/);
 });
 
 const TIDES = Object.freeze({
@@ -227,7 +228,7 @@ test('epoch integrates Low Outcome from Minor Pull without changing public JSON'
   assert.deepEqual(value.outcome.sourcePull, { id: 'minor', name: 'Minor Pull' });
   assert.equal(value.outcome.body.id, 'moon');
   assert.equal(value.outcome.body.formattedProgress, '0.000000%');
-  assert.deepEqual(value.outcome.reward, {
+  assert.deepEqual(value.outcome.outcomeType, {
     id: 'common',
     name: 'Common',
     hourProgressFraction: 0,
@@ -245,4 +246,12 @@ test('epoch integrates Low Outcome from Minor Pull without changing public JSON'
     'totalSeconds', 'year', 'dayOfYear', 'weekOfYear', 'dayOfWeek',
     'period', 'time', 'season', 'lunar', 'orbits', 'progress', 'formattedDate'
   ]);
+});
+
+test('superseded classification API and state key are absent', () => {
+  const removedApiName = ['calculateOutcome', 'Re', 'ward'].join('');
+  const removedStateKey = ['re', 'ward'].join('');
+  const value = calculateFictionalCalendar(CALENDAR_EPOCH_UNIX_MS);
+  assert.equal(removedApiName in calendarApi, false);
+  assert.equal(removedStateKey in value.outcome, false);
 });

@@ -91,7 +91,7 @@ test('GET and HEAD root redirect securely to the calendar route', async () => {
   }
 });
 
-test('GET and HEAD health return the v6.5 availability response', async () => {
+test('GET and HEAD health return the v6.6 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -99,7 +99,7 @@ test('GET and HEAD health return the v6.5 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v6.5"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v6.6"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -124,7 +124,7 @@ test('all three HTML routes serve secure no-cache documents with shared navigati
       assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8', page.path);
       assert.equal(getResponse.headers['cache-control'], 'no-cache', page.path);
       assert.match(getResponse.body, new RegExp(`<title>${page.title}</title>`), page.path);
-      assert.match(getResponse.body, /aria-label="Application version 6\.5">v6\.5/, page.path);
+      assert.match(getResponse.body, /aria-label="Application version 6\.6">v6\.6/, page.path);
       assert.match(getResponse.body, /<nav class="primary-nav" aria-label="Primary">/, page.path);
       for (const [href, label] of [
         ['/calendar.html', 'Calendar'],
@@ -190,7 +190,7 @@ test('Outcome route begins with Outcome and retains its fields before Tide, Pull
   try {
     const response = await request(server, '/outcome.html');
     for (const requiredContent of [
-      'Outcome', '☾</span> Moon', 'Reward: Common', 'Attempts until Rare: 100',
+      'Outcome', '☾</span> Moon', 'Outcome: Common', 'Attempts until Rare: 100',
       'Low · Minor Pull', 'Orbital progress: 0.000000%',
       'Furthest from orbit completion', 'Fixed-priority tie-break applied',
       'Tide', 'Low', 'Hour 1 of 17', '00:00:00 into Low', 'Celestial Orbits',
@@ -222,7 +222,7 @@ test('Outcome route begins with Outcome and retains its fields before Tide, Pull
     assert.ok(!response.body.includes('<h1>Outcome</h1>'));
 
     const outcomeFieldIds = [
-      'outcome-body', 'outcome-reward', 'outcome-attempts', 'outcome-source',
+      'outcome-body', 'outcome-type', 'outcome-attempts', 'outcome-source',
       'outcome-progress', 'outcome-rule', 'outcome-tiebreak'
     ];
     const outcomeFieldIndexes = outcomeFieldIds.map((id) => response.body.indexOf(`id="${id}"`));
@@ -241,6 +241,21 @@ test('Outcome route begins with Outcome and retains its fields before Tide, Pull
   } finally {
     await stopServer(server);
   }
+});
+
+test('superseded classification names are absent from source and styling', async () => {
+  const [calendarSource, rendererSource, outcomeHtml, styles] = await Promise.all([
+    readFile(path.join(projectDirectory, 'public/calendar.js'), 'utf8'),
+    readFile(path.join(projectDirectory, 'public/renderers.js'), 'utf8'),
+    readFile(path.join(projectDirectory, 'public/outcome.html'), 'utf8'),
+    readFile(path.join(projectDirectory, 'public/styles.css'), 'utf8')
+  ]);
+  const removedWord = ['re', 'ward'].join('');
+  const removedApiName = ['calculateOutcome', 'Re', 'ward'].join('');
+  for (const source of [calendarSource, rendererSource, outcomeHtml, styles]) {
+    assert.ok(!source.toLowerCase().includes(removedWord));
+  }
+  assert.ok(!calendarSource.includes(removedApiName));
 });
 
 test('weather route orders Time, Season, and exactly three selected Progress rows', async () => {
@@ -580,7 +595,7 @@ test('Procfile and Node 24 package metadata are synchronized for Heroku', async 
   const packageJson = JSON.parse(packageText);
   const packageLock = JSON.parse(lockText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '6.5.0');
+  assert.equal(packageJson.version, '6.6.0');
   assert.equal(packageJson.engines.node, '24.x');
   assert.equal(packageLock.packages[''].engines.node, '24.x');
   assert.equal(nvmrc.trim(), '24');

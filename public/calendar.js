@@ -444,17 +444,17 @@ export function calculateOutcomeState(tide, orbitalState) {
   };
 }
 
-export function calculateOutcomeReward(hourProgressFraction) {
+export function calculateOutcomeType(hourProgressFraction) {
   assertProgressFraction(hourProgressFraction, 'hourProgressFraction');
 
   const hourProgressPercentage = hourProgressFraction * 100;
-  let reward;
+  let outcomeType;
   if (hourProgressPercentage <= 85) {
-    reward = { id: 'common', name: 'Common' };
+    outcomeType = { id: 'common', name: 'Common' };
   } else if (hourProgressPercentage <= 99) {
-    reward = { id: 'uncommon', name: 'Uncommon' };
+    outcomeType = { id: 'uncommon', name: 'Uncommon' };
   } else {
-    reward = { id: 'rare', name: 'Rare' };
+    outcomeType = { id: 'rare', name: 'Rare' };
   }
 
   const attemptsUntilRare = hourProgressPercentage > 99
@@ -462,7 +462,7 @@ export function calculateOutcomeReward(hourProgressFraction) {
     : Math.max(0, Math.floor(99 - hourProgressPercentage) + 1);
 
   return {
-    ...reward,
+    ...outcomeType,
     hourProgressFraction,
     hourProgressPercentage,
     attemptsUntilRare
@@ -616,7 +616,7 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
   const progress = calculateProgressState(totalSeconds, season, lunar);
   const outcome = {
     ...calculateOutcomeState(lunar.tide, orbits),
-    reward: calculateOutcomeReward(progress.hour.fraction)
+    outcomeType: calculateOutcomeType(progress.hour.fraction)
   };
 
   return {
