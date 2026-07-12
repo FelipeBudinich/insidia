@@ -14,6 +14,8 @@ import { formatAttemptsUntilRare } from '../public/renderers.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = async (...parts) => JSON.parse(await readFile(path.join(root, ...parts), 'utf8'));
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const containsProperNoun = (source, name) => new RegExp(`(?<![\\p{L}])${escapeRegExp(name)}(?![\\p{L}])`, 'u').test(source);
 
 async function productionNomenclature() {
   return validateNomenclature(await readJson('public', 'config', 'nomenclature.json'));
@@ -35,12 +37,13 @@ function renamedNomenclature(value) {
   renamed.seasons.find(({ id }) => id === 'season-01').name = 'Dry';
   renamed.seasons.find(({ id }) => id === 'season-02').name = 'Rainy';
   renamed.celestialBodies.find(({ id }) => id === 'body-01').name = 'Swift';
-  renamed.celestialBodies.find(({ id }) => id === 'body-06').name = 'Luna';
+  renamed.celestialBodies.find(({ id }) => id === 'body-06').name = 'Selene';
   return validateNomenclature(renamed);
 }
 
 test('production nomenclature reproduces every intended proper noun group', async () => {
   const value = await productionNomenclature();
+  assert.equal(value.schemaVersion, 2);
   assert.equal(value.application.displayName, 'Insidia');
   assert.deepEqual(value.pages, [
     { id: 'page-01', name: 'Calendario' },
@@ -48,11 +51,43 @@ test('production nomenclature reproduces every intended proper noun group', asyn
     { id: 'page-03', name: 'Tempore' }
   ]);
   assert.deepEqual(value.calendar.months.map(({ name }) => name), Array.from({ length: 11 }, (_, index) => `Month ${index + 1}`));
-  assert.deepEqual(value.seasons.map(({ name }) => name), ['Bones', 'Tears']);
-  assert.deepEqual(value.lunarPhases.map(({ name }) => name), ['Rebirth','Horn','Crescent','Passage','Growing','Waxing','Ascent','Apex','Bite','Waning','Receding','Veil','Death']);
-  assert.deepEqual(value.tides.map(({ name }) => name), ['Low','High','Parted']);
-  assert.deepEqual(value.celestialBodies.map(({ name }) => name), ['Mercury','Venus','Mars','Jupiter','Saturn','Moon']);
-  assert.deepEqual(value.pulls.map(({ name }) => name), ['Dominant Pull','Minor Pull','Negative Pull']);
+  assert.deepEqual(value.seasons, [
+    { id: 'season-01', name: 'Ossos' },
+    { id: 'season-02', name: 'Lacrimas' }
+  ]);
+  assert.deepEqual(value.lunarPhases, [
+    { id: 'phase-01', name: 'Renascimento' },
+    { id: 'phase-02', name: 'Corno' },
+    { id: 'phase-03', name: 'Falce' },
+    { id: 'phase-04', name: 'Passage' },
+    { id: 'phase-05', name: 'Ascrescimento' },
+    { id: 'phase-06', name: 'Crescente' },
+    { id: 'phase-07', name: 'Ascenso' },
+    { id: 'phase-08', name: 'Apice' },
+    { id: 'phase-09', name: 'Morditura' },
+    { id: 'phase-10', name: 'Decrescente' },
+    { id: 'phase-11', name: 'Recedente' },
+    { id: 'phase-12', name: 'Velo' },
+    { id: 'phase-13', name: 'Morte' }
+  ]);
+  assert.deepEqual(value.tides, [
+    { id: 'tide-01', name: 'Marea basse' },
+    { id: 'tide-02', name: 'Marea alte' },
+    { id: 'tide-03', name: 'Marea dividite' }
+  ]);
+  assert.deepEqual(value.celestialBodies, [
+    { id: 'body-01', name: 'Mercurius', symbol: '☿' },
+    { id: 'body-02', name: 'Venus', symbol: '♀' },
+    { id: 'body-03', name: 'Mars', symbol: '♂' },
+    { id: 'body-04', name: 'Jupiter', symbol: '♃' },
+    { id: 'body-05', name: 'Saturnus', symbol: '♄' },
+    { id: 'body-06', name: 'Luna', symbol: '☾' }
+  ]);
+  assert.deepEqual(value.pulls, [
+    { id: 'pull-01', name: 'Attraction dominante' },
+    { id: 'pull-02', name: 'Attraction minor' },
+    { id: 'pull-03', name: 'Attraction divergente' }
+  ]);
 });
 
 test('stable page IDs map to fixed non-configurable routes', () => {
@@ -78,10 +113,10 @@ test('in-memory nomenclature renaming changes display and never mechanics', asyn
   assert.deepEqual(firstRaw.progress, secondRaw.progress);
   const firstDisplay = createDisplayData(firstRaw, await context('en', production));
   const secondDisplay = createDisplayData(secondRaw, await context('en', renamed));
-  assert.equal(firstDisplay.season.name, 'Bones');
+  assert.equal(firstDisplay.season.name, 'Ossos');
   assert.equal(secondDisplay.season.name, 'Dry');
-  assert.equal(firstDisplay.orbits.bodies.find(({ id }) => id === 'body-06').name, 'Moon');
-  assert.equal(secondDisplay.orbits.bodies.find(({ id }) => id === 'body-06').name, 'Luna');
+  assert.equal(firstDisplay.orbits.bodies.find(({ id }) => id === 'body-06').name, 'Luna');
+  assert.equal(secondDisplay.orbits.bodies.find(({ id }) => id === 'body-06').name, 'Selene');
   assert.deepEqual(firstDisplay.outcomeType, secondDisplay.outcomeType);
   assert.equal((await context('en', production)).getPage('page-01').name, 'Calendario');
   assert.equal((await context('en', renamed)).getPage('page-01').name, 'Chronica');
@@ -100,15 +135,26 @@ test('Outcome types are locale-owned and unaffected by nomenclature renaming', a
 
 test('Spanish changes generic language and Outcome types but not proper nouns or raw state', async () => {
   const raw = calculateCalendarState(0);
-  const english = createDisplayData(raw, await context('en'));
-  const spanish = createDisplayData(raw, await context('es'));
+  const englishContext = await context('en');
+  const spanishContext = await context('es');
+  const english = createDisplayData(raw, englishContext);
+  const spanish = createDisplayData(raw, spanishContext);
+  for (const [ids, getter] of [
+    [Array.from({ length: 13 }, (_, index) => `phase-${String(index + 1).padStart(2, '0')}`), 'getLunarPhase'],
+    [Array.from({ length: 3 }, (_, index) => `tide-${String(index + 1).padStart(2, '0')}`), 'getTide'],
+    [Array.from({ length: 2 }, (_, index) => `season-${String(index + 1).padStart(2, '0')}`), 'getSeason'],
+    [Array.from({ length: 3 }, (_, index) => `pull-${String(index + 1).padStart(2, '0')}`), 'getPull'],
+    [Array.from({ length: 6 }, (_, index) => `body-${String(index + 1).padStart(2, '0')}`), 'getCelestialBody']
+  ]) {
+    assert.deepEqual(ids.map((id) => englishContext[getter](id)), ids.map((id) => spanishContext[getter](id)));
+  }
   assert.equal(english.season.name, spanish.season.name);
   assert.equal(english.orbits.bodies[0].name, spanish.orbits.bodies[0].name);
   assert.notEqual(english.formattedDate, spanish.formattedDate);
   assert.equal(english.outcomeType.name, 'Common');
   assert.equal(spanish.outcomeType.name, 'Común');
-  assert.equal((await context('en')).getPage('page-02').name, 'Destino');
-  assert.equal((await context('es')).getPage('page-02').name, 'Destino');
+  assert.equal(englishContext.getPage('page-02').name, 'Destino');
+  assert.equal(spanishContext.getPage('page-02').name, 'Destino');
   assert.deepEqual(raw, calculateCalendarState(0));
 });
 
@@ -137,7 +183,13 @@ test('JSON v10 replaces universe selection metadata with fixed nomenclature meta
   assert.deepEqual(english.locale, { requestedId: 'en', resolvedId: 'en', languageTag: 'en', schemaVersion: 2 });
   assert.deepEqual(english.state, spanish.state);
   assert.doesNotMatch(JSON.stringify(english.state), /"(?:name|symbol|formatted)"/);
-  assert.equal(english.display.season.name, 'Bones');
+  assert.equal(english.display.season.name, 'Ossos');
+  assert.equal(english.display.lunar.phase.name, 'Renascimento');
+  assert.equal(english.display.orbits.bodies[5].id, 'body-06');
+  assert.equal(english.display.orbits.bodies[5].name, 'Luna');
+  assert.equal(english.state.lunar.phaseId, 'phase-01');
+  assert.equal(english.state.season.id, 'season-01');
+  assert.equal(english.state.orbits.bodies[5].id, 'body-06');
   assert.notEqual(english.display.formattedDate, spanish.display.formattedDate);
   assert.equal(english.display.outcomeType.name, 'Common');
   assert.equal(spanish.display.outcomeType.name, 'Común');
@@ -168,17 +220,19 @@ test('navigation applies only resolved locale and fixed application metadata', a
   assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore']);
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.2');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.2');
+  assert.equal(versionElements[0].textContent, 'v8.3');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.3');
+  applyCommonDocumentPresentation(documentRoot, 'page-01', await context('en'));
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.3');
 });
 
-test('static HTML remains neutral and uses v8.2 page IDs and application placeholders', async () => {
-  const properNouns = ['Insidia','Calendario','Destino','Tempore','Bones','Tears','Rebirth','Mercury','Venus','Mars','Jupiter','Saturn','Moon','Dominant Pull','Minor Pull','Negative Pull','Month 1'];
+test('static HTML remains neutral and uses v8.3 page IDs and application placeholders', async () => {
+  const properNouns = ['Insidia','Calendario','Destino','Tempore','Ossos','Lacrimas','Renascimento','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente','Month 1'];
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
-    for (const properNoun of properNouns) assert.ok(!html.includes(properNoun), `${file}: ${properNoun}`);
+    for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.2/);
+    assert.match(html, /data-version>v8\.3/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);
@@ -194,5 +248,5 @@ test('production JavaScript has no runtime universe selection, cookies, or local
 
 test('core source remains proper-noun free', async () => {
   const source = await readFile(path.join(root, 'public', 'core', 'rules.js'), 'utf8') + await readFile(path.join(root, 'public', 'core', 'mechanics.js'), 'utf8');
-  for (const name of ['Insidia','Bones','Tears','Mercury','Venus','Mars','Jupiter','Saturn','Moon','Rebirth']) assert.ok(!source.includes(name));
+  for (const name of ['Insidia','Ossos','Lacrimas','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Renascimento','Marea basse','Attraction dominante']) assert.ok(!containsProperNoun(source, name), name);
 });

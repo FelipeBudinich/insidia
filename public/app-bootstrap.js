@@ -5,7 +5,7 @@ import { getPageDefinition } from './page-definitions.js';
 import { requestedPresentationOptions } from './presentation-context-loader.js';
 import { startLiveState } from './live-state.js';
 
-const APPLICATION_VERSION = '8.2';
+const APPLICATION_VERSION = '8.3';
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
 
 export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
@@ -43,7 +43,7 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
     element.textContent = context.applicationDisplayName;
   }
   for (const element of documentRoot.querySelectorAll('[data-version]')) {
-    element.textContent = 'v8.2';
+    element.textContent = 'v8.3';
     element.setAttribute('aria-label', context.format('accessibility.version', {
       label: context.message('accessibility.applicationVersion'),
       version: APPLICATION_VERSION

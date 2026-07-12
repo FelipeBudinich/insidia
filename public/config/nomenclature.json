@@ -46,40 +46,40 @@
     ]
   },
   "seasons": [
-    { "id": "season-01", "name": "Bones" },
-    { "id": "season-02", "name": "Tears" }
+    { "id": "season-01", "name": "Ossos" },
+    { "id": "season-02", "name": "Lacrimas" }
   ],
   "lunarPhases": [
-    { "id": "phase-01", "name": "Rebirth" },
-    { "id": "phase-02", "name": "Horn" },
-    { "id": "phase-03", "name": "Crescent" },
+    { "id": "phase-01", "name": "Renascimento" },
+    { "id": "phase-02", "name": "Corno" },
+    { "id": "phase-03", "name": "Falce" },
     { "id": "phase-04", "name": "Passage" },
-    { "id": "phase-05", "name": "Growing" },
-    { "id": "phase-06", "name": "Waxing" },
-    { "id": "phase-07", "name": "Ascent" },
-    { "id": "phase-08", "name": "Apex" },
-    { "id": "phase-09", "name": "Bite" },
-    { "id": "phase-10", "name": "Waning" },
-    { "id": "phase-11", "name": "Receding" },
-    { "id": "phase-12", "name": "Veil" },
-    { "id": "phase-13", "name": "Death" }
+    { "id": "phase-05", "name": "Ascrescimento" },
+    { "id": "phase-06", "name": "Crescente" },
+    { "id": "phase-07", "name": "Ascenso" },
+    { "id": "phase-08", "name": "Apice" },
+    { "id": "phase-09", "name": "Morditura" },
+    { "id": "phase-10", "name": "Decrescente" },
+    { "id": "phase-11", "name": "Recedente" },
+    { "id": "phase-12", "name": "Velo" },
+    { "id": "phase-13", "name": "Morte" }
   ],
   "tides": [
-    { "id": "tide-01", "name": "Low" },
-    { "id": "tide-02", "name": "High" },
-    { "id": "tide-03", "name": "Parted" }
+    { "id": "tide-01", "name": "Marea basse" },
+    { "id": "tide-02", "name": "Marea alte" },
+    { "id": "tide-03", "name": "Marea dividite" }
   ],
   "celestialBodies": [
-    { "id": "body-01", "name": "Mercury", "symbol": "☿" },
+    { "id": "body-01", "name": "Mercurius", "symbol": "☿" },
     { "id": "body-02", "name": "Venus", "symbol": "♀" },
     { "id": "body-03", "name": "Mars", "symbol": "♂" },
     { "id": "body-04", "name": "Jupiter", "symbol": "♃" },
-    { "id": "body-05", "name": "Saturn", "symbol": "♄" },
-    { "id": "body-06", "name": "Moon", "symbol": "☾" }
+    { "id": "body-05", "name": "Saturnus", "symbol": "♄" },
+    { "id": "body-06", "name": "Luna", "symbol": "☾" }
   ],
   "pulls": [
-    { "id": "pull-01", "name": "Dominant Pull" },
-    { "id": "pull-02", "name": "Minor Pull" },
-    { "id": "pull-03", "name": "Negative Pull" }
+    { "id": "pull-01", "name": "Attraction dominante" },
+    { "id": "pull-02", "name": "Attraction minor" },
+    { "id": "pull-03", "name": "Attraction divergente" }
   ]
 }

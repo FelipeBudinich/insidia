@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.2 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v8.3 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
@@ -37,6 +37,16 @@ public/config/nomenclature.json
 ```
 
 The browser always loads it from the fixed same-origin URL `/config/nomenclature.json`. Editing this file and redeploying is sufficient to rename the application/world, months, weekdays, Inter Regna, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. JavaScript and HTML changes are not required.
+
+The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.3 configuration includes:
+
+- Lunar phases: Renascimento, Corno, Falce, Passage, Ascrescimento, Crescente, Ascenso, Apice, Morditura, Decrescente, Recedente, Velo, Morte
+- Tides: Marea basse, Marea alte, Marea dividite
+- Seasons: Ossos, Lacrimas
+- Orbital Pulls: Attraction dominante, Attraction minor, Attraction divergente
+- Celestial bodies: ☿ Mercurius, ♀ Venus, ♂ Mars, ♃ Jupiter, ♄ Saturnus, ☾ Luna
+
+These names and symbols are loaded exclusively from `public/config/nomenclature.json` and remain identical when the locale changes.
 
 Calendario, Destino, and Tempore are in-game page proper nouns stored in the same file under stable page IDs. Locale changes never translate them. Their routes are fixed application infrastructure and are not generated from the configured names.
 
@@ -81,7 +91,7 @@ The project has no framework, build system, database, backend time API, WebSocke
 - Outcome begins directly with the selected celestial object and retains its classification, tide, Pull, orbit, and progress data without a visible Outcome card title.
 - Weather begins directly with the Time card, including both fictional and lunar clocks, then shows Season and Progress. It has no separate page-header card.
 
-Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.2 version in its footer.
+Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.3 version in its footer.
 
 ## JSON schema v10
 
@@ -105,7 +115,7 @@ The v10 schema contains no universe-selection metadata. Removing the visible JSO
 | `/destino.html` | Outcome selection, tides, pulls, orbits, and hour progress |
 | `/tempore.html` | Fictional times, season, and selected progress |
 | `/config/nomenclature.json` | The one read-only nomenclature configuration |
-| `/health` | `{"ok":true,"version":"v8.2"}` |
+| `/health` | `{"ok":true,"version":"v8.3"}` |
 
 Static `.html`, `.css`, `.js`, and `.json` responses use explicit MIME types and `Cache-Control: no-cache`. The server prevents traversal and dotfile access, returns generic errors, provides CSP and related security headers, supports `GET`/`HEAD`, preserves canonical HTTPS redirect precedence, and shuts down gracefully.
 
