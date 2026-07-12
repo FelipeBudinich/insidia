@@ -65,6 +65,10 @@ export function createDisplayData(state, context) {
       time: formatClock(state.lunar.time),
       tideTime: formatClock(state.lunar.tide.timeInPeriod)
     },
+    outcomeType: {
+      id: state.outcome.outcomeTypeId,
+      name: context.getOutcomeType(state.outcome.outcomeTypeId).name
+    },
     orbits: {
       bodies: state.orbits.bodies.map((body) => ({
         id: body.id,

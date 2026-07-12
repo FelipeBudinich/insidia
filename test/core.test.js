@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateCalendarState } from '../public/core/mechanics.js';
+import { calculateCalendarState, calculateOutcomeType } from '../public/core/mechanics.js';
 import * as rules from '../public/core/rules.js';
 
 const dayMs = rules.FICTIONAL_SECONDS_PER_DAY * rules.REAL_MS_PER_FICTIONAL_SECOND;
@@ -76,4 +76,23 @@ test('the exact mechanical constants remain stable', () => {
   assert.deepEqual(rules.INTER_REGNUM_LENGTHS, [3,3,3,3,3,3,3,3,3,3,4]);
   assert.equal(rules.CELESTIAL_BODY_RULES.length, 6);
   assert.equal(rules.LUNAR_PHASE_RULES.length, 13);
+});
+
+test('Outcome thresholds and neutral IDs remain unchanged', () => {
+  assert.equal(calculateOutcomeType(0.85).id, 'outcome-tier-01');
+  assert.equal(calculateOutcomeType(0.850001).id, 'outcome-tier-02');
+  assert.equal(calculateOutcomeType(0.99).id, 'outcome-tier-02');
+  assert.equal(calculateOutcomeType(0.990001).id, 'outcome-tier-03');
+});
+
+test('raw Outcome state contains neutral IDs and no localized names', () => {
+  const outcome = calculateCalendarState(0).outcome;
+  assert.equal(outcome.outcomeTypeId, 'outcome-tier-01');
+  const stringValues = [];
+  JSON.stringify(outcome, (_key, value) => {
+    if (typeof value === 'string') stringValues.push(value);
+    return value;
+  });
+  assert.equal(stringValues.some((value) => ['Common','Uncommon','Rare','Común','Poco común','Raro'].includes(value)), false);
+  assert.equal(Object.hasOwn(outcome, 'outcomeType'), false);
 });

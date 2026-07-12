@@ -2,6 +2,11 @@
   "schemaVersion": 1,
   "id": "en",
   "languageTag": "en",
+  "outcomeTypes": {
+    "outcome-tier-01": { "name": "Common" },
+    "outcome-tier-02": { "name": "Uncommon" },
+    "outcome-tier-03": { "name": "Rare" }
+  },
   "messages": {
     "nav.aria": "Primary navigation",
     "nav.calendar": "Calendar",

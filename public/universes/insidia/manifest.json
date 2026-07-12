@@ -8,7 +8,6 @@
     "lunarPhases": "./lunar-phases.json",
     "tides": "./tides.json",
     "celestialBodies": "./celestial-bodies.json",
-    "pulls": "./pulls.json",
-    "outcomeTypes": "./outcome-types.json"
+    "pulls": "./pulls.json"
   }
 }

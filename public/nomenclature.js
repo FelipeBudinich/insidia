@@ -10,6 +10,10 @@ function mapItems(items) {
   return new Map(items.map((item) => [item.id, deepFreeze({ ...item })]));
 }
 
+function mapRecord(record) {
+  return new Map(Object.entries(record).map(([id, item]) => [id, deepFreeze({ id, ...item })]));
+}
+
 function requireMapped(map, id, category) {
   const value = map.get(id);
   if (!value) throw new Error(`Unknown ${category} ID: ${id}`);
@@ -28,7 +32,7 @@ export function createPresentationContext({ universeResult, localeResult }) {
     tides: mapItems(pack.tides.items),
     celestialBodies: mapItems(pack.celestialBodies.items),
     pulls: mapItems(pack.pulls.items),
-    outcomeTypes: mapItems(pack.outcomeTypes.items)
+    outcomeTypes: mapRecord(locale.outcomeTypes)
   };
   const context = {
     requestedUniverseId: universeResult.requestedUniverseId,

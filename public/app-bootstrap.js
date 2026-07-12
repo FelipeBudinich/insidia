@@ -4,7 +4,7 @@ import { requestedContextIds } from './presentation-context-loader.js';
 import { loadUniverse } from './universe-loader.js';
 import { startLiveState } from './live-state.js';
 
-const APPLICATION_VERSION = '7';
+const APPLICATION_VERSION = '7.1';
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
 
 function pageMessageKey(pageId) {
@@ -46,7 +46,7 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
     element.textContent = context.universeDisplayName;
   }
   for (const element of documentRoot.querySelectorAll('[data-version]')) {
-    element.textContent = 'v7';
+    element.textContent = 'v7.1';
     element.setAttribute('aria-label', context.format('accessibility.version', {
       label: context.message('accessibility.applicationVersion'),
       version: APPLICATION_VERSION

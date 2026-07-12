@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { loadLocale } from '../public/locale-loader.js';
+import { loadLocale, validateLocale } from '../public/locale-loader.js';
 import { formatTemplate } from '../public/templates.js';
 import { loadUniverse } from '../public/universe-loader.js';
 
@@ -50,6 +50,36 @@ test('known invalid universe fails instead of mixing with defaults', async () =>
 test('configured cross-origin locale paths are rejected', async () => {
   const badIndex = { schemaVersion: 1, defaultLocaleId: 'en', locales: [{ id: 'en', file: 'https://evil.test/en.json' }] };
   await assert.rejects(() => loadLocale({ fetchFn: localFetch(new Map([['/locales/index.json', badIndex]])), baseUrl: 'http://app.test/' }), /same-origin/);
+});
+
+test('locale validation requires exact Outcome-type IDs', async () => {
+  const locale = JSON.parse(await readFile(path.join(publicDirectory, 'locales/en.json'), 'utf8'));
+  const missing = structuredClone(locale);
+  delete missing.outcomeTypes['outcome-tier-02'];
+  assert.throws(() => validateLocale(missing), /exact required IDs/);
+
+  const unknown = structuredClone(locale);
+  unknown.outcomeTypes['outcome-tier-04'] = { name: 'Unknown' };
+  assert.throws(() => validateLocale(unknown), /exact required IDs/);
+});
+
+test('locale validation rejects empty and non-string Outcome-type names', async () => {
+  const locale = JSON.parse(await readFile(path.join(publicDirectory, 'locales/en.json'), 'utf8'));
+  for (const invalidName of ['', 3, null]) {
+    const invalid = structuredClone(locale);
+    invalid.outcomeTypes['outcome-tier-03'].name = invalidName;
+    assert.throws(() => validateLocale(invalid), /must be a non-empty string/);
+  }
+});
+
+test('known malformed locale fails without falling back to English', async () => {
+  const spanish = JSON.parse(await readFile(path.join(publicDirectory, 'locales/es.json'), 'utf8'));
+  delete spanish.outcomeTypes['outcome-tier-01'];
+  await assert.rejects(() => loadLocale({
+    requestedId: 'es',
+    fetchFn: localFetch(new Map([['/locales/es.json', spanish]])),
+    baseUrl: 'http://app.test/'
+  }), /exact required IDs/);
 });
 
 test('template formatter replaces named values and rejects missing values', () => {

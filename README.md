@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v7 is a live fictional calendar whose mechanics, fictional nomenclature, and interface language are independent layers. Every time calculation runs in the browser from `Date.now()`; the Node server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v7.1 is a live fictional calendar whose mechanics, fictional nomenclature, and interface language are independent layers. Every time calculation runs in the browser from `Date.now()`; the Node server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
@@ -25,7 +25,9 @@ Use query parameters on any page:
 
 The built-in universes are `insidia` and `demonstration`; the built-in locales are `en` and `es`. Missing or unknown IDs fall back to the defaults declared in `public/universes/index.json` and `public/locales/index.json`. Navigation retains the resolved selection. The root redirect preserves its query string.
 
-Universe packs contain only fictional display data: application name, months, weekdays, Inter Regna, seasons, lunar phases, tides, celestial bodies, pulls, and outcome types. Locale packs contain only generic interface messages and named-placeholder templates. Both loaders require same-origin JSON, validate exact schemas and canonical IDs, reject incomplete packs, and load the whole selected pack before exposing it.
+Universe packs own universe-specific fictional display data: universe name; month, weekday, Inter Regnum, season, lunar-phase, and tide names; celestial-body names and symbols; and Orbital Pull names. Locale packs own generic UI terminology, templates, status and accessibility text, and the three Outcome-type names. Both loaders require same-origin JSON, validate exact schemas and canonical IDs, reject incomplete packs, and load the whole selected pack before exposing it.
+
+Outcome types are language-dependent classifications shared by every universe. English resolves the neutral IDs to Common, Uncommon, and Rare; Spanish resolves the same IDs to Común, Poco común, and Raro. Switching universes never changes these classifications, while switching locales does.
 
 ## Mechanics
 
@@ -43,7 +45,7 @@ The epoch is `1970-01-01T00:00:00.000Z`. Weekdays, seasons, lunar state, tides, 
 ## Three-layer architecture
 
 1. `public/core/` contains immutable numeric rules, formatting primitives, and deterministic mechanics. It emits canonical IDs and numbers only—never names, symbols, localized strings, or formatted presentation.
-2. `public/universes/` supplies fictional proper nouns and symbols; `public/locales/` supplies interface language and templates.
+2. `public/universes/` supplies universe-specific proper nouns and symbols; `public/locales/` supplies interface language, Outcome-type names, and templates.
 3. `public/presentation.js`, `public/nomenclature.js`, and the renderers resolve raw IDs through the selected presentation context.
 
 `public/calendar.js` is a compatibility entry point that re-exports the focused modules. `public/live-state.js` owns the shared scheduler. `public/app-bootstrap.js` loads and validates context before it starts rendering. The HTML contains neutral placeholders rather than default-universe proper nouns.
@@ -71,7 +73,7 @@ Clipboard API failures fall back to the browser copy command; an accessible live
 | `/calendar.html` | Calendar, clock, lunar phase, and v9 JSON snapshot |
 | `/weather.html` | Calendar/lunar clocks, season, and progress |
 | `/outcome.html` | Tide-driven outcome, pulls, orbits, and hour progress |
-| `/health` | `{"ok":true,"version":"v7"}` |
+| `/health` | `{"ok":true,"version":"v7.1"}` |
 
 Static `.html`, `.css`, `.js`, and `.json` responses use explicit MIME types and `Cache-Control: no-cache`. The server prevents traversal, returns generic errors, provides security headers, supports `GET`/`HEAD`, and can optionally enforce an HTTPS `CANONICAL_ORIGIN` in production.
 
@@ -87,7 +89,7 @@ Static `.html`, `.css`, `.js`, and `.json` responses use explicit MIME types and
 
 1. Add its ID and file path to `public/locales/index.json`.
 2. Copy an existing locale JSON file.
-3. Translate every message and template without changing keys or named placeholders.
+3. Translate every message, template, and Outcome-type name without changing keys, neutral IDs, or named placeholders.
 4. Run `npm test`.
 
 ## Project structure
@@ -106,7 +108,7 @@ public/
   renderers.js
   styles.css
 server.js
-test/{core,presentation,server}.test.js
+test/{core,loaders,presentation,server}.test.js
 ```
 
 ## Deployment

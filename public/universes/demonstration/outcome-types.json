@@ -1,5 +1,0 @@
-{ "schemaVersion": 1, "items": [
-  { "id": "outcome-tier-01", "name": "Basic" },
-  { "id": "outcome-tier-02", "name": "Unusual" },
-  { "id": "outcome-tier-03", "name": "Scarce" }
-] }

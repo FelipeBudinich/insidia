@@ -3,7 +3,6 @@ import {
   INTER_REGNUM_IDS,
   LUNAR_PHASE_RULES,
   MONTH_IDS,
-  OUTCOME_TYPE_RULES,
   PULL_RULES,
   SEASON_RULES,
   TIDE_RULES,
@@ -12,7 +11,7 @@ import {
 
 const REQUIRED_FILES = Object.freeze([
   'app', 'calendar', 'seasons', 'lunarPhases', 'tides',
-  'celestialBodies', 'pulls', 'outcomeTypes'
+  'celestialBodies', 'pulls'
 ]);
 const FORBIDDEN_MECHANICAL_KEYS = new Set([
   'durationDays', 'durationHours', 'orbitalPeriod', 'orbitalPeriodDays',
@@ -99,6 +98,9 @@ export function validateUniverseIndex(index) {
 }
 
 export function validateUniversePack(pack) {
+  if (Object.hasOwn(pack, 'outcomeTypes')) {
+    throw new Error('Universe packs must not contain outcomeTypes');
+  }
   assertSchema(pack.manifest, 'universe manifest');
   if (pack.manifest.id !== pack.id) throw new Error('Manifest ID does not match selected universe');
   assertObject(pack.manifest.files, 'manifest.files');
@@ -113,7 +115,6 @@ export function validateUniversePack(pack) {
   validateExactItems(pack.tides, TIDE_RULES.map((rule) => rule.id), 'tides');
   validateExactItems(pack.celestialBodies, CELESTIAL_BODY_RULES.map((rule) => rule.id), 'celestialBodies', { symbol: true });
   validateExactItems(pack.pulls, PULL_RULES.map((rule) => rule.id), 'pulls');
-  validateExactItems(pack.outcomeTypes, OUTCOME_TYPE_RULES.map((rule) => rule.id), 'outcomeTypes');
   assertNoMechanicalFields(pack);
   return pack;
 }

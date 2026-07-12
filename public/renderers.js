@@ -33,6 +33,14 @@ export function createWeatherProgressRenderer(root) {
   };
 }
 
+export function formatAttemptsUntilRare(outcome, context) {
+  return context.format('outcome.attempts', {
+    attemptsLabel: context.message('label.attemptsUntilRare'),
+    rareName: context.getOutcomeType('outcome-tier-03').name,
+    count: outcome.attemptsUntilRare
+  });
+}
+
 export function createOutcomeRenderer(root, context) {
   const elements = Object.fromEntries(['body', 'type', 'attempts', 'progress', 'source', 'rule', 'tiebreak']
     .map((key) => [key, requireElement(root, `#outcome-${key}`)]));
@@ -43,11 +51,7 @@ export function createOutcomeRenderer(root, context) {
     const type = context.getOutcomeType(outcome.outcomeTypeId);
     elements.body.textContent = `${body.symbol} ${body.name}`;
     elements.type.textContent = context.format('outcome.type', { outcomeLabel: context.message('label.outcome'), name: type.name });
-    elements.attempts.textContent = context.format('outcome.attempts', {
-      attemptsLabel: context.message('label.attemptsUntilRare'),
-      rareName: context.getOutcomeType('outcome-tier-03').name,
-      count: outcome.attemptsUntilRare
-    });
+    elements.attempts.textContent = formatAttemptsUntilRare(outcome, context);
     elements.progress.textContent = context.format('outcome.progress', { progressLabel: context.message('label.orbitalProgress'), percentage: formatPercentage(outcome.bodyState.progressFraction) });
     elements.source.textContent = context.format('outcome.source', { tideName: tide.name, pullName: pull.name });
     elements.rule.textContent = context.message(`selection.${outcome.selectionRuleId}`);

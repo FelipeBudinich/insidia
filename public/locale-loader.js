@@ -20,6 +20,12 @@ export const TEMPLATE_KEYS = Object.freeze([
   'pull.members', 'pull.span', 'pull.alignment', 'pull.tie', 'pull.noTie', 'footer.epoch'
 ]);
 
+export const OUTCOME_TYPE_IDS = Object.freeze([
+  'outcome-tier-01',
+  'outcome-tier-02',
+  'outcome-tier-03'
+]);
+
 function assertNonEmpty(value, label) {
   if (typeof value !== 'string' || value.trim() === '') throw new Error(`${label} must be a non-empty string`);
 }
@@ -32,11 +38,31 @@ function assertExactKeys(value, expected, label) {
   Object.entries(value).forEach(([key, text]) => assertNonEmpty(text, `${label}.${key}`));
 }
 
+function validateOutcomeTypes(outcomeTypes) {
+  if (!outcomeTypes || typeof outcomeTypes !== 'object' || Array.isArray(outcomeTypes)) {
+    throw new TypeError('locale.outcomeTypes must be an object');
+  }
+  if (JSON.stringify(Object.keys(outcomeTypes).sort()) !== JSON.stringify([...OUTCOME_TYPE_IDS].sort())) {
+    throw new Error('locale.outcomeTypes must contain exact required IDs');
+  }
+  for (const id of OUTCOME_TYPE_IDS) {
+    const outcomeType = outcomeTypes[id];
+    if (!outcomeType || typeof outcomeType !== 'object' || Array.isArray(outcomeType)) {
+      throw new TypeError(`locale.outcomeTypes.${id} must be an object`);
+    }
+    if (JSON.stringify(Object.keys(outcomeType)) !== JSON.stringify(['name'])) {
+      throw new Error(`locale.outcomeTypes.${id} must contain only name`);
+    }
+    assertNonEmpty(outcomeType.name, `locale.outcomeTypes.${id}.name`);
+  }
+}
+
 export function validateLocale(locale) {
   if (!locale || typeof locale !== 'object' || Array.isArray(locale)) throw new TypeError('locale must be an object');
   if (locale.schemaVersion !== 1) throw new Error('locale schemaVersion must be 1');
   assertNonEmpty(locale.id, 'locale.id');
   assertNonEmpty(locale.languageTag, 'locale.languageTag');
+  validateOutcomeTypes(locale.outcomeTypes);
   assertExactKeys(locale.messages, MESSAGE_KEYS, 'locale.messages');
   assertExactKeys(locale.templates, TEMPLATE_KEYS, 'locale.templates');
   return locale;
