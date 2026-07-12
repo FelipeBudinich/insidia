@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "insidia",
+  "files": {
+    "app": "./app.json",
+    "calendar": "./calendar.json",
+    "seasons": "./seasons.json",
+    "lunarPhases": "./lunar-phases.json",
+    "tides": "./tides.json",
+    "celestialBodies": "./celestial-bodies.json",
+    "pulls": "./pulls.json",
+    "outcomeTypes": "./outcome-types.json"
+  }
+}

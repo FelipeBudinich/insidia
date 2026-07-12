@@ -1,0 +1,8 @@
+{ "schemaVersion": 1, "items": [
+  { "id": "body-01", "name": "Mercury", "symbol": "☿" },
+  { "id": "body-02", "name": "Venus", "symbol": "♀" },
+  { "id": "body-03", "name": "Mars", "symbol": "♂" },
+  { "id": "body-04", "name": "Jupiter", "symbol": "♃" },
+  { "id": "body-05", "name": "Saturn", "symbol": "♄" },
+  { "id": "body-06", "name": "Moon", "symbol": "☾" }
+] }

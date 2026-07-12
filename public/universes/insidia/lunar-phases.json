@@ -1,0 +1,15 @@
+{ "schemaVersion": 1, "items": [
+  { "id": "phase-01", "name": "Rebirth" },
+  { "id": "phase-02", "name": "Horn" },
+  { "id": "phase-03", "name": "Crescent" },
+  { "id": "phase-04", "name": "Passage" },
+  { "id": "phase-05", "name": "Growing" },
+  { "id": "phase-06", "name": "Waxing" },
+  { "id": "phase-07", "name": "Ascent" },
+  { "id": "phase-08", "name": "Apex" },
+  { "id": "phase-09", "name": "Bite" },
+  { "id": "phase-10", "name": "Waning" },
+  { "id": "phase-11", "name": "Receding" },
+  { "id": "phase-12", "name": "Veil" },
+  { "id": "phase-13", "name": "Death" }
+] }

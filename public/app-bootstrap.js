@@ -1,0 +1,102 @@
+import { loadLocale } from './locale-loader.js';
+import { createPresentationContext } from './nomenclature.js';
+import { requestedContextIds } from './presentation-context-loader.js';
+import { loadUniverse } from './universe-loader.js';
+import { startLiveState } from './live-state.js';
+
+const APPLICATION_VERSION = '7';
+const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
+
+function pageMessageKey(pageId) {
+  return `page.${pageId}`;
+}
+
+function documentDescriptionKey(pageId) {
+  return `document.${pageId}Description`;
+}
+
+export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
+  documentRoot.documentElement.lang = context.languageTag;
+  const pageName = context.message(pageMessageKey(pageId));
+  documentRoot.title = context.format('document.title', {
+    pageName,
+    universeName: context.universeDisplayName
+  });
+  const metaDescription = documentRoot.querySelector('meta[name="description"]');
+  if (metaDescription) {
+    metaDescription.setAttribute('content', context.format(documentDescriptionKey(pageId), {
+      universeName: context.universeDisplayName
+    }));
+  }
+  const nav = documentRoot.querySelector('.primary-nav');
+  nav.setAttribute('aria-label', context.message('nav.aria'));
+  const query = new URLSearchParams({
+    universe: context.resolvedUniverseId,
+    locale: context.resolvedLocaleId
+  }).toString();
+  for (const link of documentRoot.querySelectorAll('[data-page-link]')) {
+    const targetPage = link.dataset.pageLink;
+    link.textContent = context.message(`nav.${targetPage}`);
+    link.setAttribute('href', `/${targetPage}.html?${query}`);
+  }
+  for (const element of documentRoot.querySelectorAll('[data-message-key]')) {
+    element.textContent = context.message(element.dataset.messageKey);
+  }
+  for (const element of documentRoot.querySelectorAll('[data-universe-name]')) {
+    element.textContent = context.universeDisplayName;
+  }
+  for (const element of documentRoot.querySelectorAll('[data-version]')) {
+    element.textContent = 'v7';
+    element.setAttribute('aria-label', context.format('accessibility.version', {
+      label: context.message('accessibility.applicationVersion'),
+      version: APPLICATION_VERSION
+    }));
+  }
+  const copyStatus = documentRoot.querySelector('#copy-status');
+  if (copyStatus) copyStatus.setAttribute('aria-label', context.message('accessibility.copyStatus'));
+  const seasonProgress = documentRoot.querySelector('[data-season-progress-bar]');
+  if (seasonProgress) seasonProgress.setAttribute('aria-label', context.message('accessibility.seasonProgress'));
+  for (const element of documentRoot.querySelectorAll('[data-epoch]')) {
+    element.textContent = context.format('footer.epoch', {
+      epochLabel: context.message('label.epoch'),
+      epoch: EPOCH_TEXT
+    });
+  }
+}
+
+function renderConfigurationError(documentRoot, message, languageTag = 'en') {
+  documentRoot.documentElement.lang = languageTag;
+  documentRoot.documentElement.removeAttribute('aria-busy');
+  documentRoot.body.textContent = '';
+  const main = documentRoot.createElement('main');
+  main.className = 'configuration-error';
+  main.setAttribute('role', 'alert');
+  const paragraph = documentRoot.createElement('p');
+  paragraph.textContent = message;
+  main.append(paragraph);
+  documentRoot.body.append(main);
+}
+
+export async function bootstrapPage(pageId, createRenderer, options = {}) {
+  const documentRoot = options.documentRoot ?? document;
+  const locationLike = options.locationLike ?? window.location;
+  const fetchFn = options.fetchFn ?? window.fetch.bind(window);
+  documentRoot.documentElement.setAttribute('aria-busy', 'true');
+  const { requestedUniverseId, requestedLocaleId } = requestedContextIds(locationLike);
+  let localeResult;
+  try {
+    localeResult = await loadLocale({ requestedId: requestedLocaleId, fetchFn, baseUrl: locationLike.href });
+    const universeResult = await loadUniverse({ requestedId: requestedUniverseId, fetchFn, baseUrl: locationLike.href });
+    const context = createPresentationContext({ universeResult, localeResult });
+    applyCommonDocumentPresentation(documentRoot, pageId, context);
+    const renderer = createRenderer(documentRoot, context);
+    documentRoot.documentElement.setAttribute('aria-busy', 'false');
+    return startLiveState(renderer);
+  } catch (error) {
+    const message = localeResult?.locale?.messages?.['error.configuration']
+      ?? 'Unable to load application configuration.';
+    renderConfigurationError(documentRoot, message, localeResult?.locale?.languageTag ?? 'en');
+    console.error('Application configuration failed.', error);
+    return null;
+  }
+}

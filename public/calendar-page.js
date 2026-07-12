@@ -1,75 +1,64 @@
-import {
-  createCalendarJson,
-  formatFictionalDate
-} from './calendar.js';
-import { captureLiveState, startLiveState } from './live-state.js';
+import { bootstrapPage } from './app-bootstrap.js';
+import { captureLiveState } from './live-state.js';
+import { createCalendarJson, createDisplayData } from './presentation.js';
 
-const yearElement = document.querySelector('#fictional-year');
-const periodElement = document.querySelector('#fictional-period');
-const metadataElement = document.querySelector('#fictional-metadata');
-const accessibleDateElement = document.querySelector('#fictional-date-accessible');
-const lunarPhaseElement = document.querySelector('#lunar-phase');
-const lunarMetadataElement = document.querySelector('#lunar-metadata');
-const jsonElement = document.querySelector('#json-output');
-const copyButton = document.querySelector('#copy-json');
-const copyStatusElement = document.querySelector('#copy-status');
-
-let currentJsonSnapshot = '';
-
-function renderCalendarPage(calendarValue, realUnixMilliseconds) {
-  const formattedDate = formatFictionalDate(calendarValue);
-  yearElement.textContent = `Year ${calendarValue.year}`;
-  periodElement.textContent = calendarValue.period.type === 'month'
-    ? `Month ${calendarValue.period.month} · Day ${calendarValue.period.day}`
-    : `Inter Regnum ${calendarValue.period.fromMonth} → ${calendarValue.period.toMonth} · Day ${calendarValue.period.day} of ${calendarValue.period.length}`;
-  metadataElement.textContent = `Week ${calendarValue.weekOfYear} · Day ${calendarValue.dayOfWeek} of 7 · Day ${calendarValue.dayOfYear} of 353`;
-  accessibleDateElement.textContent = formattedDate;
-
-  lunarPhaseElement.textContent = calendarValue.lunar.phase.name;
-  lunarMetadataElement.textContent = `Lunar Day ${calendarValue.lunar.day} of ${calendarValue.lunar.cycleLengthDays} · Cycle ${calendarValue.lunar.cycle}`;
-  currentJsonSnapshot = JSON.stringify(
-    createCalendarJson(calendarValue, realUnixMilliseconds),
-    null,
-    2
-  );
-  jsonElement.textContent = currentJsonSnapshot;
+function fallbackCopy(text, root) {
+  const area = root.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.className = 'clipboard-fallback';
+  root.body.append(area);
+  area.select();
+  const copied = root.execCommand?.('copy') === true;
+  area.remove();
+  if (!copied) throw new Error('Copy command failed');
 }
 
-function copyWithClipboardApi(text) {
-  return new Promise((resolve, reject) => {
-    const timeoutId = window.setTimeout(
-      () => reject(new Error('Clipboard API timed out')),
-      500
-    );
-    navigator.clipboard.writeText(text).then(
-      () => {
-        window.clearTimeout(timeoutId);
-        resolve();
-      },
-      (error) => {
-        window.clearTimeout(timeoutId);
-        reject(error);
-      }
-    );
+async function copyText(text, root) {
+  if (navigator.clipboard?.writeText) {
+    try { await navigator.clipboard.writeText(text); return; } catch { /* use fallback */ }
+  }
+  fallbackCopy(text, root);
+}
+
+bootstrapPage('calendar', (root, context) => {
+  const year = root.querySelector('#fictional-year');
+  const period = root.querySelector('#fictional-period');
+  const time = root.querySelector('#fictional-time');
+  const metadata = root.querySelector('#fictional-metadata');
+  const accessibleDate = root.querySelector('#fictional-date-accessible');
+  const phase = root.querySelector('#lunar-phase');
+  const lunarMetadata = root.querySelector('#lunar-metadata');
+  const json = root.querySelector('#json-output');
+  const copyButton = root.querySelector('#copy-json');
+  const copyStatus = root.querySelector('#copy-status');
+  let currentSnapshot = '';
+
+  function render(state, realUnixMilliseconds) {
+    const display = createDisplayData(state, context);
+    year.textContent = `${context.message('label.year')} ${state.calendar.year}`;
+    period.textContent = display.calendar.periodLabel;
+    time.textContent = display.calendar.time;
+    metadata.textContent = display.calendar.metadata;
+    accessibleDate.textContent = display.formattedDate;
+    phase.textContent = display.lunar.phase.name;
+    lunarMetadata.textContent = context.format('lunar.metadata', {
+      lunarDayLabel: context.message('label.lunarDay'), day: state.lunar.day,
+      length: state.lunar.cycleLengthDays, cycleLabel: context.message('label.cycle'), cycle: state.lunar.cycle
+    });
+    currentSnapshot = JSON.stringify(createCalendarJson(state, realUnixMilliseconds, context), null, 2);
+    json.textContent = currentSnapshot;
+  }
+
+  copyButton.addEventListener('click', async () => {
+    const { calendarValue, realUnixMilliseconds } = captureLiveState();
+    render(calendarValue, realUnixMilliseconds);
+    try {
+      await copyText(currentSnapshot, root);
+      copyStatus.textContent = context.message('status.copied');
+    } catch {
+      copyStatus.textContent = context.message('status.copyFailure');
+    }
   });
-}
-
-async function copyText(text) {
-  if (!navigator.clipboard?.writeText) {
-    throw new Error('Clipboard API is unavailable');
-  }
-  await copyWithClipboardApi(text);
-}
-
-copyButton.addEventListener('click', async () => {
-  const { calendarValue, realUnixMilliseconds } = captureLiveState();
-  renderCalendarPage(calendarValue, realUnixMilliseconds);
-  try {
-    await copyText(currentJsonSnapshot);
-    copyStatusElement.textContent = 'Copied';
-  } catch {
-    copyStatusElement.textContent = 'Unable to copy. Select the JSON and copy it manually.';
-  }
+  return render;
 });
-
-startLiveState(renderCalendarPage);

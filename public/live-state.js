@@ -1,13 +1,10 @@
-import {
-  CALENDAR_EPOCH_UNIX_MS,
-  REAL_MS_PER_FICTIONAL_SECOND,
-  calculateFictionalCalendar
-} from './calendar.js';
+import { calculateCalendarState } from './core/mechanics.js';
+import { CALENDAR_EPOCH_UNIX_MS, REAL_MS_PER_FICTIONAL_SECOND } from './core/rules.js';
 
 export function captureLiveState() {
   const realUnixMilliseconds = Date.now();
   return {
-    calendarValue: calculateFictionalCalendar(realUnixMilliseconds),
+    calendarValue: calculateCalendarState(realUnixMilliseconds),
     realUnixMilliseconds
   };
 }

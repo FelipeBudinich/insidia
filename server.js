@@ -63,7 +63,7 @@ function getSecurityHeaders(environment) {
 
 function getCacheControl(filePath) {
   const extension = path.extname(filePath).toLowerCase();
-  if (extension === '.html' || extension === '.js' || extension === '.css') {
+  if (extension === '.html' || extension === '.js' || extension === '.css' || extension === '.json') {
     return 'no-cache';
   }
   return 'public, max-age=300, must-revalidate';
@@ -289,7 +289,7 @@ export function createStaticServer(options = {}) {
     if (requestUrl.pathname === '/') {
       sendResponse(response, method, environment, 302, {
         'Cache-Control': 'no-store',
-        Location: '/calendar.html'
+        Location: `/calendar.html${requestUrl.search}`
       });
       return;
     }
@@ -298,7 +298,7 @@ export function createStaticServer(options = {}) {
       sendResponse(response, method, environment, 200, {
         'Cache-Control': 'no-store',
         'Content-Type': 'application/json; charset=utf-8'
-      }, JSON.stringify({ ok: true, version: 'v6.6' }));
+      }, JSON.stringify({ ok: true, version: 'v7' }));
       return;
     }
 

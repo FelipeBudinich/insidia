@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "defaultUniverseId": "insidia",
+  "universes": [
+    { "id": "insidia", "manifest": "/universes/insidia/manifest.json" },
+    { "id": "demonstration", "manifest": "/universes/demonstration/manifest.json" }
+  ]
+}

@@ -1,85 +1,21 @@
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="The current fictional and lunar times, season, and selected progress in Insidia.">
-    <title>Weather · Insidia</title>
-    <link rel="stylesheet" href="/styles.css">
-  </head>
-  <body>
-    <div class="page-shell">
-      <nav class="primary-nav" aria-label="Primary">
-        <a href="/calendar.html">Calendar</a>
-        <a href="/outcome.html">Outcome</a>
-        <a href="/weather.html" aria-current="page">Weather</a>
-      </nav>
-      <main class="container">
-        <header class="page-header">
-          <div>
-            <p class="page-kicker">Insidia</p>
-            <h1>Weather</h1>
-          </div>
-          <span class="version" aria-label="Application version 6.6">v6.6</span>
-        </header>
-
-        <section class="time-section focused-section" aria-labelledby="time-heading">
-          <p id="time-heading" class="section-label">Time</p>
-          <div class="time-grid">
-            <div class="time-item">
-              <p class="group-label">Current Fictional Time</p>
-              <p id="fictional-time" class="weather-clock">00:00:00</p>
-            </div>
-            <div class="time-item">
-              <p class="group-label">Current Lunar Time</p>
-              <p id="lunar-time" class="weather-clock">00:00:00</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="season-section focused-section" aria-labelledby="season-heading">
-          <p id="season-heading" class="section-label">Season</p>
-          <p class="season-name" data-season-name>Bones</p>
-          <p class="season-metadata" data-season-metadata>Day 1 of 179 · Seasonal Cycle 1</p>
-          <p class="season-cycle-metadata" data-season-cycle-metadata>Seasonal Day 1 of 358</p>
-          <p class="season-cycle-metadata" data-season-next>Next: Tears</p>
-          <div class="weather-progress">
-            <div class="weather-progress-heading">
-              <span data-season-progress>Progress: 0.000000%</span>
-            </div>
-            <progress max="1" value="0" aria-label="Current season progress" data-season-progress-bar></progress>
-          </div>
-        </section>
-
-        <section class="progress-section" aria-labelledby="progress-heading">
-          <p id="progress-heading" class="section-label">Progress</p>
-          <div class="progress-grid">
-            <div class="progress-item">
-              <div class="progress-heading-row">
-                <label for="lunar-day-progress">Current Lunar Day</label>
-                <span id="lunar-day-progress-value">0.000000%</span>
-              </div>
-              <progress id="lunar-day-progress" max="100" value="0">0%</progress>
-            </div>
-            <div class="progress-item">
-              <div class="progress-heading-row">
-                <label for="day-progress">Current Day</label>
-                <span id="day-progress-value">0.000000%</span>
-              </div>
-              <progress id="day-progress" max="100" value="0">0%</progress>
-            </div>
-            <div class="progress-item">
-              <div class="progress-heading-row">
-                <label for="hour-progress">Current Hour</label>
-                <span id="hour-progress-value">0.000000%</span>
-              </div>
-              <progress id="hour-progress" max="100" value="0">0%</progress>
-            </div>
-          </div>
-        </section>
-        <footer>Epoch: 1970-01-01 00:00:00 UTC</footer>
-      </main>
-    </div>
-    <script type="module" src="/weather-page.js"></script>
-  </body>
+<html lang="en" aria-busy="true">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Live fictional weather state."><title>Weather</title><link rel="stylesheet" href="/styles.css"></head>
+<body><div class="page-shell">
+  <nav class="primary-nav" aria-label="Navigation"><a data-page-link="calendar" href="/calendar.html"></a><a data-page-link="outcome" href="/outcome.html"></a><a data-page-link="weather" href="/weather.html" aria-current="page"></a></nav>
+  <main class="container">
+    <header class="page-header"><div><p class="page-kicker" data-universe-name></p><h1 data-message-key="page.weather"></h1></div><span class="version" data-version>v7</span></header>
+    <section class="time-section focused-section" aria-labelledby="time-heading"><p id="time-heading" class="section-label" data-message-key="section.time"></p><div class="time-grid">
+      <div class="time-item"><p class="group-label" data-message-key="label.currentFictionalTime"></p><p id="fictional-time" class="weather-clock">00:00:00</p></div>
+      <div class="time-item"><p class="group-label" data-message-key="label.currentLunarTime"></p><p id="lunar-time" class="weather-clock">00:00:00</p></div>
+    </div></section>
+    <section class="season-section focused-section" aria-labelledby="season-heading"><p id="season-heading" class="section-label" data-message-key="section.season"></p><p class="season-name" data-season-name></p><p class="season-metadata" data-season-metadata></p><p class="season-cycle-metadata" data-season-cycle-metadata></p><p class="season-cycle-metadata" data-season-next></p><div class="weather-progress"><div class="weather-progress-heading"><span data-season-progress></span></div><progress max="1" value="0" data-season-progress-bar></progress></div></section>
+    <section class="progress-section" aria-labelledby="progress-heading"><p id="progress-heading" class="section-label" data-message-key="section.progress"></p><div class="progress-grid">
+      <div class="progress-item"><div class="progress-heading-row"><label for="lunar-day-progress" data-message-key="label.currentLunarDay"></label><span id="lunar-day-progress-value">0.000000%</span></div><progress id="lunar-day-progress" max="100" value="0"></progress></div>
+      <div class="progress-item"><div class="progress-heading-row"><label for="day-progress" data-message-key="label.currentDay"></label><span id="day-progress-value">0.000000%</span></div><progress id="day-progress" max="100" value="0"></progress></div>
+      <div class="progress-item"><div class="progress-heading-row"><label for="hour-progress" data-message-key="label.currentHour"></label><span id="hour-progress-value">0.000000%</span></div><progress id="hour-progress" max="100" value="0"></progress></div>
+    </div></section>
+    <footer><span data-universe-name></span> · <span data-epoch></span></footer>
+  </main>
+</div><script type="module" src="/weather-page.js"></script></body>
 </html>

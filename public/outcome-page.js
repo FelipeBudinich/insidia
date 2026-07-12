@@ -1,22 +1,11 @@
-import { startLiveState } from './live-state.js';
-import {
-  createCelestialOrbitsRenderer,
-  createOutcomeRenderer,
-  createHourProgressRenderer,
-  createOrbitalPullsRenderer,
-  createTideRenderer
-} from './renderers.js';
+import { bootstrapPage } from './app-bootstrap.js';
+import { createCelestialOrbitsRenderer, createHourProgressRenderer, createOrbitalPullsRenderer, createOutcomeRenderer, createTideRenderer } from './renderers.js';
 
-const renderOutcome = createOutcomeRenderer(document);
-const renderHourProgress = createHourProgressRenderer(document);
-const renderTide = createTideRenderer(document);
-const renderCelestialOrbits = createCelestialOrbitsRenderer(document);
-const renderOrbitalPulls = createOrbitalPullsRenderer(document);
-
-startLiveState((calendarValue) => {
-  renderOutcome(calendarValue.outcome);
-  renderTide(calendarValue);
-  renderOrbitalPulls(calendarValue);
-  renderCelestialOrbits(calendarValue);
-  renderHourProgress(calendarValue);
+bootstrapPage('outcome', (root, context) => {
+  const renderOutcome = createOutcomeRenderer(root, context);
+  const renderTide = createTideRenderer(root, context);
+  const renderPulls = createOrbitalPullsRenderer(root, context);
+  const renderOrbits = createCelestialOrbitsRenderer(root, context);
+  const renderProgress = createHourProgressRenderer(root);
+  return (state) => { renderOutcome(state.outcome); renderTide(state); renderPulls(state); renderOrbits(state); renderProgress(state); };
 });

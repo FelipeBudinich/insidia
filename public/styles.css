@@ -88,6 +88,7 @@ body {
 .date p { margin: 0; }
 .year { font-size: clamp(1.45rem, 6vw, 2rem); font-weight: 700; }
 .period { margin-top: 0.25rem !important; font-size: clamp(1.05rem, 4vw, 1.35rem); }
+.primary-clock { margin: 1.5rem 0 0; font-size: clamp(2.4rem, 14vw, 4.5rem); font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -0.05em; line-height: 1; white-space: nowrap; }
 .metadata { margin: 1.75rem 0 0; color: color-mix(in srgb, CanvasText 72%, Canvas); line-height: 1.5; }
 
 .outcome-section,
@@ -163,6 +164,7 @@ button:hover { background: color-mix(in srgb, ButtonFace 86%, CanvasText); }
 pre { max-width: 100%; margin: 1rem 0 0; overflow-x: auto; padding: 1rem; border-radius: 0.4rem; background: color-mix(in srgb, Canvas 85%, CanvasText 15%); font-size: 0.8125rem; line-height: 1.5; }
 footer { margin-top: 1rem; color: color-mix(in srgb, CanvasText 65%, Canvas); font-size: 0.8125rem; text-align: center; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.clipboard-fallback { position: fixed; left: -10000px; top: 0; }
 
 @media (max-width: 380px) {
   body { padding: 0.75rem; }

@@ -1,16 +1,9 @@
-import { startLiveState } from './live-state.js';
-import {
-  createSeasonRenderer,
-  createTimeRenderer,
-  createWeatherProgressRenderer
-} from './renderers.js';
+import { bootstrapPage } from './app-bootstrap.js';
+import { createSeasonRenderer, createTimeRenderer, createWeatherProgressRenderer } from './renderers.js';
 
-const renderTime = createTimeRenderer(document);
-const renderSeason = createSeasonRenderer(document);
-const renderProgress = createWeatherProgressRenderer(document);
-
-startLiveState((calendarValue) => {
-  renderTime(calendarValue);
-  renderSeason(calendarValue);
-  renderProgress(calendarValue);
+bootstrapPage('weather', (root, context) => {
+  const renderTime = createTimeRenderer(root, context);
+  const renderSeason = createSeasonRenderer(root, context);
+  const renderProgress = createWeatherProgressRenderer(root);
+  return (state) => { renderTime(state); renderSeason(state); renderProgress(state); };
 });

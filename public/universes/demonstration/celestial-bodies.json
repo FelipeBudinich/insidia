@@ -1,0 +1,8 @@
+{ "schemaVersion": 1, "items": [
+  { "id": "body-01", "name": "Swift", "symbol": "Ⅰ" },
+  { "id": "body-02", "name": "Bright", "symbol": "Ⅱ" },
+  { "id": "body-03", "name": "Red", "symbol": "Ⅲ" },
+  { "id": "body-04", "name": "Giant", "symbol": "Ⅳ" },
+  { "id": "body-05", "name": "Ringed", "symbol": "Ⅴ" },
+  { "id": "body-06", "name": "Luna", "symbol": "◐" }
+] }
