@@ -1,28 +1,15 @@
 import {
   createCalendarJson,
-  formatFictionalDate,
-  formatFictionalTime,
-  formatLunarTime
+  formatFictionalDate
 } from './calendar.js';
 import { captureLiveState, startLiveState } from './live-state.js';
 
-const timeElement = document.querySelector('#fictional-time');
 const yearElement = document.querySelector('#fictional-year');
 const periodElement = document.querySelector('#fictional-period');
 const metadataElement = document.querySelector('#fictional-metadata');
 const accessibleDateElement = document.querySelector('#fictional-date-accessible');
 const lunarPhaseElement = document.querySelector('#lunar-phase');
 const lunarMetadataElement = document.querySelector('#lunar-metadata');
-const lunarTimeElement = document.querySelector('#lunar-time');
-const progressElements = new Map(
-  [...document.querySelectorAll('[data-progress-key]')].map((row) => [
-    row.dataset.progressKey,
-    {
-      bar: row.querySelector('progress'),
-      percentage: row.querySelector('[data-progress-percentage]')
-    }
-  ])
-);
 const jsonElement = document.querySelector('#json-output');
 const copyButton = document.querySelector('#copy-json');
 const copyStatusElement = document.querySelector('#copy-status');
@@ -31,7 +18,6 @@ let currentJsonSnapshot = '';
 
 function renderCalendarPage(calendarValue, realUnixMilliseconds) {
   const formattedDate = formatFictionalDate(calendarValue);
-  timeElement.textContent = formatFictionalTime(calendarValue);
   yearElement.textContent = `Year ${calendarValue.year}`;
   periodElement.textContent = calendarValue.period.type === 'month'
     ? `Month ${calendarValue.period.month} · Day ${calendarValue.period.day}`
@@ -41,13 +27,6 @@ function renderCalendarPage(calendarValue, realUnixMilliseconds) {
 
   lunarPhaseElement.textContent = calendarValue.lunar.phase.name;
   lunarMetadataElement.textContent = `Lunar Day ${calendarValue.lunar.day} of ${calendarValue.lunar.cycleLengthDays} · Cycle ${calendarValue.lunar.cycle}`;
-  lunarTimeElement.textContent = `Lunar time ${formatLunarTime(calendarValue.lunar)}`;
-  for (const [key, elements] of progressElements) {
-    const progressValue = calendarValue.progress[key];
-    elements.bar.value = progressValue.fraction;
-    elements.percentage.textContent = progressValue.formatted;
-  }
-
   currentJsonSnapshot = JSON.stringify(
     createCalendarJson(calendarValue, realUnixMilliseconds),
     null,

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="A live browser-calculated fictional clock, calendar, season and lunar cycles, tides, orbital alignment, and continuous progress.">
+    <meta name="description" content="A live browser-calculated fictional calendar with lunar cycle details and complete JSON output.">
     <title>Calendar · Insidia</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
@@ -18,10 +18,9 @@
       <section class="calendar-card" aria-labelledby="page-title">
         <header class="heading">
           <p id="page-title">Fictional Calendar</p>
-          <span class="version" aria-label="Application version 6.3">v6.3</span>
+          <span class="version" aria-label="Application version 6.4">v6.4</span>
         </header>
 
-        <p id="fictional-time" class="time" aria-live="off">00:00:00</p>
         <div class="date">
           <p id="fictional-year" class="year">Year 1</p>
           <p id="fictional-period" class="period">Month 1 · Day 1</p>
@@ -35,48 +34,6 @@
         <p class="group-label">Phase</p>
         <p id="lunar-phase" class="lunar-name">Rebirth</p>
         <p id="lunar-metadata" class="lunar-metadata">Lunar Day 1 of 13 · Cycle 1</p>
-        <p id="lunar-time" class="lunar-time">Lunar time 00:00:00</p>
-      </section>
-
-      <section class="progress-section" aria-labelledby="progress-heading">
-        <p id="progress-heading" class="section-label">Progress</p>
-        <div class="progress-grid">
-          <div class="progress-item" data-progress-key="lunarCycle">
-            <div class="progress-heading-row">
-              <span>Lunar Cycle</span>
-              <span data-progress-percentage>0.000000%</span>
-            </div>
-            <progress max="1" value="0" aria-label="Lunar Cycle progress"></progress>
-          </div>
-          <div class="progress-item" data-progress-key="lunarPhase">
-            <div class="progress-heading-row">
-              <span>Current Phase</span>
-              <span data-progress-percentage>0.000000%</span>
-            </div>
-            <progress max="1" value="0" aria-label="Current Phase progress"></progress>
-          </div>
-          <div class="progress-item" data-progress-key="year">
-            <div class="progress-heading-row">
-              <span>Current Year</span>
-              <span data-progress-percentage>0.000000%</span>
-            </div>
-            <progress max="1" value="0" aria-label="Current Year progress"></progress>
-          </div>
-          <div class="progress-item" data-progress-key="day">
-            <div class="progress-heading-row">
-              <span>Current Day</span>
-              <span data-progress-percentage>0.000000%</span>
-            </div>
-            <progress max="1" value="0" aria-label="Current Day progress"></progress>
-          </div>
-          <div class="progress-item" data-progress-key="hour">
-            <div class="progress-heading-row">
-              <span>Current Hour</span>
-              <span data-progress-percentage>0.000000%</span>
-            </div>
-            <progress max="1" value="0" aria-label="Current Hour progress"></progress>
-          </div>
-        </div>
       </section>
 
       <details class="json-details">

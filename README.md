@@ -2,7 +2,7 @@
 
 Insidia is a live fictional clock, calendar, season cycle, lunar cycle, tide cycle, and six-body orbital alignment model. All fictional calculations run in the browser from the current Unix timestamp; the small Node.js server only serves the static application and its health endpoint.
 
-**Current release:** v6.3
+**Current release:** v6.4
 
 ## Fictional time and calendar
 
@@ -81,11 +81,13 @@ The Outcome reward is derived only from raw current fictional-hour progress: **C
 
 ## Continuous progress
 
-The Progress card tracks the current lunar cycle, lunar phase, 179-day season, 353-day calendar year, 23-hour calendar day, and 61-minute fictional hour. Each fraction includes the current fictional second, remains between 0 and 1, and resets at its own boundary. Display percentages are truncated to six decimal places so the final second before a boundary never appears as a false 100%.
+The complete state tracks the current lunar cycle, lunar phase, 179-day season, 353-day calendar year, 23-hour calendar day, and 61-minute fictional hour. Each fraction includes the current fictional second, remains between 0 and 1, and resets at its own boundary. Display percentages are truncated to six decimal places so the final second before a boundary never appears as a false 100%.
 
 Season progress measures only the current Bones or Tears season, not the full 358-day seasonal cycle. Lunar-phase progress uses the 31-hour lunar day, while lunar-cycle progress spans all 13 lunar days.
 
 The Outcome page ends with a separate Progress card that displays only the already-calculated current fictional-hour progress.
+
+The Weather Progress card displays Current Lunar Day, Current Day, and Current Hour. Current Lunar Day uses the existing lunar-phase progress because each phase lasts exactly one complete lunar day. Calendar has no visible clock or Progress card, but its copied JSON continues to export both clocks and every progress value. Moving these displays between pages does not change their calculations, epoch, scheduler, or cycle synchronization.
 
 ## Epoch
 
@@ -140,31 +142,31 @@ The application validates an explicit `PORT` and listens on `0.0.0.0`, which is 
 | Route | Purpose |
 |---|---|
 | `/` | Redirects to `/calendar.html` |
-| `/calendar.html` | Calendar and lunar dashboard |
-| `/outcome.html` | Outcome, tide, orbital pulls, celestial orbits, and hour progress |
+| `/calendar.html` | Fictional date, calendar metadata, lunar phase and cycle, and complete JSON output; no visible clock or progress card |
+| `/outcome.html` | Outcome, tide, orbital pulls, celestial orbits, and current-hour progress |
 | `/treasure.html` | Redirects to `/outcome.html` |
-| `/weather.html` | Season and season progress |
+| `/weather.html` | Fictional time, lunar time, season and season progress, plus lunar-day, day, and hour progress |
 | `/health` | Application health response |
 
-All three HTML pages use normal navigation links and calculate the same complete fictional state from the same Unix epoch through one shared browser scheduler. Each page displays a different subset of that state. Calendar no longer shows visual cards for Season, Tide, Celestial Orbits, or Orbital Pulls, but its JSON output still exports the complete state, including those fields and season progress. Reloading or switching routes never resets a cycle because no fictional counters are stored in memory, local storage, or on the server. The Node.js server stores no fictional state and handles only static files, the health response, and the root redirect.
+All three HTML pages use normal navigation links and calculate the same complete fictional state from the same Unix epoch through one shared browser scheduler. Each page displays a different subset of that state. Calendar no longer shows clocks or a Progress card, but its JSON output still exports the complete state, including time, lunar time, all six progress values, season, tide, orbits, and pulls. Reloading or switching routes never resets a cycle because no fictional counters are stored in memory, local storage, or on the server. The Node.js server stores no fictional state and handles only static files, the health response, and redirects.
 
 ## Health check and JSON schema
 
 `GET /health` returns:
 
 ```json
-{"ok":true,"version":"v6.3"}
+{"ok":true,"version":"v6.4"}
 ```
 
-The copied calendar JSON schema remains `"calendarVersion":"v8"`. V6.3 renames the page and visible card to Outcome without changing the internal derived state or adding an Outcome or reward object to the copied JSON. The application release version and JSON schema version are intentionally independent.
+The copied calendar JSON schema remains `"calendarVersion":"v8"`. V6.4 moves clock and selected progress displays between pages without changing calculations or the public JSON structure. The application release version and JSON schema version are intentionally independent.
 
 ## Architecture
 
-The frontend uses three real HTML documents, vanilla CSS, and JavaScript ES modules. [`public/calendar.js`](public/calendar.js) is the pure state calculator, [`public/live-state.js`](public/live-state.js) owns the single drift-resistant browser scheduler used by every page, and [`public/renderers.js`](public/renderers.js) contains shared season, tide, orbit, and pull renderers. Page-specific modules bind only the elements their document displays. The Node.js server serves static files, the health endpoint, and a relative root redirect. There is no client-side router, database, frontend framework, build step, runtime dependency, server-side fictional calculation, or real-world astronomy integration.
+The frontend uses three real HTML documents, vanilla CSS, and JavaScript ES modules. [`public/calendar.js`](public/calendar.js) is the pure state calculator, [`public/live-state.js`](public/live-state.js) owns the single drift-resistant browser scheduler used by every page, and [`public/renderers.js`](public/renderers.js) contains shared time, progress, season, tide, orbit, and pull renderers. Page-specific modules bind only the elements their document displays. The Node.js server serves static files, the health endpoint, and relative redirects. There is no client-side router, database, frontend framework, build step, runtime dependency, server-side fictional calculation, or real-world astronomy integration.
 
 ## Deploying to Heroku
 
-Insidia v6.3 remains prepared for Heroku's native GitHub automatic deployment integration. The routing and UI terminology change does not alter the Procfile or automatic deployment configuration. No GitHub Actions workflow exists for v6.3.
+Insidia v6.4 remains prepared for Heroku's native GitHub automatic deployment integration. The UI-only display move does not alter the Procfile or automatic deployment configuration. No GitHub Actions workflow exists for v6.4.
 
 ### Requirements
 
@@ -184,7 +186,7 @@ web: npm start
 2. Select **GitHub** as the deployment method and connect `FelipeBudinich/insidia`.
 3. Select the deployment branch, normally `main`.
 4. Enable **Automatic Deploys** for that branch.
-5. Leave **Wait for CI to pass before deploy** disabled for v6.3 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
+5. Leave **Wait for CI to pass before deploy** disabled for v6.4 because no CI workflow exists yet. Run `npm test` locally before pushing instead.
 
 Heroku builds and releases successful GitHub pushes directly; no Heroku Git remote, deployment script, or committed deployment credential is required.
 
@@ -207,7 +209,7 @@ https://your-app-name.herokuapp.com/
 https://your-app-name.herokuapp.com/health
 ```
 
-The health endpoint must return `{"ok":true,"version":"v6.3"}`. To inspect logs and dyno status:
+The health endpoint must return `{"ok":true,"version":"v6.4"}`. To inspect logs and dyno status:
 
 ```sh
 heroku logs --tail --app <app-name>
@@ -235,9 +237,9 @@ For custom domains, use Heroku Automated Certificate Management or another prope
 ```text
 .
 ├── public/
-│   ├── calendar.html       # Calendar, lunar, progress, and complete JSON route
+│   ├── calendar.html       # Calendar, lunar metadata, and complete JSON route
 │   ├── outcome.html        # Outcome, tide, pull, orbit, and hour-progress route
-│   ├── weather.html        # Season route
+│   ├── weather.html        # Time, season, and selected progress route
 │   ├── calendar.js         # Pure fictional-state calculations
 │   ├── live-state.js       # Shared drift-resistant scheduler
 │   ├── renderers.js        # Shared focused-state renderers

@@ -1,4 +1,6 @@
 import {
+  formatFictionalTime,
+  formatLunarTime,
   formatOrbitalPercentage,
   formatTideTime
 } from './calendar.js';
@@ -9,6 +11,36 @@ function requireElement(root, selector) {
     throw new Error(`Missing required element: ${selector}`);
   }
   return element;
+}
+
+export function createTimeRenderer(root = document) {
+  const fictionalTimeElement = requireElement(root, '#fictional-time');
+  const lunarTimeElement = requireElement(root, '#lunar-time');
+
+  return function renderTime(calendarValue) {
+    fictionalTimeElement.textContent = formatFictionalTime(calendarValue);
+    lunarTimeElement.textContent = formatLunarTime(calendarValue.lunar);
+  };
+}
+
+export function createWeatherProgressRenderer(root = document) {
+  const progressRows = [
+    ['lunarPhase', '#lunar-day-progress', '#lunar-day-progress-value'],
+    ['day', '#day-progress', '#day-progress-value'],
+    ['hour', '#hour-progress', '#hour-progress-value']
+  ].map(([key, progressSelector, valueSelector]) => ({
+    key,
+    progress: requireElement(root, progressSelector),
+    value: requireElement(root, valueSelector)
+  }));
+
+  return function renderWeatherProgress(calendarValue) {
+    for (const row of progressRows) {
+      const progressValue = calendarValue.progress[row.key];
+      row.progress.value = progressValue.percentage;
+      row.value.textContent = progressValue.formatted;
+    }
+  };
 }
 
 const DROP_RULE_LABELS = Object.freeze({

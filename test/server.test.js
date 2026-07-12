@@ -107,7 +107,7 @@ test('GET and HEAD legacy Treasure route redirect to Outcome without caching', a
   }
 });
 
-test('GET and HEAD health return the v6.3 availability response', async () => {
+test('GET and HEAD health return the v6.4 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -115,7 +115,7 @@ test('GET and HEAD health return the v6.3 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v6.3"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v6.4"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -140,7 +140,7 @@ test('all three HTML routes serve secure no-cache documents with shared navigati
       assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8', page.path);
       assert.equal(getResponse.headers['cache-control'], 'no-cache', page.path);
       assert.match(getResponse.body, new RegExp(`<title>${page.title}</title>`), page.path);
-      assert.match(getResponse.body, /aria-label="Application version 6\.3">v6\.3/, page.path);
+      assert.match(getResponse.body, /aria-label="Application version 6\.4">v6\.4/, page.path);
       assert.match(getResponse.body, /<nav class="primary-nav" aria-label="Primary">/, page.path);
       for (const [href, label] of [
         ['/calendar.html', 'Calendar'],
@@ -167,15 +167,14 @@ test('all three HTML routes serve secure no-cache documents with shared navigati
   }
 });
 
-test('calendar route shows only calendar, lunar, selected progress, and JSON output', async () => {
+test('calendar route keeps date, lunar metadata, and JSON while removing clocks and Progress UI', async () => {
   const server = await startTestServer();
   try {
     const response = await request(server, '/calendar.html');
     for (const requiredContent of [
       'Fictional Calendar', 'Month 1 · Day 1', 'Week 1 · Day 1 of 7',
-      'Lunar Cycle', 'Rebirth', 'Lunar Day 1 of 13 · Cycle 1', 'Lunar time 00:00:00',
-      'Progress', 'Lunar Cycle', 'Current Phase',
-      'Current Year', 'Current Day', 'Current Hour', 'JSON output', 'Copy JSON',
+      'Lunar Cycle', 'Rebirth', 'Lunar Day 1 of 13 · Cycle 1',
+      'JSON output', 'Copy JSON',
       'Epoch: 1970-01-01 00:00:00 UTC'
     ]) {
       assert.ok(response.body.includes(requiredContent), requiredContent);
@@ -187,7 +186,12 @@ test('calendar route shows only calendar, lunar, selected progress, and JSON out
       'data-pull-key="dominantPull"',
       'data-pull-key="minorPull"',
       'data-pull-key="negativePull"',
-      'data-progress-key="season"'
+      'id="fictional-time"',
+      'id="lunar-time"',
+      'id="progress-heading"',
+      'class="progress-section"',
+      'data-progress-key',
+      'data-progress-percentage'
     ]) {
       assert.ok(!response.body.includes(removedMarkup), removedMarkup);
     }
@@ -257,17 +261,39 @@ test('Outcome route begins with Outcome and retains its fields before Tide, Pull
   }
 });
 
-test('weather route contains the complete season fallback and progress', async () => {
+test('weather route orders Time, Season, and exactly three selected Progress rows', async () => {
   const server = await startTestServer();
   try {
     const response = await request(server, '/weather.html');
     for (const requiredContent of [
+      'id="time-heading" class="section-label">Time',
+      'Current Fictional Time', 'id="fictional-time" class="weather-clock">00:00:00',
+      'Current Lunar Time', 'id="lunar-time" class="weather-clock">00:00:00',
       'Season', 'Bones', 'Day 1 of 179 · Seasonal Cycle 1',
-      'Seasonal Day 1 of 358', 'Next: Tears', 'Progress: 0.000000%'
+      'Seasonal Day 1 of 358', 'Next: Tears', 'Progress: 0.000000%',
+      'id="progress-heading" class="section-label">Progress',
+      'Current Lunar Day', 'id="lunar-day-progress" max="100" value="0"',
+      'id="lunar-day-progress-value">0.000000%',
+      'Current Day', 'id="day-progress" max="100" value="0"',
+      'id="day-progress-value">0.000000%',
+      'Current Hour', 'id="hour-progress" max="100" value="0"',
+      'id="hour-progress-value">0.000000%'
     ]) {
       assert.ok(response.body.includes(requiredContent), requiredContent);
     }
     assert.match(response.body, /aria-label="Current season progress"/);
+    const timeIndex = response.body.indexOf('id="time-heading"');
+    const seasonIndex = response.body.indexOf('id="season-heading"');
+    const progressIndex = response.body.indexOf('id="progress-heading"');
+    const footerIndex = response.body.indexOf('<footer>');
+    assert.ok(timeIndex < seasonIndex, 'Time must appear before Season');
+    assert.ok(seasonIndex < progressIndex, 'Season must appear before Progress');
+    assert.ok(progressIndex < footerIndex, 'Progress must be the final card');
+    const progressCard = response.body.slice(progressIndex, footerIndex);
+    assert.equal((progressCard.match(/class="progress-item"/g) ?? []).length, 3);
+    for (const excludedRow of ['Lunar Cycle', 'Current Phase', 'Current Season', 'Current Year']) {
+      assert.ok(!progressCard.includes(excludedRow), excludedRow);
+    }
     assert.match(response.body, /src="\/weather-page\.js"/);
     assert.ok(!response.body.includes('JSON output'));
   } finally {
@@ -374,7 +400,13 @@ test('all page modules use the shared live-state scheduler and shared renderers'
     'data-season-',
     'data-tide-',
     'data-orbital-body',
-    'data-pull-key'
+    'data-pull-key',
+    'formatFictionalTime',
+    'formatLunarTime',
+    '#fictional-time',
+    '#lunar-time',
+    'data-progress-key',
+    'progressElements'
   ]) {
     assert.ok(!calendarPage.includes(removedCalendarBinding), removedCalendarBinding);
   }
@@ -390,11 +422,22 @@ test('all page modules use the shared live-state scheduler and shared renderers'
     assert.ok(!moduleText.includes('innerHTML'), moduleName);
   }
   const outcomePage = await readFile(path.join(projectDirectory, 'public/outcome-page.js'), 'utf8');
+  const weatherPage = await readFile(path.join(projectDirectory, 'public/weather-page.js'), 'utf8');
   const outcomeCall = outcomePage.indexOf('renderOutcome(calendarValue.drop)');
   const tideCall = outcomePage.indexOf('renderTide(calendarValue)');
   const pullsCall = outcomePage.indexOf('renderOrbitalPulls(calendarValue)');
   const orbitsCall = outcomePage.indexOf('renderCelestialOrbits(calendarValue)');
   assert.ok(outcomeCall < tideCall && tideCall < pullsCall && pullsCall < orbitsCall);
+  const timeCall = weatherPage.indexOf('renderTime(calendarValue)');
+  const seasonCall = weatherPage.indexOf('renderSeason(calendarValue)');
+  const progressCall = weatherPage.indexOf('renderProgress(calendarValue)');
+  assert.ok(timeCall < seasonCall && seasonCall < progressCall);
+  assert.match(renderers, /formatFictionalTime\(calendarValue\)/);
+  assert.match(renderers, /formatLunarTime\(calendarValue\.lunar\)/);
+  assert.match(renderers, /\['lunarPhase', '#lunar-day-progress', '#lunar-day-progress-value'\]/);
+  assert.match(renderers, /\['day', '#day-progress', '#day-progress-value'\]/);
+  assert.match(renderers, /\['hour', '#hour-progress', '#hour-progress-value'\]/);
+  assert.match(renderers, /row\.progress\.value = progressValue\.percentage/);
 
   for (const removedFile of ['treasure.html', 'treasure-page.js']) {
     await assert.rejects(
@@ -538,7 +581,7 @@ test('Procfile and package metadata are ready for Heroku', async () => {
   ]);
   const packageJson = JSON.parse(packageText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '6.3.0');
+  assert.equal(packageJson.version, '6.4.0');
   assert.equal(packageJson.engines.node, '24.x');
 });
 
@@ -550,6 +593,8 @@ test('calendar JSON schema is v8 with all three orbital pulls', () => {
   assert.equal(snapshot.fictional.lunar.tide.name, 'Low');
   assert.equal(snapshot.fictional.orbits.bodies.length, 6);
   assert.ok(snapshot.fictional.season);
+  assert.ok(snapshot.fictional.time);
+  assert.ok(snapshot.fictional.lunar.time);
   assert.ok(snapshot.fictional.lunar.tide);
   assert.ok(snapshot.fictional.orbits.dominantPull);
   assert.ok(snapshot.fictional.orbits.minorPull);
@@ -560,7 +605,9 @@ test('calendar JSON schema is v8 with all three orbital pulls', () => {
     Object.keys(snapshot.fictional.orbits).filter((key) => key.endsWith('Pull')),
     ['dominantPull', 'minorPull', 'negativePull']
   );
-  assert.equal(Object.keys(snapshot.fictional.progress).length, 6);
+  assert.deepEqual(Object.keys(snapshot.fictional.progress), [
+    'lunarCycle', 'lunarPhase', 'season', 'year', 'day', 'hour'
+  ]);
 });
 
 test('retired orbital metadata and Moon duration references are absent', async () => {

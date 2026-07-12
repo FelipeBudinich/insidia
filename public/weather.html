@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="The current fictional Bones or Tears season in Insidia.">
+    <meta name="description" content="The current fictional and lunar times, season, and selected progress in Insidia.">
     <title>Weather · Insidia</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
@@ -20,8 +20,22 @@
             <p class="page-kicker">Insidia</p>
             <h1>Weather</h1>
           </div>
-          <span class="version" aria-label="Application version 6.3">v6.3</span>
+          <span class="version" aria-label="Application version 6.4">v6.4</span>
         </header>
+
+        <section class="time-section focused-section" aria-labelledby="time-heading">
+          <p id="time-heading" class="section-label">Time</p>
+          <div class="time-grid">
+            <div class="time-item">
+              <p class="group-label">Current Fictional Time</p>
+              <p id="fictional-time" class="weather-clock">00:00:00</p>
+            </div>
+            <div class="time-item">
+              <p class="group-label">Current Lunar Time</p>
+              <p id="lunar-time" class="weather-clock">00:00:00</p>
+            </div>
+          </div>
+        </section>
 
         <section class="season-section focused-section" aria-labelledby="season-heading">
           <p id="season-heading" class="section-label">Season</p>
@@ -34,6 +48,33 @@
               <span data-season-progress>Progress: 0.000000%</span>
             </div>
             <progress max="1" value="0" aria-label="Current season progress" data-season-progress-bar></progress>
+          </div>
+        </section>
+
+        <section class="progress-section" aria-labelledby="progress-heading">
+          <p id="progress-heading" class="section-label">Progress</p>
+          <div class="progress-grid">
+            <div class="progress-item">
+              <div class="progress-heading-row">
+                <label for="lunar-day-progress">Current Lunar Day</label>
+                <span id="lunar-day-progress-value">0.000000%</span>
+              </div>
+              <progress id="lunar-day-progress" max="100" value="0">0%</progress>
+            </div>
+            <div class="progress-item">
+              <div class="progress-heading-row">
+                <label for="day-progress">Current Day</label>
+                <span id="day-progress-value">0.000000%</span>
+              </div>
+              <progress id="day-progress" max="100" value="0">0%</progress>
+            </div>
+            <div class="progress-item">
+              <div class="progress-heading-row">
+                <label for="hour-progress">Current Hour</label>
+                <span id="hour-progress-value">0.000000%</span>
+              </div>
+              <progress id="hour-progress" max="100" value="0">0%</progress>
+            </div>
           </div>
         </section>
         <footer>Epoch: 1970-01-01 00:00:00 UTC</footer>

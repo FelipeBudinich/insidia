@@ -48,6 +48,7 @@ body {
 .page-header,
 .calendar-card,
 .drop-section,
+.time-section,
 .season-section,
 .lunar-section,
 .orbital-pulls,
@@ -84,22 +85,13 @@ body {
 .outcome-heading .section-label { margin-bottom: 0; }
 .version { color: color-mix(in srgb, CanvasText 70%, Canvas); font-size: 0.875rem; }
 
-.time {
-  margin: clamp(1.5rem, 7vw, 3.25rem) 0 1.25rem;
-  font-size: clamp(3rem, 15vw, 6.5rem);
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  letter-spacing: -0.075em;
-  line-height: 0.9;
-  white-space: nowrap;
-}
-
 .date p { margin: 0; }
 .year { font-size: clamp(1.45rem, 6vw, 2rem); font-weight: 700; }
 .period { margin-top: 0.25rem !important; font-size: clamp(1.05rem, 4vw, 1.35rem); }
 .metadata { margin: 1.75rem 0 0; color: color-mix(in srgb, CanvasText 72%, Canvas); line-height: 1.5; }
 
 .drop-section,
+.time-section,
 .season-section,
 .lunar-section,
 .orbital-pulls,
@@ -120,6 +112,10 @@ body {
 .lunar-metadata { color: color-mix(in srgb, CanvasText 78%, Canvas); }
 .lunar-time { color: color-mix(in srgb, CanvasText 68%, Canvas); font-variant-numeric: tabular-nums; }
 .focused-section { margin-top: 1rem; }
+
+.time-grid { display: grid; gap: 1rem; }
+.time-item p { margin: 0; }
+.weather-clock { margin-top: 0.25rem !important; font-size: clamp(1.8rem, 10vw, 2.75rem); font-variant-numeric: tabular-nums; font-weight: 700; letter-spacing: -0.04em; white-space: nowrap; }
 
 .drop-section p { margin: 0; }
 .drop-body { font-size: clamp(1.6rem, 7vw, 2.2rem); font-weight: 750; }
@@ -171,12 +167,12 @@ footer { margin-top: 1rem; color: color-mix(in srgb, CanvasText 65%, Canvas); fo
 @media (max-width: 380px) {
   body { padding: 0.75rem; }
   .calendar-card { padding: 1rem; }
-  .time { font-size: 2.75rem; }
   .json-toolbar { align-items: flex-start; flex-direction: column; gap: 0.5rem; }
   .copy-status { text-align: left; }
 }
 
 @media (min-width: 38rem) {
+  .time-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .orbital-bodies { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pull-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .progress-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; }
