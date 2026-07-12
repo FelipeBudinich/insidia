@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "application": {
     "displayName": "Insidia"
   },
@@ -23,13 +23,13 @@
       { "id": "month-11", "name": "Month 11", "shortName": "11" }
     ],
     "weekdays": [
-      { "id": "weekday-01", "name": "Day 1", "shortName": "D1" },
-      { "id": "weekday-02", "name": "Day 2", "shortName": "D2" },
-      { "id": "weekday-03", "name": "Day 3", "shortName": "D3" },
-      { "id": "weekday-04", "name": "Day 4", "shortName": "D4" },
-      { "id": "weekday-05", "name": "Day 5", "shortName": "D5" },
-      { "id": "weekday-06", "name": "Day 6", "shortName": "D6" },
-      { "id": "weekday-07", "name": "Day 7", "shortName": "D7" }
+      { "id": "weekday-01", "name": "Dies Lunae" },
+      { "id": "weekday-02", "name": "Dies Martis" },
+      { "id": "weekday-03", "name": "Dies Mercurii" },
+      { "id": "weekday-04", "name": "Dies Iovis" },
+      { "id": "weekday-05", "name": "Dies Veneris" },
+      { "id": "weekday-06", "name": "Dies Saturni" },
+      { "id": "weekday-07", "name": "Dies Solis" }
     ],
     "interRegna": [
       { "id": "interregnum-01", "name": "Inter Regnum 1 → 2" },

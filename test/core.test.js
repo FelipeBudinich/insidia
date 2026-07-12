@@ -66,8 +66,11 @@ test('invalid inputs are rejected', () => {
 });
 
 test('raw state contains IDs and mechanics but no presentation fields', () => {
-  const raw = JSON.stringify(calculateCalendarState(atDay(352)));
-  assert.doesNotMatch(raw, /"(?:name|symbol|formatted)"/);
+  const state = calculateCalendarState(atDay(352));
+  const raw = JSON.stringify(state);
+  assert.equal(state.calendar.weekdayId, 'weekday-03');
+  assert.doesNotMatch(raw, /"(?:name|shortName|symbol|formatted)"/);
+  assert.doesNotMatch(raw, /Dies (?:Lunae|Martis|Mercurii|Iovis|Veneris|Saturni|Solis)/);
   for (const id of ['month-', 'weekday-', 'season-', 'phase-', 'tide-', 'body-', 'pull-', 'outcome-tier-']) assert.match(raw, new RegExp(id));
 });
 

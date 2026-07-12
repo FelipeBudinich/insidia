@@ -59,14 +59,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(script, /bootstrapPage\('page-03', createTemporePageRenderer\)/);
 });
 
-test('each renamed page has one localized v8.4 footer version', async () => {
+test('each renamed page has one localized v8.5 footer version', async () => {
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.4/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.5/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -99,10 +99,10 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   assert.match(css, /\.footer-version\s*\{\s*white-space:\s*nowrap;/);
 });
 
-test('JSON serialization remains schema v10 with calendar time intact', async () => {
+test('JSON serialization remains schema v11 with calendar time intact', async () => {
   const [presentation, mechanics] = await Promise.all([readPublic('presentation.js'), readPublic('core/mechanics.js')]);
   assert.match(presentation, /export function createCalendarJson/);
-  assert.match(presentation, /calendarVersion: 'v10'/);
+  assert.match(presentation, /calendarVersion: 'v11'/);
   assert.match(presentation, /time: formatClock\(state\.calendar\.time\)/);
   assert.match(mechanics, /time: \{ hour, minute, second \}/);
 });

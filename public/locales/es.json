@@ -62,7 +62,7 @@
     "calendar.monthPeriod": "{monthName} · {dayLabel} {day}",
     "calendar.interPeriod": "{interRegnumName} · {dayLabel} {day} de {length}",
     "calendar.formattedDate": "{yearLabel} {year} · {periodLabel}",
-    "calendar.metadata": "{weekLabel} {week} · {dayLabel} {weekday} de {weekLength} · {dayLabel} {dayOfYear} de {yearLength}",
+    "calendar.metadata": "{weekLabel} {week} · {weekdayName} · {dayLabel} {dayOfYear} de {yearLength}",
     "lunar.metadata": "{lunarDayLabel} {day} de {length} · {cycleLabel} {cycle}",
     "season.metadata": "{dayLabel} {day} de {length} · {cycleLabel} {cycle}",
     "season.cycle": "{seasonalDayLabel} {day} de {length}",

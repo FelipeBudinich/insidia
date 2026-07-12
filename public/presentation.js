@@ -1,4 +1,4 @@
-import { DAYS_PER_YEAR, FICTIONAL_DAYS_PER_WEEK } from './core/rules.js';
+import { DAYS_PER_YEAR } from './core/rules.js';
 import { formatClock, formatPercentage } from './core/formatting.js';
 
 export function formatCalendarPeriod(state, context) {
@@ -40,18 +40,19 @@ export function createDisplayData(state, context) {
   const period = state.calendar.period;
   const month = period.type === 'month' ? context.getMonth(period.monthId) : null;
   const interRegnum = period.type === 'inter_regnum' ? context.getInterRegnum(period.interRegnumId) : null;
+  const weekday = context.getWeekday(state.calendar.weekdayId);
   return {
     formattedDate: formatFictionalDate(state, context),
     calendar: {
       month,
       interRegnum,
-      weekday: context.getWeekday(state.calendar.weekdayId),
+      weekday,
       periodLabel: formatCalendarPeriod(state, context),
       time: formatClock(state.calendar.time),
       metadata: context.format('calendar.metadata', {
         weekLabel: context.message('label.week'), week: state.calendar.weekOfYear,
-        dayLabel: context.message('label.day'), weekday: state.calendar.dayOfWeek,
-        weekLength: FICTIONAL_DAYS_PER_WEEK, dayOfYear: state.calendar.dayOfYear, yearLength: DAYS_PER_YEAR
+        weekdayName: weekday.name, dayLabel: context.message('label.day'),
+        dayOfYear: state.calendar.dayOfYear, yearLength: DAYS_PER_YEAR
       })
     },
     season: {
@@ -94,7 +95,7 @@ function copyRawState(state) {
 
 export function createCalendarJson(state, realUnixMilliseconds, context) {
   return {
-    calendarVersion: 'v10',
+    calendarVersion: 'v11',
     nomenclature: {
       schemaVersion: context.nomenclatureSchemaVersion,
       applicationDisplayName: context.applicationDisplayName

@@ -74,7 +74,9 @@ test('query parameters cannot change the nomenclature request', async () => {
 
 test('production nomenclature validates complete neutral ID coverage', async () => {
   const value = validateNomenclature(await readJson(nomenclaturePath));
+  assert.equal(value.schemaVersion, 3);
   assert.equal(value.calendar.months.length, 11);
+  assert.ok(value.calendar.months.every((month) => Object.keys(month).sort().join(',') === 'id,name,shortName'));
   assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03']);
   assert.equal(value.calendar.weekdays.length, 7);
   assert.equal(value.calendar.interRegna.length, 11);
@@ -92,8 +94,38 @@ test('nomenclature validation rejects missing, duplicate, unknown, and invalid e
   const unknown = structuredClone(valid); unknown.seasons[1].id = 'season-99';
   const empty = structuredClone(valid); empty.seasons[0].name = '';
   const nonString = structuredClone(valid); nonString.celestialBodies[0].symbol = 7;
-  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 3;
+  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 4;
   for (const invalid of [missing, duplicate, unknown, empty, nonString, wrongSchema]) {
+    assert.throws(() => validateNomenclature(invalid));
+  }
+});
+
+test('weekday nomenclature requires exact canonical id and name entities', async () => {
+  const valid = await readJson(nomenclaturePath);
+  assert.deepEqual(validateNomenclature(valid).calendar.weekdays, [
+    { id: 'weekday-01', name: 'Dies Lunae' },
+    { id: 'weekday-02', name: 'Dies Martis' },
+    { id: 'weekday-03', name: 'Dies Mercurii' },
+    { id: 'weekday-04', name: 'Dies Iovis' },
+    { id: 'weekday-05', name: 'Dies Veneris' },
+    { id: 'weekday-06', name: 'Dies Saturni' },
+    { id: 'weekday-07', name: 'Dies Solis' }
+  ]);
+  assert.ok(valid.calendar.weekdays.every((weekday) => {
+    const keys = Object.keys(weekday).sort();
+    return keys.length === 2 && keys[0] === 'id' && keys[1] === 'name';
+  }));
+
+  const missing = structuredClone(valid); missing.calendar.weekdays.pop();
+  const duplicate = structuredClone(valid); duplicate.calendar.weekdays[1].id = 'weekday-01';
+  const unknown = structuredClone(valid); unknown.calendar.weekdays[1].id = 'weekday-99';
+  const missingName = structuredClone(valid); delete missingName.calendar.weekdays[0].name;
+  const emptyName = structuredClone(valid); emptyName.calendar.weekdays[0].name = '';
+  const nonStringName = structuredClone(valid); nonStringName.calendar.weekdays[0].name = 7;
+  const formerShortName = structuredClone(valid); formerShortName.calendar.weekdays[0].shortName = 'DL';
+  const symbol = structuredClone(valid); symbol.calendar.weekdays[0].symbol = '☾';
+  const additional = structuredClone(valid); additional.calendar.weekdays[0].description = 'first';
+  for (const invalid of [missing, duplicate, unknown, missingName, emptyName, nonStringName, formerShortName, symbol, additional]) {
     assert.throws(() => validateNomenclature(invalid));
   }
 });
@@ -149,7 +181,8 @@ test('missing or invalid nomenclature prevents rendering and shows a localized a
   t.mock.method(console, 'error', () => {});
   const valid = await readJson(nomenclaturePath);
   const invalid = structuredClone(valid); invalid.calendar.months.pop();
-  for (const replacement of ['missing', invalid]) {
+  const invalidWeekday = structuredClone(valid); invalidWeekday.calendar.weekdays[0].symbol = '☾';
+  for (const replacement of ['missing', invalid, invalidWeekday]) {
     for (const [localeId, message, languageTag] of [
       ['en', 'Unable to load the application or locale configuration.', 'en'],
       ['es', 'No se pudo cargar la configuración de la aplicación o del idioma.', 'es']

@@ -5,6 +5,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { applyCommonDocumentPresentation } from '../public/app-bootstrap.js';
 import { calculateCalendarState } from '../public/core/mechanics.js';
+import { FICTIONAL_SECONDS_PER_DAY, REAL_MS_PER_FICTIONAL_SECOND } from '../public/core/rules.js';
 import { validateLocale } from '../public/locale-loader.js';
 import { validateNomenclature } from '../public/nomenclature-loader.js';
 import { createPresentationContext } from '../public/nomenclature.js';
@@ -16,6 +17,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = async (...parts) => JSON.parse(await readFile(path.join(root, ...parts), 'utf8'));
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const containsProperNoun = (source, name) => new RegExp(`(?<![\\p{L}])${escapeRegExp(name)}(?![\\p{L}])`, 'u').test(source);
+const weekdayDayMilliseconds = FICTIONAL_SECONDS_PER_DAY * REAL_MS_PER_FICTIONAL_SECOND;
+const WEEKDAYS = Object.freeze([
+  { id: 'weekday-01', name: 'Dies Lunae' },
+  { id: 'weekday-02', name: 'Dies Martis' },
+  { id: 'weekday-03', name: 'Dies Mercurii' },
+  { id: 'weekday-04', name: 'Dies Iovis' },
+  { id: 'weekday-05', name: 'Dies Veneris' },
+  { id: 'weekday-06', name: 'Dies Saturni' },
+  { id: 'weekday-07', name: 'Dies Solis' }
+]);
 
 async function productionNomenclature() {
   return validateNomenclature(await readJson('public', 'config', 'nomenclature.json'));
@@ -43,7 +54,7 @@ function renamedNomenclature(value) {
 
 test('production nomenclature reproduces every intended proper noun group', async () => {
   const value = await productionNomenclature();
-  assert.equal(value.schemaVersion, 2);
+  assert.equal(value.schemaVersion, 3);
   assert.equal(value.application.displayName, 'Insidia');
   assert.deepEqual(value.pages, [
     { id: 'page-01', name: 'Calendario' },
@@ -51,6 +62,7 @@ test('production nomenclature reproduces every intended proper noun group', asyn
     { id: 'page-03', name: 'Tempore' }
   ]);
   assert.deepEqual(value.calendar.months.map(({ name }) => name), Array.from({ length: 11 }, (_, index) => `Month ${index + 1}`));
+  assert.deepEqual(value.calendar.weekdays, WEEKDAYS);
   assert.deepEqual(value.seasons, [
     { id: 'season-01', name: 'Ossos' },
     { id: 'season-02', name: 'Lacrimas' }
@@ -88,6 +100,16 @@ test('production nomenclature reproduces every intended proper noun group', asyn
     { id: 'pull-02', name: 'Attraction minor' },
     { id: 'pull-03', name: 'Attraction divergente' }
   ]);
+});
+
+test('seven consecutive days resolve exact weekday nomenclature and day eight wraps', async () => {
+  const presentationContext = await context('en');
+  for (let dayIndex = 0; dayIndex <= 7; dayIndex += 1) {
+    const state = calculateCalendarState(dayIndex * weekdayDayMilliseconds);
+    const expected = WEEKDAYS[dayIndex % WEEKDAYS.length];
+    assert.equal(state.calendar.weekdayId, expected.id, `day index ${dayIndex}`);
+    assert.deepEqual(createDisplayData(state, presentationContext).calendar.weekday, expected, `day index ${dayIndex}`);
+  }
 });
 
 test('stable page IDs map to fixed non-configurable routes', () => {
@@ -144,7 +166,8 @@ test('Spanish changes generic language and Outcome types but not proper nouns or
     [Array.from({ length: 3 }, (_, index) => `tide-${String(index + 1).padStart(2, '0')}`), 'getTide'],
     [Array.from({ length: 2 }, (_, index) => `season-${String(index + 1).padStart(2, '0')}`), 'getSeason'],
     [Array.from({ length: 3 }, (_, index) => `pull-${String(index + 1).padStart(2, '0')}`), 'getPull'],
-    [Array.from({ length: 6 }, (_, index) => `body-${String(index + 1).padStart(2, '0')}`), 'getCelestialBody']
+    [Array.from({ length: 6 }, (_, index) => `body-${String(index + 1).padStart(2, '0')}`), 'getCelestialBody'],
+    [WEEKDAYS.map(({ id }) => id), 'getWeekday']
   ]) {
     assert.deepEqual(ids.map((id) => englishContext[getter](id)), ids.map((id) => spanishContext[getter](id)));
   }
@@ -155,6 +178,8 @@ test('Spanish changes generic language and Outcome types but not proper nouns or
   assert.equal(spanish.outcomeType.name, 'Común');
   assert.equal(englishContext.getPage('page-02').name, 'Destino');
   assert.equal(spanishContext.getPage('page-02').name, 'Destino');
+  assert.equal(english.calendar.metadata, 'Week 1 · Dies Lunae · Day 1 of 353');
+  assert.equal(spanish.calendar.metadata, 'Semana 1 · Dies Lunae · Día 1 de 353');
   assert.deepEqual(raw, calculateCalendarState(0));
 });
 
@@ -171,18 +196,25 @@ test('Destino classification uses nomenclature while Outcome types use locale', 
   assert.equal(spanish.format('outcome.type', { pageName: spanish.getPage('page-02').name, name: spanish.getOutcomeType('outcome-tier-01').name }), 'Destino: Común');
 });
 
-test('JSON v10 replaces universe selection metadata with fixed nomenclature metadata', async () => {
+test('JSON v11 exposes the configured weekday while raw state remains neutral', async () => {
   const raw = calculateCalendarState(0);
   const english = createCalendarJson(raw, 0, await context('en'));
   const spanish = createCalendarJson(raw, 0, await context('es'));
-  assert.equal(english.calendarVersion, 'v10');
+  assert.equal(english.calendarVersion, 'v11');
   assert.equal(Object.hasOwn(english, 'universe'), false);
-  assert.deepEqual(english.nomenclature, { schemaVersion: 2, applicationDisplayName: 'Insidia' });
+  assert.deepEqual(english.nomenclature, { schemaVersion: 3, applicationDisplayName: 'Insidia' });
   assert.equal(Object.hasOwn(english.nomenclature, 'requestedId'), false);
   assert.equal(Object.hasOwn(english.nomenclature, 'resolvedId'), false);
   assert.deepEqual(english.locale, { requestedId: 'en', resolvedId: 'en', languageTag: 'en', schemaVersion: 2 });
   assert.deepEqual(english.state, spanish.state);
-  assert.doesNotMatch(JSON.stringify(english.state), /"(?:name|symbol|formatted)"/);
+  assert.equal(english.state.calendar.weekdayId, 'weekday-01');
+  assert.doesNotMatch(JSON.stringify(english.state), /"(?:name|shortName|symbol|formatted)"/);
+  assert.doesNotMatch(JSON.stringify(english.state), /Dies (?:Lunae|Martis|Mercurii|Iovis|Veneris|Saturni|Solis)/);
+  assert.deepEqual(english.display.calendar.weekday, { id: 'weekday-01', name: 'Dies Lunae' });
+  assert.deepEqual(spanish.display.calendar.weekday, english.display.calendar.weekday);
+  assert.deepEqual(Object.keys(english.display.calendar.weekday).sort(), ['id', 'name']);
+  assert.equal(Object.hasOwn(english.display.calendar.weekday, 'shortName'), false);
+  assert.equal(Object.hasOwn(english.display.calendar.weekday, 'symbol'), false);
   assert.equal(english.display.season.name, 'Ossos');
   assert.equal(english.display.lunar.phase.name, 'Renascimento');
   assert.equal(english.display.orbits.bodies[5].id, 'body-06');
@@ -220,19 +252,19 @@ test('navigation applies only resolved locale and fixed application metadata', a
   assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore']);
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.4');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.4');
+  assert.equal(versionElements[0].textContent, 'v8.5');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.5');
   applyCommonDocumentPresentation(documentRoot, 'page-01', await context('en'));
-  assert.equal(versionElements[0]['aria-label'], 'Application version 8.4');
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.5');
 });
 
-test('static HTML remains neutral and uses v8.4 page IDs and application placeholders', async () => {
-  const properNouns = ['Insidia','Calendario','Destino','Tempore','Ossos','Lacrimas','Renascimento','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente','Month 1'];
+test('static HTML remains neutral and uses v8.5 page IDs and application placeholders', async () => {
+  const properNouns = ['Insidia','Calendario','Destino','Tempore','Ossos','Lacrimas','Renascimento','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente','Month 1', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.4/);
+    assert.match(html, /data-version>v8\.5/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);
@@ -248,5 +280,5 @@ test('production JavaScript has no runtime universe selection, cookies, or local
 
 test('core source remains proper-noun free', async () => {
   const source = await readFile(path.join(root, 'public', 'core', 'rules.js'), 'utf8') + await readFile(path.join(root, 'public', 'core', 'mechanics.js'), 'utf8');
-  for (const name of ['Insidia','Ossos','Lacrimas','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Renascimento','Marea basse','Attraction dominante']) assert.ok(!containsProperNoun(source, name), name);
+  for (const name of ['Insidia','Ossos','Lacrimas','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Renascimento','Marea basse','Attraction dominante', ...WEEKDAYS.map(({ name }) => name)]) assert.ok(!containsProperNoun(source, name), name);
 });
