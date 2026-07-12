@@ -68,7 +68,6 @@ function validateEntities(items, expectedIds, label, entityKeys) {
     assertExactKeys(item, entityKeys, `${label}[${index}]`);
     assertNonEmptyString(item.id, `${label}[${index}].id`);
     assertNonEmptyString(item.name, `${label}[${index}].name`);
-    if (entityKeys.includes('shortName')) assertNonEmptyString(item.shortName, `${label}[${index}].shortName`);
     if (entityKeys.includes('symbol')) assertNonEmptyString(item.symbol, `${label}[${index}].symbol`);
   });
 }

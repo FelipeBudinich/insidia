@@ -18,7 +18,7 @@ import {
   LUNAR_DAYS_PER_CYCLE,
   LUNAR_PHASE_RULES,
   MONTH_IDS,
-  MONTH_RULER_IDS,
+  MONTH_RULER_SUPERCYCLE_IDS,
   MONTHS_PER_YEAR,
   ORBITAL_SPAN_TIE_EPSILON,
   OUTCOME_TIDE_RULES,
@@ -59,12 +59,9 @@ function assertProgressFraction(value, label = 'progressFraction') {
 
 export function calculateRegularMonthRulership(absoluteMonthIndex) {
   assertNonNegativeSafeInteger(absoluteMonthIndex, 'absoluteMonthIndex');
-  const supercycleIndex = absoluteMonthIndex % 15;
+  const supercycleIndex = absoluteMonthIndex % MONTH_RULER_SUPERCYCLE_IDS.length;
   const skippedRegularTurn = absoluteMonthIndex > 0 && supercycleIndex === 0;
-  const regularRulerIndex = supercycleIndex < MONTH_RULER_IDS.length
-    ? supercycleIndex
-    : supercycleIndex - MONTH_RULER_IDS.length;
-  const regularRulerId = MONTH_RULER_IDS[regularRulerIndex];
+  const regularRulerId = MONTH_RULER_SUPERCYCLE_IDS[supercycleIndex];
   return {
     opportunityRulerId: skippedRegularTurn ? ALTERNATING_SKIP_RULER_ID : regularRulerId,
     regularRulerId,

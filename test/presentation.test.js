@@ -506,3 +506,25 @@ test('month-reign proper nouns occur only in nomenclature, tests, and documentat
     }
   }
 });
+
+test('production sources contain no static month-name presentation model', async () => {
+  const sourceFiles = [
+    'config/nomenclature.json', 'presentation.js', 'nomenclature.js', 'nomenclature-loader.js'
+  ];
+  const sources = await Promise.all(sourceFiles.map(async (file) => [
+    file,
+    await readFile(path.join(root, 'public', file), 'utf8')
+  ]));
+  const staleExpressions = ['context.getMonth(', 'maps.months', 'getMonth:'];
+  for (const [file, source] of sources) {
+    for (const expression of staleExpressions) {
+      assert.equal(source.includes(expression), false, `${file}: ${expression}`);
+    }
+    for (let index = 1; index <= 11; index += 1) {
+      assert.equal(containsProperNoun(source, `Month ${index}`), false, `${file}: stale month ${index}`);
+    }
+  }
+  const configuration = JSON.parse(sources.find(([file]) => file === 'config/nomenclature.json')[1]);
+  assert.equal(Object.hasOwn(configuration.calendar, 'months'), false);
+  assert.equal(JSON.stringify(configuration).includes('shortName'), false);
+});

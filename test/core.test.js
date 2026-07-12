@@ -26,7 +26,7 @@ test('Roman numeral formatter rejects unsupported inputs', () => {
   }
 });
 
-test('epoch is Year 1, Month 1, Day 1 at 00:00:00', () => {
+test('epoch is the first day of the first calendar slot at 00:00:00', () => {
   const state = calculateCalendarState(0);
   assert.equal(state.totalSeconds, 0);
   assert.deepEqual(state.calendar.time, { hour: 0, minute: 0, second: 0 });
@@ -182,6 +182,11 @@ test('the exact mechanical constants remain stable', () => {
   assert.equal(rules.LUNAR_PHASE_RULES.length, 13);
   assert.deepEqual(rules.MONTH_RULER_IDS, ['ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-08']);
   assert.equal(rules.ALTERNATING_SKIP_RULER_ID, 'ruler-08');
+  assert.deepEqual(rules.MONTH_RULER_SUPERCYCLE_IDS, [
+    'ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-08',
+    'ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07'
+  ]);
+  assert.equal(Object.isFrozen(rules.MONTH_RULER_SUPERCYCLE_IDS), true);
   assert.equal(rules.REIGN_ORDINAL_IDS.length, 11);
 });
 
