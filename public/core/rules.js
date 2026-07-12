@@ -19,6 +19,11 @@ export const FICTIONAL_SECONDS_PER_LUNAR_CYCLE = FICTIONAL_SECONDS_PER_LUNAR_DAY
 export const ORBITAL_SPAN_TIE_EPSILON = 1e-12;
 
 export const MONTH_IDS = Object.freeze(Array.from({ length: 11 }, (_, index) => `month-${String(index + 1).padStart(2, '0')}`));
+export const MONTH_RULER_IDS = Object.freeze(Array.from({ length: 8 }, (_, index) => `ruler-${String(index + 1).padStart(2, '0')}`));
+export const REIGN_ORDINAL_IDS = Object.freeze(
+  Array.from({ length: MONTHS_PER_YEAR }, (_, index) => `reign-ordinal-${String(index + 1).padStart(2, '0')}`)
+);
+export const ALTERNATING_SKIP_RULER_ID = MONTH_RULER_IDS[MONTH_RULER_IDS.length - 1];
 export const WEEKDAY_IDS = Object.freeze(Array.from({ length: 7 }, (_, index) => `weekday-${String(index + 1).padStart(2, '0')}`));
 export const INTER_REGNUM_IDS = Object.freeze(Array.from({ length: 11 }, (_, index) => `interregnum-${String(index + 1).padStart(2, '0')}`));
 

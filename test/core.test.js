@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { calculateCalendarState, calculateOutcomeType } from '../public/core/mechanics.js';
+import {
+  calculateCalendarState,
+  calculateMonthRulershipState,
+  calculateOutcomeType,
+  calculateRegularMonthRulership
+} from '../public/core/mechanics.js';
 import { formatRomanNumeral } from '../public/core/formatting.js';
 import * as rules from '../public/core/rules.js';
 
@@ -25,7 +30,13 @@ test('epoch is Year 1, Month 1, Day 1 at 00:00:00', () => {
   const state = calculateCalendarState(0);
   assert.equal(state.totalSeconds, 0);
   assert.deepEqual(state.calendar.time, { hour: 0, minute: 0, second: 0 });
-  assert.deepEqual(state.calendar.period, { type: 'month', monthId: 'month-01', monthIndex: 1, day: 1, length: 29 });
+  assert.deepEqual(state.calendar.period, {
+    type: 'month', monthId: 'month-01', monthIndex: 1, day: 1, length: 29,
+    rulership: {
+      opportunityRulerId: 'ruler-01', regularRulerId: 'ruler-01', effectiveRulerId: 'ruler-01',
+      source: 'base_rotation', skippedRegularTurn: false, reignNumber: 1, ordinalId: 'reign-ordinal-01'
+    }
+  });
   assert.equal(state.calendar.year, 1);
 });
 
@@ -74,6 +85,60 @@ test('weekday is continuous at month, interregnum, and year boundaries', () => {
   }
 });
 
+test('regular month rulership follows the exact first 23 effective rulers', () => {
+  const expected = [
+    'ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-08',
+    'ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-01',
+    'ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-08'
+  ];
+  assert.deepEqual(expected.map((_id, index) => calculateRegularMonthRulership(index).regularRulerId), expected);
+});
+
+test('the alternating ruler skip consumes the replacement position exactly once', () => {
+  assert.deepEqual(calculateMonthRulershipState(1, 4), {
+    opportunityRulerId: 'ruler-08', regularRulerId: 'ruler-01', effectiveRulerId: 'ruler-01',
+    source: 'base_rotation', skippedRegularTurn: true, reignNumber: 1, ordinalId: 'reign-ordinal-01'
+  });
+  const seventeenth = calculateMonthRulershipState(1, 5);
+  assert.equal(seventeenth.opportunityRulerId, 'ruler-02');
+  assert.equal(seventeenth.regularRulerId, 'ruler-02');
+  assert.equal(seventeenth.skippedRegularTurn, false);
+  const twentyThird = calculateMonthRulershipState(2, 0);
+  assert.equal(twentyThird.opportunityRulerId, 'ruler-08');
+  assert.equal(twentyThird.regularRulerId, 'ruler-08');
+  assert.equal(twentyThird.skippedRegularTurn, false);
+});
+
+test('month rotation continues across years while reign counts reset yearly', () => {
+  const yearOneMonthEleven = calculateMonthRulershipState(0, 10);
+  const yearTwoMonthOne = calculateMonthRulershipState(1, 0);
+  assert.equal(yearOneMonthEleven.effectiveRulerId, 'ruler-03');
+  assert.equal(yearOneMonthEleven.reignNumber, 2);
+  assert.equal(yearTwoMonthOne.effectiveRulerId, 'ruler-04');
+  assert.equal(yearTwoMonthOne.reignNumber, 1);
+  assert.equal(yearTwoMonthOne.ordinalId, 'reign-ordinal-01');
+  assert.equal(calculateMonthRulershipState(0, 0).reignNumber, 1);
+  assert.equal(calculateMonthRulershipState(0, 8).reignNumber, 2);
+  assert.equal(calculateMonthRulershipState(0, 9).reignNumber, 2);
+});
+
+test('Inter Regna neither contain rulership nor advance the regular rotation', () => {
+  const monthOne = calculateCalendarState(atDay(28)).calendar.period;
+  const interRegnum = calculateCalendarState(atDay(29)).calendar.period;
+  const monthTwo = calculateCalendarState(atDay(32)).calendar.period;
+  assert.equal(monthOne.rulership.effectiveRulerId, 'ruler-01');
+  assert.equal(Object.hasOwn(interRegnum, 'rulership'), false);
+  assert.equal(monthTwo.rulership.effectiveRulerId, 'ruler-02');
+});
+
+test('month-rulership inputs are validated', () => {
+  for (const value of [-1, 1.5, NaN, Infinity]) assert.throws(() => calculateRegularMonthRulership(value), RangeError);
+  assert.throws(() => calculateRegularMonthRulership('1'), TypeError);
+  for (const args of [[-1, 0], [0, -1], [0, 11], [0, 1.5]]) {
+    assert.throws(() => calculateMonthRulershipState(...args), RangeError);
+  }
+});
+
 test('invalid inputs are rejected', () => {
   for (const value of [NaN, Infinity]) assert.throws(() => calculateCalendarState(value), RangeError);
   for (const value of ['0', null]) assert.throws(() => calculateCalendarState(value), TypeError);
@@ -94,6 +159,9 @@ test('the exact mechanical constants remain stable', () => {
   assert.deepEqual(rules.INTER_REGNUM_LENGTHS, [3,3,3,3,3,3,3,3,3,3,4]);
   assert.equal(rules.CELESTIAL_BODY_RULES.length, 6);
   assert.equal(rules.LUNAR_PHASE_RULES.length, 13);
+  assert.deepEqual(rules.MONTH_RULER_IDS, ['ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-08']);
+  assert.equal(rules.ALTERNATING_SKIP_RULER_ID, 'ruler-08');
+  assert.equal(rules.REIGN_ORDINAL_IDS.length, 11);
 });
 
 test('Outcome thresholds and neutral IDs remain unchanged', () => {

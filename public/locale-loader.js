@@ -12,7 +12,8 @@ export const MESSAGE_KEYS = Object.freeze([
 export const TEMPLATE_KEYS = Object.freeze([
   'document.title', 'document.page-01Description', 'document.page-02Description', 'document.page-03Description',
   'accessibility.version', 'accessibility.orbitProgress',
-  'calendar.formattedYear', 'calendar.monthPeriod', 'calendar.interPeriod', 'calendar.formattedDate',
+  'calendar.formattedYear', 'calendar.firstMonthReign', 'calendar.repeatedMonthReign',
+  'calendar.monthPeriod', 'calendar.interPeriod', 'calendar.formattedDate',
   'lunar.summary', 'season.metadata', 'season.cycle', 'season.next', 'season.progress',
   'tide.metadata', 'tide.time', 'outcome.type', 'outcome.attempts', 'outcome.source', 'outcome.progress',
   'orbit.calendarPeriod', 'orbit.lunarPeriod', 'orbit.metadata',
@@ -65,7 +66,7 @@ function validateOutcomeTypes(outcomeTypes) {
 
 export function validateLocale(locale) {
   if (!locale || typeof locale !== 'object' || Array.isArray(locale)) throw new TypeError('locale must be an object');
-  if (locale.schemaVersion !== 4) throw new Error('locale schemaVersion must be 4');
+  if (locale.schemaVersion !== 5) throw new Error('locale schemaVersion must be 5');
   assertNonEmpty(locale.id, 'locale.id');
   assertNonEmpty(locale.languageTag, 'locale.languageTag');
   validateOutcomeTypes(locale.outcomeTypes);

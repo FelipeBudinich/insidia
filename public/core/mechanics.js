@@ -1,5 +1,6 @@
 import {
   CALENDAR_EPOCH_UNIX_MS,
+  ALTERNATING_SKIP_RULER_ID,
   CELESTIAL_BODY_RULES,
   DAYS_PER_MONTH,
   DAYS_PER_YEAR,
@@ -17,12 +18,14 @@ import {
   LUNAR_DAYS_PER_CYCLE,
   LUNAR_PHASE_RULES,
   MONTH_IDS,
+  MONTH_RULER_IDS,
   MONTHS_PER_YEAR,
   ORBITAL_SPAN_TIE_EPSILON,
   OUTCOME_TIDE_RULES,
   OUTCOME_TYPE_RULES,
   PULL_RULES,
   REAL_MS_PER_FICTIONAL_SECOND,
+  REIGN_ORDINAL_IDS,
   SEASONAL_CYCLE_LENGTH_DAYS,
   SEASON_RULES,
   TIDE_RULES,
@@ -52,6 +55,49 @@ function assertProgressFraction(value, label = 'progressFraction') {
   if (!Number.isFinite(value) || value < 0 || value >= 1) {
     throw new RangeError(`${label} must be finite and at least 0 but less than 1`);
   }
+}
+
+export function calculateRegularMonthRulership(absoluteMonthIndex) {
+  assertNonNegativeSafeInteger(absoluteMonthIndex, 'absoluteMonthIndex');
+  const supercycleIndex = absoluteMonthIndex % 15;
+  const skippedRegularTurn = absoluteMonthIndex > 0 && supercycleIndex === 0;
+  const regularRulerIndex = supercycleIndex < MONTH_RULER_IDS.length
+    ? supercycleIndex
+    : supercycleIndex - MONTH_RULER_IDS.length;
+  const regularRulerId = MONTH_RULER_IDS[regularRulerIndex];
+  return {
+    opportunityRulerId: skippedRegularTurn ? ALTERNATING_SKIP_RULER_ID : regularRulerId,
+    regularRulerId,
+    skippedRegularTurn
+  };
+}
+
+export function calculateMonthRulershipState(zeroBasedYear, zeroBasedMonthIndex) {
+  assertNonNegativeSafeInteger(zeroBasedYear, 'zeroBasedYear');
+  assertNonNegativeSafeInteger(zeroBasedMonthIndex, 'zeroBasedMonthIndex');
+  if (zeroBasedMonthIndex >= MONTHS_PER_YEAR) {
+    throw new RangeError(`zeroBasedMonthIndex must be between 0 and ${MONTHS_PER_YEAR - 1}`);
+  }
+  const firstAbsoluteMonthIndex = zeroBasedYear * MONTHS_PER_YEAR;
+  const absoluteMonthIndex = firstAbsoluteMonthIndex + zeroBasedMonthIndex;
+  if (!Number.isSafeInteger(absoluteMonthIndex)) {
+    throw new RangeError('absoluteMonthIndex must be a safe integer');
+  }
+  const regular = calculateRegularMonthRulership(absoluteMonthIndex);
+  const effectiveRulerId = regular.regularRulerId;
+  let reignNumber = 0;
+  for (let index = 0; index <= zeroBasedMonthIndex; index += 1) {
+    if (calculateRegularMonthRulership(firstAbsoluteMonthIndex + index).regularRulerId === effectiveRulerId) {
+      reignNumber += 1;
+    }
+  }
+  return {
+    ...regular,
+    effectiveRulerId,
+    source: 'base_rotation',
+    reignNumber,
+    ordinalId: REIGN_ORDINAL_IDS[reignNumber - 1]
+  };
 }
 
 export function calculateSeasonState(totalElapsedDays) {
@@ -321,7 +367,14 @@ export function calculateCalendarState(realUnixMilliseconds) {
   let period;
   for (let index = 0; index < MONTHS_PER_YEAR; index += 1) {
     if (remainingDays < DAYS_PER_MONTH) {
-      period = { type: 'month', monthId: MONTH_IDS[index], monthIndex: index + 1, day: remainingDays + 1, length: DAYS_PER_MONTH };
+      period = {
+        type: 'month',
+        monthId: MONTH_IDS[index],
+        monthIndex: index + 1,
+        day: remainingDays + 1,
+        length: DAYS_PER_MONTH,
+        rulership: calculateMonthRulershipState(zeroBasedYear, index)
+      };
       break;
     }
     remainingDays -= DAYS_PER_MONTH;

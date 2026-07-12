@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "application": {
     "displayName": "Insidia"
   },
@@ -10,19 +10,32 @@
   ],
   "calendar": {
     "yearName": "Annus Solis",
-    "months": [
-      { "id": "month-01", "name": "Month 1", "shortName": "1" },
-      { "id": "month-02", "name": "Month 2", "shortName": "2" },
-      { "id": "month-03", "name": "Month 3", "shortName": "3" },
-      { "id": "month-04", "name": "Month 4", "shortName": "4" },
-      { "id": "month-05", "name": "Month 5", "shortName": "5" },
-      { "id": "month-06", "name": "Month 6", "shortName": "6" },
-      { "id": "month-07", "name": "Month 7", "shortName": "7" },
-      { "id": "month-08", "name": "Month 8", "shortName": "8" },
-      { "id": "month-09", "name": "Month 9", "shortName": "9" },
-      { "id": "month-10", "name": "Month 10", "shortName": "10" },
-      { "id": "month-11", "name": "Month 11", "shortName": "11" }
-    ],
+    "monthReign": {
+      "name": "Regno de",
+      "rulers": [
+        { "id": "ruler-01", "name": "Orgolio" },
+        { "id": "ruler-02", "name": "Rabia" },
+        { "id": "ruler-03", "name": "Gula" },
+        { "id": "ruler-04", "name": "Invidia" },
+        { "id": "ruler-05", "name": "Avaritia" },
+        { "id": "ruler-06", "name": "Vanitate" },
+        { "id": "ruler-07", "name": "Luxuria" },
+        { "id": "ruler-08", "name": "Pigritia" }
+      ],
+      "ordinals": [
+        { "id": "reign-ordinal-01", "name": "Prime" },
+        { "id": "reign-ordinal-02", "name": "Secunde" },
+        { "id": "reign-ordinal-03", "name": "Tertie" },
+        { "id": "reign-ordinal-04", "name": "Quarte" },
+        { "id": "reign-ordinal-05", "name": "Quinte" },
+        { "id": "reign-ordinal-06", "name": "Sexte" },
+        { "id": "reign-ordinal-07", "name": "Septime" },
+        { "id": "reign-ordinal-08", "name": "Octave" },
+        { "id": "reign-ordinal-09", "name": "None" },
+        { "id": "reign-ordinal-10", "name": "Decime" },
+        { "id": "reign-ordinal-11", "name": "Undecime" }
+      ]
+    },
     "weekdays": [
       { "id": "weekday-01", "name": "Dies Lunae" },
       { "id": "weekday-02", "name": "Dies Martis" },

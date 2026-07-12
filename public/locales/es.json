@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "es",
   "languageTag": "es",
   "outcomeTypes": {
@@ -57,6 +57,8 @@
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Progreso orbital de {bodyName}",
     "calendar.formattedYear": "{yearName} {yearRoman}",
+    "calendar.firstMonthReign": "{reignName} {rulerName}",
+    "calendar.repeatedMonthReign": "{ordinalName} {reignName} {rulerName}",
     "calendar.monthPeriod": "{weekdayName} · {dayRoman} {monthName}",
     "calendar.interPeriod": "{weekdayName} · {dayRoman} {interRegnumName}",
     "calendar.formattedDate": "{formattedYear} · {periodLabel}",

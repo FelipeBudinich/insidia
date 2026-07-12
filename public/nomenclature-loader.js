@@ -2,8 +2,9 @@ import {
   CELESTIAL_BODY_RULES,
   INTER_REGNUM_IDS,
   LUNAR_PHASE_RULES,
-  MONTH_IDS,
+  MONTH_RULER_IDS,
   PULL_RULES,
+  REIGN_ORDINAL_IDS,
   SEASON_RULES,
   TIDE_RULES,
   WEEKDAY_IDS
@@ -71,13 +72,16 @@ function validateEntities(items, expectedIds, label, entityKeys) {
 
 export function validateNomenclature(nomenclature) {
   assertExactKeys(nomenclature, TOP_LEVEL_KEYS, 'nomenclature');
-  if (nomenclature.schemaVersion !== 5) throw new Error('nomenclature schemaVersion must be 5');
+  if (nomenclature.schemaVersion !== 6) throw new Error('nomenclature schemaVersion must be 6');
   assertExactKeys(nomenclature.application, ['displayName'], 'nomenclature.application');
   assertNonEmptyString(nomenclature.application.displayName, 'nomenclature.application.displayName');
   validateEntities(nomenclature.pages, PAGE_IDS, 'nomenclature.pages', ['id', 'name']);
-  assertExactKeys(nomenclature.calendar, ['yearName', 'months', 'weekdays', 'interRegna'], 'nomenclature.calendar');
+  assertExactKeys(nomenclature.calendar, ['yearName', 'monthReign', 'weekdays', 'interRegna'], 'nomenclature.calendar');
   assertNonEmptyString(nomenclature.calendar.yearName, 'nomenclature.calendar.yearName');
-  validateEntities(nomenclature.calendar.months, MONTH_IDS, 'nomenclature.calendar.months', ['id', 'name', 'shortName']);
+  assertExactKeys(nomenclature.calendar.monthReign, ['name', 'rulers', 'ordinals'], 'nomenclature.calendar.monthReign');
+  assertNonEmptyString(nomenclature.calendar.monthReign.name, 'nomenclature.calendar.monthReign.name');
+  validateEntities(nomenclature.calendar.monthReign.rulers, MONTH_RULER_IDS, 'nomenclature.calendar.monthReign.rulers', ['id', 'name']);
+  validateEntities(nomenclature.calendar.monthReign.ordinals, REIGN_ORDINAL_IDS, 'nomenclature.calendar.monthReign.ordinals', ['id', 'name']);
   validateEntities(nomenclature.calendar.weekdays, WEEKDAY_IDS, 'nomenclature.calendar.weekdays', ['id', 'name']);
   validateEntities(nomenclature.calendar.interRegna, INTER_REGNUM_IDS, 'nomenclature.calendar.interRegna', ['id', 'name']);
   validateEntities(nomenclature.seasons, SEASON_RULES.map(({ id }) => id), 'nomenclature.seasons', ['id', 'name']);

@@ -74,13 +74,12 @@ test('query parameters cannot change the nomenclature request', async () => {
 
 test('production nomenclature validates complete neutral ID coverage', async () => {
   const value = validateNomenclature(await readJson(nomenclaturePath));
-  assert.equal(value.schemaVersion, 5);
+  assert.equal(value.schemaVersion, 6);
   assert.deepEqual(value.lunarCycle, { name: 'Cyclus Lunae' });
   assert.deepEqual(Object.keys(value.lunarCycle), ['name']);
   assert.equal(value.calendar.yearName, 'Annus Solis');
-  assert.deepEqual(Object.keys(value.calendar).sort(), ['interRegna', 'months', 'weekdays', 'yearName']);
-  assert.equal(value.calendar.months.length, 11);
-  assert.ok(value.calendar.months.every((month) => Object.keys(month).sort().join(',') === 'id,name,shortName'));
+  assert.deepEqual(Object.keys(value.calendar).sort(), ['interRegna', 'monthReign', 'weekdays', 'yearName']);
+  assert.equal(Object.hasOwn(value.calendar, 'months'), false);
   assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03']);
   assert.equal(value.calendar.weekdays.length, 7);
   assert.equal(value.calendar.interRegna.length, 11);
@@ -98,10 +97,50 @@ test('nomenclature validation rejects missing, duplicate, unknown, and invalid e
   const unknown = structuredClone(valid); unknown.seasons[1].id = 'season-99';
   const empty = structuredClone(valid); empty.seasons[0].name = '';
   const nonString = structuredClone(valid); nonString.celestialBodies[0].symbol = 7;
-  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 6;
+  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 7;
   for (const invalid of [missing, duplicate, unknown, empty, nonString, wrongSchema]) {
     assert.throws(() => validateNomenclature(invalid));
   }
+});
+
+test('month-reign nomenclature requires exact rulers, ordinals, and name-only entities', async () => {
+  const valid = await readJson(nomenclaturePath);
+  const monthReign = validateNomenclature(valid).calendar.monthReign;
+  assert.equal(monthReign.name, 'Regno de');
+  assert.deepEqual(monthReign.rulers, [
+    { id: 'ruler-01', name: 'Orgolio' }, { id: 'ruler-02', name: 'Rabia' },
+    { id: 'ruler-03', name: 'Gula' }, { id: 'ruler-04', name: 'Invidia' },
+    { id: 'ruler-05', name: 'Avaritia' }, { id: 'ruler-06', name: 'Vanitate' },
+    { id: 'ruler-07', name: 'Luxuria' }, { id: 'ruler-08', name: 'Pigritia' }
+  ]);
+  assert.deepEqual(monthReign.ordinals, [
+    { id: 'reign-ordinal-01', name: 'Prime' }, { id: 'reign-ordinal-02', name: 'Secunde' },
+    { id: 'reign-ordinal-03', name: 'Tertie' }, { id: 'reign-ordinal-04', name: 'Quarte' },
+    { id: 'reign-ordinal-05', name: 'Quinte' }, { id: 'reign-ordinal-06', name: 'Sexte' },
+    { id: 'reign-ordinal-07', name: 'Septime' }, { id: 'reign-ordinal-08', name: 'Octave' },
+    { id: 'reign-ordinal-09', name: 'None' }, { id: 'reign-ordinal-10', name: 'Decime' },
+    { id: 'reign-ordinal-11', name: 'Undecime' }
+  ]);
+
+  const missingRuler = structuredClone(valid); missingRuler.calendar.monthReign.rulers.pop();
+  const duplicateRuler = structuredClone(valid); duplicateRuler.calendar.monthReign.rulers[1].id = 'ruler-01';
+  const unknownRuler = structuredClone(valid); unknownRuler.calendar.monthReign.rulers[1].id = 'ruler-99';
+  const emptyRuler = structuredClone(valid); emptyRuler.calendar.monthReign.rulers[0].name = '';
+  const rulerShortName = structuredClone(valid); rulerShortName.calendar.monthReign.rulers[0].shortName = 'O';
+  const missingOrdinal = structuredClone(valid); missingOrdinal.calendar.monthReign.ordinals.pop();
+  const duplicateOrdinal = structuredClone(valid); duplicateOrdinal.calendar.monthReign.ordinals[1].id = 'reign-ordinal-01';
+  const unknownOrdinal = structuredClone(valid); unknownOrdinal.calendar.monthReign.ordinals[1].id = 'reign-ordinal-99';
+  const emptyOrdinal = structuredClone(valid); emptyOrdinal.calendar.monthReign.ordinals[0].name = '';
+  const missingName = structuredClone(valid); delete missingName.calendar.monthReign.name;
+  const emptyName = structuredClone(valid); emptyName.calendar.monthReign.name = '';
+  const staticMonths = structuredClone(valid); staticMonths.calendar.months = [];
+  const mechanicalSkip = structuredClone(valid); mechanicalSkip.calendar.monthReign.skippedRegularTurn = true;
+  const mechanicalDuration = structuredClone(valid); mechanicalDuration.calendar.monthReign.durationDays = 29;
+  for (const invalid of [
+    missingRuler, duplicateRuler, unknownRuler, emptyRuler, rulerShortName,
+    missingOrdinal, duplicateOrdinal, unknownOrdinal, emptyOrdinal, missingName, emptyName,
+    staticMonths, mechanicalSkip, mechanicalDuration
+  ]) assert.throws(() => validateNomenclature(invalid));
 });
 
 test('lunar-cycle nomenclature requires exactly one non-empty name', async () => {
@@ -213,7 +252,7 @@ function configurationErrorDocument() {
 test('missing or invalid nomenclature prevents rendering and shows a localized accessible error', async (t) => {
   t.mock.method(console, 'error', () => {});
   const valid = await readJson(nomenclaturePath);
-  const invalid = structuredClone(valid); invalid.calendar.months.pop();
+  const invalid = structuredClone(valid); invalid.calendar.monthReign.rulers.pop();
   const invalidWeekday = structuredClone(valid); invalidWeekday.calendar.weekdays[0].symbol = '☾';
   const invalidYearName = structuredClone(valid); invalidYearName.calendar.yearName = '';
   const invalidLunarCycle = structuredClone(valid); invalidLunarCycle.lunarCycle.name = '';
@@ -319,10 +358,12 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
   assert.deepEqual(Object.values(english.outcomeTypes).map(({ name }) => name), ['Common', 'Uncommon', 'Rare']);
   assert.deepEqual(Object.values(spanish.outcomeTypes).map(({ name }) => name), ['Común', 'Poco común', 'Raro']);
-  assert.equal(english.schemaVersion, 4);
-  assert.equal(spanish.schemaVersion, 4);
+  assert.equal(english.schemaVersion, 5);
+  assert.equal(spanish.schemaVersion, 5);
   const calendarTemplates = {
     'calendar.formattedYear': '{yearName} {yearRoman}',
+    'calendar.firstMonthReign': '{reignName} {rulerName}',
+    'calendar.repeatedMonthReign': '{ordinalName} {reignName} {rulerName}',
     'calendar.monthPeriod': '{weekdayName} · {dayRoman} {monthName}',
     'calendar.interPeriod': '{weekdayName} · {dayRoman} {interRegnumName}',
     'calendar.formattedDate': '{formattedYear} · {periodLabel}'

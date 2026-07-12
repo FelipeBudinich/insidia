@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.7 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v8.8 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
@@ -36,12 +36,14 @@ The only production nomenclature file is:
 public/config/nomenclature.json
 ```
 
-The browser always loads it from the fixed same-origin URL `/config/nomenclature.json`. Editing this file and redeploying is sufficient to rename the application/world, months, weekdays, Inter Regna, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. JavaScript and HTML changes are not required.
+The browser always loads it from the fixed same-origin URL `/config/nomenclature.json`. Editing this file and redeploying is sufficient to rename the application/world, the month-reign system, weekdays, Inter Regna, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. JavaScript and HTML changes are not required.
 
-The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.7 configuration includes:
+The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.8 configuration includes:
 
 - Calendar year name: Annus Solis
 - Lunar cycle name: Cyclus Lunae
+- Month reign: Regno de; rulers Orgolio, Rabia, Gula, Invidia, Avaritia, Vanitate, Luxuria, Pigritia
+- Reign ordinals: Prime, Secunde, Tertie, Quarte, Quinte, Sexte, Septime, Octave, None, Decime, Undecime
 - Weekdays: Dies Lunae, Dies Martis, Dies Mercurii, Dies Iovis, Dies Veneris, Dies Saturni, Dies Solis
 - Lunar phases: Renascimento, Corno, Falce, Passage, Ascrescimento, Crescente, Ascenso, Apice, Morditura, Decrescente, Recedente, Velo, Morte
 - Tides: Marea basse, Marea alte, Marea dividite
@@ -51,9 +53,9 @@ The configured terms are fixed in-universe proper nouns, not English or Spanish 
 
 These names and symbols are loaded exclusively from `public/config/nomenclature.json` and remain identical when the locale changes.
 
-Weekday entities use exactly `{ id, name }`; they have no `shortName` or symbol. Month entities continue to use `{ id, name, shortName }`. Both categories must retain their complete canonical neutral ID sets and ordering.
+Weekday, month-ruler, and reign-ordinal entities use exactly `{ id, name }`; they have no `shortName` or symbol. Their complete canonical neutral ID sets and ordering must be retained. Static month names are not configured: each visible month name is derived from its ruler and its ruler's reign number within that year.
 
-Calendario renders visible years and period days with uppercase Roman numerals. Its two-line date header is `Annus Solis {romanYear}` followed by `{weekdayName} · {romanDay} {periodName}`. The period name is always resolved from the active month or Inter Regnum nomenclature, so configuration changes flow through automatically. English and Spanish show the same in-universe date.
+Calendario renders visible years and period days with uppercase Roman numerals. Its two-line date header is `Annus Solis {romanYear}` followed by `{weekdayName} · {romanDay} {periodName}`. A ruler's first month in a year is named `Regno de {ruler}`; later months use `{ordinal} Regno de {ruler}`. `Prime` remains structured nomenclature but is deliberately omitted from the first visible reign name. Inter Regnum names continue to resolve directly from nomenclature. English and Spanish show the same in-universe date.
 
 The bottom Calendario card contains one in-universe lunar summary line: `{phaseName} • {cycleName} {RomanCycle}`. For lunar cycle 1234, it reads `Morditura • Cyclus Lunae MCCXXXIV`. Both names come from nomenclature, not locale data, and English and Spanish display the same summary. Lunar day and cycle-length values remain in raw state but are no longer shown in this card.
 
@@ -74,12 +76,14 @@ Changing locale translates Outcome types and generic UI prose without changing c
 - 59 seconds = 1 minute; 61 minutes = 1 hour; 23 hours = 1 calendar day
 - 7 days = 1 week
 - 11 × 29-day months, ten 3-day Inter Regna, and one 4-day final Inter Regnum = 353 days
+- Eight rulers rotate across calendar months without resetting at year boundaries. The repeating 15-month effective sequence is rulers 1–8, then rulers 1–7; ruler 8's next regular opportunity is skipped before the sequence repeats.
+- Inter Regna do not advance the ruler rotation. Reign ordinals count each effective ruler's appearances within the current year and reset at the new year without resetting the underlying rotation.
 - Two continuous 179-day seasons = a 358-day seasonal cycle
 - 31-hour lunar days and 13-day lunar cycles
 - Tides last 17, 13, and 1 lunar hours
 - Six deterministic circular orbits and three ranked three-body pulls
 
-The epoch is `1970-01-01T00:00:00.000Z`. Mechanical modules own stable IDs, durations, ordering, orbital periods, tie-breaking, thresholds, calculations, and relationships. They never contain configured proper nouns, localized text, symbols, or formatted display values.
+The epoch is `1970-01-01T00:00:00.000Z`. Mechanical modules own stable IDs, durations, ordering, orbital periods, tie-breaking, thresholds, calculations, and relationships. They never contain configured proper nouns, localized text, symbols, or formatted display values. Month state keeps the skipped opportunity, regular ruler, and effective ruler separate; v8.8 uses `source: "base_rotation"`, so the regular ruler is also effective. That distinction is an explicit seam for future forced or conspiracy-based rulership without changing the base rotation or its Pigritia skip.
 
 Raw calendar state retains numeric `year`, `weekOfYear`, `dayOfYear`, `dayOfWeek`, and period-day values. Raw lunar state likewise retains cycle, day, cycle length, and phase ID. Roman conversion and in-universe names exist only in the presentation layer.
 
@@ -102,20 +106,20 @@ The project has no framework, build system, database, backend time API, WebSocke
 - Outcome begins directly with the selected celestial object and retains its classification, tide, Pull, orbit, and progress data without a visible Outcome card title.
 - Weather begins directly with the Time card, including both fictional and lunar clocks, then shows Season and Progress. It has no separate page-header card.
 
-Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.7 version in its footer.
+Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.8 version in its footer.
 
-## JSON schema v13
+## JSON schema v14
 
 The public `createCalendarJson()` serialization API remains available even though no page exposes visible JSON or clipboard controls. Its top-level fields are:
 
-- `calendarVersion: "v13"`
+- `calendarVersion: "v14"`
 - `nomenclature`: schema version and application display name, with no requested/resolved selection
 - `locale`: requested/resolved IDs, language tag, and locale schema version
 - `source`: Unix milliseconds and ISO UTC
 - `state`: raw canonical IDs and numeric mechanics without names or symbols
 - `display`: configured names, symbols, localized text, and formatted values
 
-The v13 display calendar retains the v12 in-universe date fields. Its lunar display adds `cycleName`, `formattedCycle`, and `formattedSummary` while preserving phase, tide, time, and tide-time fields. Raw state remains presentation-neutral and retains canonical IDs plus numeric mechanics. The schema contains no universe-selection metadata.
+The v14 display calendar replaces static month nomenclature with a generated month object containing the formatted reign name and structured opportunity, regular, and effective ruler entities, source, skip flag, yearly reign number, and ordinal entity. The raw month period exposes the same mechanics using neutral IDs only. Inter Regna contain no month rulership and the display month is `null`. Lunar display retains `cycleName`, `formattedCycle`, and `formattedSummary` alongside phase, tide, time, and tide-time fields. The schema contains no universe-selection metadata.
 
 ## Routes and server
 
@@ -126,7 +130,7 @@ The v13 display calendar retains the v12 in-universe date fields. Its lunar disp
 | `/destino.html` | Outcome selection, tides, pulls, orbits, and hour progress |
 | `/tempore.html` | Fictional times, season, and selected progress |
 | `/config/nomenclature.json` | The one read-only nomenclature configuration |
-| `/health` | `{"ok":true,"version":"v8.7"}` |
+| `/health` | `{"ok":true,"version":"v8.8"}` |
 
 Static `.html`, `.css`, `.js`, and `.json` responses—including locale and nomenclature configuration—use explicit MIME types and `Cache-Control: no-cache`. They also include deterministic weak ETags and Last-Modified validators, so repeat requests can revalidate with a bodyless `304 Not Modified` response instead of retransferring unchanged files. Other static formats retain a short revalidating cache policy. Dynamic, redirect, and error responses remain `no-store` and do not participate in static revalidation.
 
@@ -138,7 +142,7 @@ The former English page paths and modules are intentionally unsupported. They ha
 
 1. Edit only `public/config/nomenclature.json`.
 2. Keep every canonical neutral ID, required entity, and category ordering.
-3. Preserve each entity shape: calendar includes the non-empty `yearName`, lunar cycle uses `{ name }`, months use `{ id, name, shortName }`, weekdays use `{ id, name }`, and only celestial bodies use symbols.
+3. Preserve each entity shape: calendar includes non-empty `yearName` and `monthReign.name`; month rulers, reign ordinals, and weekdays use `{ id, name }`; lunar cycle uses `{ name }`; and only celestial bodies use symbols.
 4. Keep Outcome types, translations, templates, and mechanics out of the file.
 5. Run `npm test` before deployment.
 
@@ -148,7 +152,7 @@ The former English page paths and modules are intentionally unsupported. They ha
 2. Add its ID and fixed same-origin path to the `LOCALE_FILES` registry in `public/locale-loader.js`.
 3. Add or update loader, validation, and presentation tests, then run `npm test`.
 
-The nomenclature file uses schema version 5, including the configured lunar-cycle name. Locale files use schema version 4 for the shared lunar-summary template contract. The Calendar JSON API uses schema v13.
+The nomenclature file uses schema version 6, including the month-reign and lunar-cycle names. Locale files use schema version 5 for the dynamic month-reign and lunar-summary template contracts. The Calendar JSON API uses schema v14.
 
 ## Project structure
 

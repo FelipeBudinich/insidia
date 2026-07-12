@@ -1,12 +1,28 @@
 import { formatClock, formatPercentage, formatRomanNumeral } from './core/formatting.js';
 
+export function formatMonthReignName(rulership, context) {
+  if (!Number.isInteger(rulership?.reignNumber) || rulership.reignNumber < 1 || rulership.reignNumber > 11) {
+    throw new RangeError('Month reign number must be an integer between 1 and 11');
+  }
+  const ruler = context.getMonthRuler(rulership.effectiveRulerId);
+  const ordinal = context.getReignOrdinal(rulership.ordinalId);
+  const templateKey = rulership.reignNumber === 1
+    ? 'calendar.firstMonthReign'
+    : 'calendar.repeatedMonthReign';
+  return context.format(templateKey, {
+    reignName: context.monthReignName,
+    rulerName: ruler.name,
+    ordinalName: ordinal.name
+  });
+}
+
 export function formatCalendarPeriod(state, context) {
   const period = state.calendar.period;
   const weekdayName = context.getWeekday(state.calendar.weekdayId).name;
   const dayRoman = formatRomanNumeral(period.day);
   if (period.type === 'month') {
     return context.format('calendar.monthPeriod', {
-      monthName: context.getMonth(period.monthId).name,
+      monthName: formatMonthReignName(period.rulership, context),
       weekdayName,
       dayRoman
     });
@@ -16,6 +32,25 @@ export function formatCalendarPeriod(state, context) {
     weekdayName,
     dayRoman
   });
+}
+
+function displayMonth(period, context) {
+  if (period.type !== 'month') return null;
+  const rulership = period.rulership;
+  return {
+    id: period.monthId,
+    index: period.monthIndex,
+    name: formatMonthReignName(rulership, context),
+    rulership: {
+      opportunityRuler: context.getMonthRuler(rulership.opportunityRulerId),
+      regularRuler: context.getMonthRuler(rulership.regularRulerId),
+      effectiveRuler: context.getMonthRuler(rulership.effectiveRulerId),
+      source: rulership.source,
+      skippedRegularTurn: rulership.skippedRegularTurn,
+      reignNumber: rulership.reignNumber,
+      ordinal: context.getReignOrdinal(rulership.ordinalId)
+    }
+  };
 }
 
 export function formatFictionalYear(state, context) {
@@ -53,7 +88,7 @@ function displayPull(pull, context) {
 
 export function createDisplayData(state, context) {
   const period = state.calendar.period;
-  const month = period.type === 'month' ? context.getMonth(period.monthId) : null;
+  const month = displayMonth(period, context);
   const interRegnum = period.type === 'inter_regnum' ? context.getInterRegnum(period.interRegnumId) : null;
   const weekday = context.getWeekday(state.calendar.weekdayId);
   const formattedYear = formatFictionalYear(state, context);
@@ -111,7 +146,7 @@ function copyRawState(state) {
 
 export function createCalendarJson(state, realUnixMilliseconds, context) {
   return {
-    calendarVersion: 'v13',
+    calendarVersion: 'v14',
     nomenclature: {
       schemaVersion: context.nomenclatureSchemaVersion,
       applicationDisplayName: context.applicationDisplayName
