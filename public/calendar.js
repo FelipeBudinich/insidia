@@ -352,6 +352,102 @@ export function calculateOrbitalState(totalFictionalSeconds) {
   return { bodies, ...calculateOrbitalPulls(bodies) };
 }
 
+const DROP_TIDE_RULES = Object.freeze({
+  high: {
+    pullKey: 'dominantPull',
+    sourcePull: { id: 'dominant', name: 'Dominant Pull' },
+    selectionRule: 'closest_to_completion',
+    target: 'maximum'
+  },
+  low: {
+    pullKey: 'minorPull',
+    sourcePull: { id: 'minor', name: 'Minor Pull' },
+    selectionRule: 'furthest_from_completion',
+    target: 'minimum'
+  },
+  parted: {
+    pullKey: 'negativePull',
+    sourcePull: { id: 'negative', name: 'Negative Pull' },
+    selectionRule: 'median_progress',
+    target: 'median'
+  }
+});
+
+export function calculateDropState(tide, orbitalState) {
+  if (!tide || typeof tide !== 'object' || typeof tide.id !== 'string') {
+    throw new TypeError('tide must be an object with an id');
+  }
+  const rule = DROP_TIDE_RULES[tide.id];
+  if (!rule) {
+    throw new RangeError(`Unsupported tide id for Drop: ${tide.id}`);
+  }
+  if (!orbitalState || !Array.isArray(orbitalState.bodies)) {
+    throw new TypeError('orbitalState must contain a bodies array');
+  }
+
+  const sourcePull = orbitalState[rule.pullKey];
+  if (!sourcePull || !Array.isArray(sourcePull.members) || sourcePull.members.length !== 3) {
+    throw new TypeError(`${rule.pullKey} must contain exactly three members`);
+  }
+  const bodiesById = new Map(orbitalState.bodies.map((body) => [body.id, body]));
+  const members = sourcePull.members.map((member) => {
+    const body = bodiesById.get(member.id);
+    if (!body) {
+      throw new Error(`Drop source pull member is missing from orbital bodies: ${member.id}`);
+    }
+    assertProgressFraction(body.progressFraction, `body ${body.id} progressFraction`);
+    if (!Number.isInteger(body.tieBreakPriorityRank)) {
+      throw new TypeError(`body ${body.id} tieBreakPriorityRank must be an integer`);
+    }
+    return body;
+  });
+
+  let targetProgress;
+  if (rule.target === 'maximum') {
+    targetProgress = Math.max(...members.map((body) => body.progressFraction));
+  } else if (rule.target === 'minimum') {
+    targetProgress = Math.min(...members.map((body) => body.progressFraction));
+  } else {
+    targetProgress = [...members]
+      .map((body) => body.progressFraction)
+      .sort((first, second) => first - second)[1];
+  }
+
+  const tiedBodies = members
+    .filter(
+      (body) => Math.abs(body.progressFraction - targetProgress) <= ORBITAL_SPAN_TIE_EPSILON
+    )
+    .sort((first, second) => {
+      const priorityDifference = first.tieBreakPriorityRank - second.tieBreakPriorityRank;
+      if (priorityDifference !== 0) return priorityDifference;
+      if (first.id < second.id) return -1;
+      if (first.id > second.id) return 1;
+      return 0;
+    });
+  const selectedBody = tiedBodies[0];
+
+  return {
+    tide: { id: tide.id, name: tide.name },
+    sourcePull: { ...rule.sourcePull },
+    selectionRule: rule.selectionRule,
+    body: {
+      id: selectedBody.id,
+      name: selectedBody.name,
+      symbol: selectedBody.symbol,
+      orbit: selectedBody.orbit,
+      dayOfOrbit: selectedBody.dayOfOrbit,
+      progressFraction: selectedBody.progressFraction,
+      progressPercentage: selectedBody.progressPercentage,
+      formattedProgress: formatOrbitalPercentage(selectedBody.progressFraction)
+    },
+    tieBreak: {
+      applied: tiedBodies.length > 1,
+      method: 'fixed_priority',
+      tiedBodyCount: tiedBodies.length
+    }
+  };
+}
+
 function createProgressValue(fraction) {
   return {
     fraction,
@@ -453,7 +549,9 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
   const totalSeconds = Math.floor(
     (realUnixMilliseconds - CALENDAR_EPOCH_UNIX_MS) / REAL_MS_PER_FICTIONAL_SECOND
   );
+  const lunar = calculateLunarState(totalSeconds);
   const orbits = calculateOrbitalState(totalSeconds);
+  const drop = calculateDropState(lunar.tide, orbits);
   let remainingSeconds = totalSeconds;
   const second = remainingSeconds % FICTIONAL_SECONDS_PER_MINUTE;
   remainingSeconds = Math.floor(remainingSeconds / FICTIONAL_SECONDS_PER_MINUTE);
@@ -495,7 +593,6 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
   }
 
   const season = calculateSeasonState(totalElapsedDays);
-  const lunar = calculateLunarState(totalSeconds);
   const progress = calculateProgressState(totalSeconds, season, lunar);
 
   return {
@@ -510,6 +607,7 @@ export function calculateFictionalCalendar(realUnixMilliseconds) {
     season,
     lunar,
     orbits,
+    drop,
     progress
   };
 }

@@ -91,7 +91,7 @@ test('GET and HEAD root redirect securely to the calendar route', async () => {
   }
 });
 
-test('GET and HEAD health return the v6 availability response', async () => {
+test('GET and HEAD health return the v6.1 availability response', async () => {
   const server = await startTestServer();
   try {
     const getResponse = await request(server, '/health');
@@ -99,7 +99,7 @@ test('GET and HEAD health return the v6 availability response', async () => {
     assert.equal(getResponse.statusCode, 200);
     assert.equal(getResponse.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(getResponse.headers['cache-control'], 'no-store');
-    assert.equal(getResponse.body, '{"ok":true,"version":"v6"}');
+    assert.equal(getResponse.body, '{"ok":true,"version":"v6.1"}');
     assertSecurityHeaders(getResponse.headers);
     assert.equal(headResponse.statusCode, 200);
     assert.equal(headResponse.body, '');
@@ -124,7 +124,7 @@ test('all three HTML routes serve secure no-cache documents with shared navigati
       assert.equal(getResponse.headers['content-type'], 'text/html; charset=utf-8', page.path);
       assert.equal(getResponse.headers['cache-control'], 'no-cache', page.path);
       assert.match(getResponse.body, new RegExp(`<title>${page.title}</title>`), page.path);
-      assert.match(getResponse.body, /aria-label="Application version 6">v6/, page.path);
+      assert.match(getResponse.body, /aria-label="Application version 6\.1">v6\.1/, page.path);
       assert.match(getResponse.body, /<nav class="primary-nav" aria-label="Primary">/, page.path);
       for (const [href, label] of [
         ['/calendar.html', 'Calendar'],
@@ -181,11 +181,13 @@ test('calendar route shows only calendar, lunar, selected progress, and JSON out
   }
 });
 
-test('treasure route contains tide, all six orbits, and all three pulls', async () => {
+test('treasure route orders Drop, Tide, Pulls, and all six Orbits', async () => {
   const server = await startTestServer();
   try {
     const response = await request(server, '/treasure.html');
     for (const requiredContent of [
+      'Drop', '☾</span> Moon', '0.000000% complete', 'Low · Minor Pull',
+      'Furthest from orbit completion', 'Fixed-priority tie-break applied',
       'Tide', 'Low', 'Hour 1 of 17', '00:00:00 into Low', 'Celestial Orbits',
       'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Moon',
       'Dominant Pull', 'Minor Pull', 'Negative Pull',
@@ -193,6 +195,13 @@ test('treasure route contains tide, all six orbits, and all three pulls', async 
     ]) {
       assert.ok(response.body.includes(requiredContent), requiredContent);
     }
+    const dropIndex = response.body.indexOf('id="drop-heading"');
+    const tideIndex = response.body.indexOf('id="tide-heading"');
+    const pullsIndex = response.body.indexOf('id="orbital-pulls-heading"');
+    const orbitsIndex = response.body.indexOf('id="orbital-heading"');
+    assert.ok(dropIndex < tideIndex, 'Drop must appear before Tide');
+    assert.ok(tideIndex < pullsIndex, 'Tide must appear before Orbital Pulls');
+    assert.ok(pullsIndex < orbitsIndex, 'Orbital Pulls must appear before Celestial Orbits');
     assert.equal((response.body.match(/0\.000000%/g) ?? []).length >= 9, true);
     assert.match(response.body, /src="\/treasure-page\.js"/);
     assert.ok(!response.body.includes('JSON output'));
@@ -309,6 +318,7 @@ test('all page modules use the shared live-state scheduler and shared renderers'
   assert.ok(!renderers.includes('Date.now'));
   assert.ok(!renderers.includes('calculateFictionalCalendar'));
   assert.ok(!renderers.includes('innerHTML'));
+  assert.match(renderers, /export function createDropRenderer/);
   for (const removedCalendarBinding of [
     'createSeasonRenderer',
     'createTideRenderer',
@@ -332,6 +342,12 @@ test('all page modules use the shared live-state scheduler and shared renderers'
     assert.ok(!moduleText.includes('calculateFictionalCalendar'), moduleName);
     assert.ok(!moduleText.includes('innerHTML'), moduleName);
   }
+  const treasurePage = await readFile(path.join(projectDirectory, 'public/treasure-page.js'), 'utf8');
+  const dropCall = treasurePage.indexOf('renderDrop(calendarValue.drop)');
+  const tideCall = treasurePage.indexOf('renderTide(calendarValue)');
+  const pullsCall = treasurePage.indexOf('renderOrbitalPulls(calendarValue)');
+  const orbitsCall = treasurePage.indexOf('renderCelestialOrbits(calendarValue)');
+  assert.ok(dropCall < tideCall && tideCall < pullsCall && pullsCall < orbitsCall);
 
   await assert.rejects(
     readFile(path.join(projectDirectory, 'public/index.html'), 'utf8'),
@@ -468,7 +484,7 @@ test('Procfile and package metadata are ready for Heroku', async () => {
   ]);
   const packageJson = JSON.parse(packageText);
   assert.equal(procfile.trim(), 'web: npm start');
-  assert.equal(packageJson.version, '6.0.0');
+  assert.equal(packageJson.version, '6.1.0');
   assert.equal(packageJson.engines.node, '24.x');
 });
 
@@ -485,6 +501,7 @@ test('calendar JSON schema is v8 with all three orbital pulls', () => {
   assert.ok(snapshot.fictional.orbits.minorPull);
   assert.ok(snapshot.fictional.orbits.negativePull);
   assert.ok(snapshot.fictional.progress.season);
+  assert.equal('drop' in snapshot.fictional, false);
   assert.deepEqual(
     Object.keys(snapshot.fictional.orbits).filter((key) => key.endsWith('Pull')),
     ['dominantPull', 'minorPull', 'negativePull']
@@ -502,6 +519,7 @@ test('retired orbital metadata and Moon duration references are absent', async (
     'public/treasure.html',
     'public/weather.html',
     'test/calendar.test.js',
+    'test/drop.test.js',
     'test/lunar.test.js',
     'test/orbits.test.js',
     'test/progress.test.js',

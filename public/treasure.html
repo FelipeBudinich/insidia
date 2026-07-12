@@ -20,14 +20,51 @@
             <p class="page-kicker">Insidia</p>
             <h1>Treasure</h1>
           </div>
-          <span class="version" aria-label="Application version 6">v6</span>
+          <span class="version" aria-label="Application version 6.1">v6.1</span>
         </header>
+
+        <section class="drop-section focused-section" aria-labelledby="drop-heading">
+          <p id="drop-heading" class="section-label">Drop</p>
+          <p id="drop-body" class="drop-body"><span aria-hidden="true">☾</span> Moon</p>
+          <p id="drop-progress" class="drop-progress">0.000000% complete</p>
+          <p id="drop-source" class="drop-source">Low · Minor Pull</p>
+          <p id="drop-rule" class="drop-rule">Furthest from orbit completion</p>
+          <p id="drop-tiebreak" class="drop-tiebreak">Fixed-priority tie-break applied</p>
+        </section>
 
         <section class="lunar-section focused-section" aria-labelledby="tide-heading">
           <p id="tide-heading" class="section-label">Tide</p>
           <p class="lunar-name" data-tide-name>Low</p>
           <p class="lunar-metadata" data-tide-metadata>Hour 1 of 17</p>
           <p class="lunar-time" data-tide-time>00:00:00 into Low</p>
+        </section>
+
+        <section class="orbital-pulls" aria-labelledby="orbital-pulls-heading">
+          <p id="orbital-pulls-heading" class="section-label">Orbital Pulls</p>
+          <div class="pull-grid">
+            <article class="pull-card" data-pull-key="dominantPull">
+              <p class="group-label">Dominant Pull</p>
+              <p class="pull-members" data-pull-members>Moon · Venus · Mars</p>
+              <p class="pull-detail" data-pull-span>Circular span 0.000000%</p>
+              <p class="pull-detail" data-pull-alignment>Alignment 100.000000%</p>
+              <p class="pull-selection" data-pull-selection>Fixed-priority tie-break applied among 20 tied trios</p>
+            </article>
+            <article class="pull-card" data-pull-key="minorPull">
+              <p class="group-label">Minor Pull</p>
+              <p class="pull-members" data-pull-members>Moon · Venus · Mercury</p>
+              <p class="pull-detail" data-pull-span>Circular span 0.000000%</p>
+              <p class="pull-detail" data-pull-alignment>Alignment 100.000000%</p>
+              <p class="pull-selection" data-pull-selection>Fixed-priority tie-break applied among 20 tied trios</p>
+            </article>
+            <article class="pull-card" data-pull-key="negativePull">
+              <p class="group-label">Negative Pull</p>
+              <p class="pull-members" data-pull-members>Moon · Venus · Mars</p>
+              <p class="pull-detail" data-pull-span>Circular span 0.000000%</p>
+              <p class="pull-detail" data-pull-alignment>Alignment 100.000000%</p>
+              <p class="pull-selection" data-pull-selection>Fixed-priority tie-break applied among 20 tied trios</p>
+            </article>
+          </div>
+          <p class="orbital-clarification">Pulls measure fictional orbital-phase clustering, not physical gravity.</p>
         </section>
 
         <section class="orbital-section" aria-labelledby="orbital-heading">
@@ -89,33 +126,6 @@
             </article>
           </div>
 
-          <section class="orbital-pulls" aria-labelledby="orbital-pulls-heading">
-            <p id="orbital-pulls-heading" class="section-label">Orbital Pulls</p>
-            <div class="pull-grid">
-              <article class="pull-card" data-pull-key="dominantPull">
-                <p class="group-label">Dominant Pull</p>
-                <p class="pull-members" data-pull-members>Moon · Venus · Mars</p>
-                <p class="pull-detail" data-pull-span>Circular span 0.000000%</p>
-                <p class="pull-detail" data-pull-alignment>Alignment 100.000000%</p>
-                <p class="pull-selection" data-pull-selection>Fixed-priority tie-break applied among 20 tied trios</p>
-              </article>
-              <article class="pull-card" data-pull-key="minorPull">
-                <p class="group-label">Minor Pull</p>
-                <p class="pull-members" data-pull-members>Moon · Venus · Mercury</p>
-                <p class="pull-detail" data-pull-span>Circular span 0.000000%</p>
-                <p class="pull-detail" data-pull-alignment>Alignment 100.000000%</p>
-                <p class="pull-selection" data-pull-selection>Fixed-priority tie-break applied among 20 tied trios</p>
-              </article>
-              <article class="pull-card" data-pull-key="negativePull">
-                <p class="group-label">Negative Pull</p>
-                <p class="pull-members" data-pull-members>Moon · Venus · Mars</p>
-                <p class="pull-detail" data-pull-span>Circular span 0.000000%</p>
-                <p class="pull-detail" data-pull-alignment>Alignment 100.000000%</p>
-                <p class="pull-selection" data-pull-selection>Fixed-priority tie-break applied among 20 tied trios</p>
-              </article>
-            </div>
-          </section>
-          <p class="orbital-clarification">Pulls measure fictional orbital-phase clustering, not physical gravity.</p>
         </section>
         <footer>Epoch: 1970-01-01 00:00:00 UTC</footer>
       </main>

@@ -11,6 +11,30 @@ function requireElement(root, selector) {
   return element;
 }
 
+const DROP_RULE_LABELS = Object.freeze({
+  closest_to_completion: 'Closest to orbit completion',
+  furthest_from_completion: 'Furthest from orbit completion',
+  median_progress: 'Middle orbital progress'
+});
+
+export function createDropRenderer(root = document) {
+  const bodyElement = requireElement(root, '#drop-body');
+  const progressElement = requireElement(root, '#drop-progress');
+  const sourceElement = requireElement(root, '#drop-source');
+  const ruleElement = requireElement(root, '#drop-rule');
+  const tieBreakElement = requireElement(root, '#drop-tiebreak');
+
+  return function renderDrop(drop) {
+    bodyElement.textContent = `${drop.body.symbol} ${drop.body.name}`;
+    progressElement.textContent = `${drop.body.formattedProgress} complete`;
+    sourceElement.textContent = `${drop.tide.name} · ${drop.sourcePull.name}`;
+    ruleElement.textContent = DROP_RULE_LABELS[drop.selectionRule];
+    tieBreakElement.textContent = drop.tieBreak.applied
+      ? 'Fixed-priority tie-break applied'
+      : 'No fixed-priority tie-break';
+  };
+}
+
 export function createSeasonRenderer(root = document) {
   const nameElement = requireElement(root, '[data-season-name]');
   const metadataElement = requireElement(root, '[data-season-metadata]');
