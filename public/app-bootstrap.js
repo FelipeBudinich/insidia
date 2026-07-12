@@ -4,7 +4,7 @@ import { createPresentationContext } from './nomenclature.js';
 import { requestedPresentationOptions } from './presentation-context-loader.js';
 import { startLiveState } from './live-state.js';
 
-const APPLICATION_VERSION = '8';
+const APPLICATION_VERSION = '8.1';
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
 
 function pageMessageKey(pageId) {
@@ -43,14 +43,12 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
     element.textContent = context.applicationDisplayName;
   }
   for (const element of documentRoot.querySelectorAll('[data-version]')) {
-    element.textContent = 'v8';
+    element.textContent = 'v8.1';
     element.setAttribute('aria-label', context.format('accessibility.version', {
       label: context.message('accessibility.applicationVersion'),
       version: APPLICATION_VERSION
     }));
   }
-  const copyStatus = documentRoot.querySelector('#copy-status');
-  if (copyStatus) copyStatus.setAttribute('aria-label', context.message('accessibility.copyStatus'));
   const seasonProgress = documentRoot.querySelector('[data-season-progress-bar]');
   if (seasonProgress) seasonProgress.setAttribute('aria-label', context.message('accessibility.seasonProgress'));
   for (const element of documentRoot.querySelectorAll('[data-epoch]')) {

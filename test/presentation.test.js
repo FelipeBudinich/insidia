@@ -137,8 +137,8 @@ test('navigation applies only resolved locale and fixed application metadata', a
   assert.equal(documentRoot.title, 'Calendario ficticio · Insidia');
   assert.deepEqual(links.map(({ attributes }) => attributes.href), ['/calendar.html?locale=es','/outcome.html?locale=es','/weather.html?locale=es']);
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8');
+  assert.equal(versionElements[0].textContent, 'v8.1');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.1');
 });
 
 test('static HTML remains neutral and uses v8 application placeholders', async () => {
@@ -147,7 +147,7 @@ test('static HTML remains neutral and uses v8 application placeholders', async (
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!html.includes(properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8/);
+    assert.match(html, /data-version>v8\.1/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);
   }

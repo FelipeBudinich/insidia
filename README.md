@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v8.1 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
@@ -73,9 +73,17 @@ The shared scheduler recursively targets the next 997 ms boundary and recalculat
 
 The project has no framework, build system, database, backend time API, WebSocket, authentication system, external font, date library, server-side fictional calculation, or backend configuration-selection endpoint.
 
+## Page layouts
+
+- Calendar begins directly with the date and calendar metadata, followed by lunar phase/day/cycle details. It has no visible page-card title, fictional clock, or JSON controls.
+- Outcome begins directly with the selected celestial object and retains its classification, tide, Pull, orbit, and progress data without a visible Outcome card title.
+- Weather begins directly with the Time card, including both fictional and lunar clocks, then shows Season and Progress. It has no separate page-header card.
+
+Every page preserves a visually hidden localized page heading for document structure and displays the application name, localized epoch, and v8.1 version in its footer.
+
 ## JSON schema v10
 
-The Calendar page displays and copies a fresh, two-space-formatted snapshot. Its top-level fields are:
+The public `createCalendarJson()` serialization API remains available even though no page exposes visible JSON or clipboard controls. Its top-level fields are:
 
 - `calendarVersion: "v10"`
 - `nomenclature`: schema version and application display name, with no requested/resolved selection
@@ -84,18 +92,18 @@ The Calendar page displays and copies a fresh, two-space-formatted snapshot. Its
 - `state`: raw canonical IDs and numeric mechanics without names or symbols
 - `display`: configured names, symbols, localized text, and formatted values
 
-The v10 schema contains no universe-selection metadata. Clipboard API failures use a browser copy fallback and an accessible status message.
+The v10 schema contains no universe-selection metadata. Removing the visible JSON interface did not change raw state, display serialization, nomenclature metadata, or locale metadata.
 
 ## Routes and server
 
 | Route | Purpose |
 |---|---|
 | `/` | Redirect to `/calendar.html`, preserving only a non-empty locale |
-| `/calendar.html` | Calendar, clock, lunar phase, and v10 JSON snapshot |
-| `/weather.html` | Calendar/lunar clocks, season, and progress |
-| `/outcome.html` | Tide-driven Outcome, pulls, orbits, and hour progress |
+| `/calendar.html` | Date, calendar metadata, lunar phase, lunar day, and lunar cycle; no visible clock, JSON, or card title |
+| `/weather.html` | Begins with fictional/lunar Time, followed by Season and Progress; no separate page header |
+| `/outcome.html` | Begins with the selected celestial object, followed by Outcome, tide, pulls, orbits, and hour progress |
 | `/config/nomenclature.json` | The one read-only nomenclature configuration |
-| `/health` | `{"ok":true,"version":"v8"}` |
+| `/health` | `{"ok":true,"version":"v8.1"}` |
 
 Static `.html`, `.css`, `.js`, and `.json` responses use explicit MIME types and `Cache-Control: no-cache`. The server prevents traversal and dotfile access, returns generic errors, provides CSP and related security headers, supports `GET`/`HEAD`, preserves canonical HTTPS redirect precedence, and shuts down gracefully.
 

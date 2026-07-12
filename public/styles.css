@@ -45,7 +45,6 @@ body {
   font-weight: 800;
 }
 
-.page-header,
 .calendar-card,
 .outcome-section,
 .time-section,
@@ -53,42 +52,20 @@ body {
 .lunar-section,
 .orbital-pulls,
 .orbital-section,
-.progress-section,
-.json-details {
+.progress-section {
   border: 1px solid color-mix(in srgb, CanvasText 24%, transparent);
   border-radius: 0.75rem;
   background: color-mix(in srgb, Canvas 94%, CanvasText 6%);
 }
 
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.25rem 1.5rem;
-}
-.page-header h1 { margin: 0.15rem 0 0; font-size: clamp(1.75rem, 8vw, 2.5rem); }
-.page-kicker { margin: 0; color: color-mix(in srgb, CanvasText 68%, Canvas); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-
 .calendar-card { padding: clamp(1.25rem, 5vw, 2.5rem); }
 
-.heading,
-.json-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.heading p { margin: 0; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
-.outcome-heading { margin-bottom: 1rem; }
-.outcome-heading .section-label { margin-bottom: 0; }
 .version { color: color-mix(in srgb, CanvasText 70%, Canvas); font-size: 0.875rem; }
+.footer-version { white-space: nowrap; }
 
 .date p { margin: 0; }
 .year { font-size: clamp(1.45rem, 6vw, 2rem); font-weight: 700; }
 .period { margin-top: 0.25rem !important; font-size: clamp(1.05rem, 4vw, 1.35rem); }
-.primary-clock { margin: 1.5rem 0 0; font-size: clamp(2.4rem, 14vw, 4.5rem); font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -0.05em; line-height: 1; white-space: nowrap; }
 .metadata { margin: 1.75rem 0 0; color: color-mix(in srgb, CanvasText 72%, Canvas); line-height: 1.5; }
 
 .outcome-section,
@@ -112,8 +89,6 @@ body {
 .lunar-time { margin: 0.25rem 0 0; line-height: 1.45; }
 .lunar-metadata { color: color-mix(in srgb, CanvasText 78%, Canvas); }
 .lunar-time { color: color-mix(in srgb, CanvasText 68%, Canvas); font-variant-numeric: tabular-nums; }
-.focused-section { margin-top: 1rem; }
-
 .time-grid { display: grid; gap: 1rem; }
 .time-item p { margin: 0; }
 .weather-clock { margin-top: 0.25rem !important; font-size: clamp(1.8rem, 10vw, 2.75rem); font-variant-numeric: tabular-nums; font-weight: 700; letter-spacing: -0.04em; white-space: nowrap; }
@@ -154,23 +129,13 @@ body {
 .weather-progress-heading { margin-bottom: 0.4rem; font-size: 0.9rem; font-weight: 650; font-variant-numeric: tabular-nums; }
 .weather-progress progress { display: block; width: 100%; }
 
-.json-details { margin-top: 1rem; overflow: hidden; }
-summary { cursor: pointer; padding: 1rem 1.2rem; font-weight: 650; }
-summary:focus-visible, button:focus-visible, pre:focus-visible, .primary-nav a:focus-visible { outline: 3px solid Highlight; outline-offset: -3px; }
-.json-content { border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent); padding: 1rem; }
-button { border: 1px solid color-mix(in srgb, CanvasText 40%, transparent); border-radius: 0.4rem; background: ButtonFace; color: ButtonText; cursor: pointer; font: inherit; padding: 0.5rem 0.75rem; }
-button:hover { background: color-mix(in srgb, ButtonFace 86%, CanvasText); }
-.copy-status { min-height: 1.25em; color: color-mix(in srgb, CanvasText 72%, Canvas); font-size: 0.875rem; text-align: right; }
-pre { max-width: 100%; margin: 1rem 0 0; overflow-x: auto; padding: 1rem; border-radius: 0.4rem; background: color-mix(in srgb, Canvas 85%, CanvasText 15%); font-size: 0.8125rem; line-height: 1.5; }
-footer { margin-top: 1rem; color: color-mix(in srgb, CanvasText 65%, Canvas); font-size: 0.8125rem; text-align: center; }
+.primary-nav a:focus-visible { outline: 3px solid Highlight; outline-offset: -3px; }
+footer { margin-top: 1rem; color: color-mix(in srgb, CanvasText 65%, Canvas); font-size: 0.8125rem; line-height: 1.5; text-align: center; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-.clipboard-fallback { position: fixed; left: -10000px; top: 0; }
 
 @media (max-width: 380px) {
   body { padding: 0.75rem; }
   .calendar-card { padding: 1rem; }
-  .json-toolbar { align-items: flex-start; flex-direction: column; gap: 0.5rem; }
-  .copy-status { text-align: left; }
 }
 
 @media (min-width: 38rem) {
