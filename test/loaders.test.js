@@ -74,7 +74,9 @@ test('query parameters cannot change the nomenclature request', async () => {
 
 test('production nomenclature validates complete neutral ID coverage', async () => {
   const value = validateNomenclature(await readJson(nomenclaturePath));
-  assert.equal(value.schemaVersion, 3);
+  assert.equal(value.schemaVersion, 4);
+  assert.equal(value.calendar.yearName, 'Annus Solis');
+  assert.deepEqual(Object.keys(value.calendar).sort(), ['interRegna', 'months', 'weekdays', 'yearName']);
   assert.equal(value.calendar.months.length, 11);
   assert.ok(value.calendar.months.every((month) => Object.keys(month).sort().join(',') === 'id,name,shortName'));
   assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03']);
@@ -94,8 +96,21 @@ test('nomenclature validation rejects missing, duplicate, unknown, and invalid e
   const unknown = structuredClone(valid); unknown.seasons[1].id = 'season-99';
   const empty = structuredClone(valid); empty.seasons[0].name = '';
   const nonString = structuredClone(valid); nonString.celestialBodies[0].symbol = 7;
-  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 4;
+  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 5;
   for (const invalid of [missing, duplicate, unknown, empty, nonString, wrongSchema]) {
+    assert.throws(() => validateNomenclature(invalid));
+  }
+});
+
+test('calendar nomenclature requires exactly one non-empty yearName', async () => {
+  const valid = await readJson(nomenclaturePath);
+  const missing = structuredClone(valid); delete missing.calendar.yearName;
+  const empty = structuredClone(valid); empty.calendar.yearName = '';
+  const whitespace = structuredClone(valid); whitespace.calendar.yearName = '   ';
+  const nonString = structuredClone(valid); nonString.calendar.yearName = 62;
+  const yearLabel = structuredClone(valid); yearLabel.calendar.yearLabel = 'Year';
+  const eraName = structuredClone(valid); eraName.calendar.eraName = 'Era';
+  for (const invalid of [missing, empty, whitespace, nonString, yearLabel, eraName]) {
     assert.throws(() => validateNomenclature(invalid));
   }
 });
@@ -182,7 +197,8 @@ test('missing or invalid nomenclature prevents rendering and shows a localized a
   const valid = await readJson(nomenclaturePath);
   const invalid = structuredClone(valid); invalid.calendar.months.pop();
   const invalidWeekday = structuredClone(valid); invalidWeekday.calendar.weekdays[0].symbol = '☾';
-  for (const replacement of ['missing', invalid, invalidWeekday]) {
+  const invalidYearName = structuredClone(valid); invalidYearName.calendar.yearName = '';
+  for (const replacement of ['missing', invalid, invalidWeekday, invalidYearName]) {
     for (const [localeId, message, languageTag] of [
       ['en', 'Unable to load the application or locale configuration.', 'en'],
       ['es', 'No se pudo cargar la configuración de la aplicación o del idioma.', 'es']
@@ -284,8 +300,18 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
   assert.deepEqual(Object.values(english.outcomeTypes).map(({ name }) => name), ['Common', 'Uncommon', 'Rare']);
   assert.deepEqual(Object.values(spanish.outcomeTypes).map(({ name }) => name), ['Común', 'Poco común', 'Raro']);
-  assert.equal(english.schemaVersion, 2);
-  assert.equal(spanish.schemaVersion, 2);
+  assert.equal(english.schemaVersion, 3);
+  assert.equal(spanish.schemaVersion, 3);
+  const calendarTemplates = {
+    'calendar.formattedYear': '{yearName} {yearRoman}',
+    'calendar.monthPeriod': '{weekdayName} · {dayRoman} {monthName}',
+    'calendar.interPeriod': '{weekdayName} · {dayRoman} {interRegnumName}',
+    'calendar.formattedDate': '{formattedYear} · {periodLabel}'
+  };
+  for (const locale of [english, spanish]) {
+    for (const [key, value] of Object.entries(calendarTemplates)) assert.equal(locale.templates[key], value, key);
+    assert.equal(Object.hasOwn(locale.templates, 'calendar.metadata'), false);
+  }
   for (const locale of [english, spanish]) {
     for (const key of ['nav.calendar','nav.outcome','nav.weather','page.calendar','page.outcome','page.weather','label.outcome']) {
       assert.equal(Object.hasOwn(locale.messages, key), false, key);

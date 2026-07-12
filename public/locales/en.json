@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "en",
   "languageTag": "en",
   "outcomeTypes": {
@@ -59,10 +59,10 @@
     "document.page-03Description": "Live fictional times, season, and progress for {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Orbital progress for {bodyName}",
-    "calendar.monthPeriod": "{monthName} · {dayLabel} {day}",
-    "calendar.interPeriod": "{interRegnumName} · {dayLabel} {day} of {length}",
-    "calendar.formattedDate": "{yearLabel} {year} · {periodLabel}",
-    "calendar.metadata": "{weekLabel} {week} · {weekdayName} · {dayLabel} {dayOfYear} of {yearLength}",
+    "calendar.formattedYear": "{yearName} {yearRoman}",
+    "calendar.monthPeriod": "{weekdayName} · {dayRoman} {monthName}",
+    "calendar.interPeriod": "{weekdayName} · {dayRoman} {interRegnumName}",
+    "calendar.formattedDate": "{formattedYear} · {periodLabel}",
     "lunar.metadata": "{lunarDayLabel} {day} of {length} · {cycleLabel} {cycle}",
     "season.metadata": "{dayLabel} {day} of {length} · {cycleLabel} {cycle}",
     "season.cycle": "{seasonalDayLabel} {day} of {length}",

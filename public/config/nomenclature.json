@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "application": {
     "displayName": "Insidia"
   },
@@ -9,6 +9,7 @@
     { "id": "page-03", "name": "Tempore" }
   ],
   "calendar": {
+    "yearName": "Annus Solis",
     "months": [
       { "id": "month-01", "name": "Month 1", "shortName": "1" },
       { "id": "month-02", "name": "Month 2", "shortName": "2" },

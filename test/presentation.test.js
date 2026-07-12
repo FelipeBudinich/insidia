@@ -10,7 +10,7 @@ import { validateLocale } from '../public/locale-loader.js';
 import { validateNomenclature } from '../public/nomenclature-loader.js';
 import { createPresentationContext } from '../public/nomenclature.js';
 import { PAGE_DEFINITIONS, PAGE_IDS } from '../public/page-definitions.js';
-import { createCalendarJson, createDisplayData } from '../public/presentation.js';
+import { createCalendarJson, createDisplayData, formatFictionalYear } from '../public/presentation.js';
 import { formatAttemptsUntilRare } from '../public/renderers.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -44,6 +44,7 @@ async function context(localeId = 'en', nomenclature, requestedLocaleId = locale
 function renamedNomenclature(value) {
   const renamed = structuredClone(value);
   renamed.application.displayName = 'Renamed World';
+  renamed.calendar.yearName = 'Renamed Era';
   renamed.pages.find(({ id }) => id === 'page-01').name = 'Chronica';
   renamed.seasons.find(({ id }) => id === 'season-01').name = 'Dry';
   renamed.seasons.find(({ id }) => id === 'season-02').name = 'Rainy';
@@ -54,8 +55,9 @@ function renamedNomenclature(value) {
 
 test('production nomenclature reproduces every intended proper noun group', async () => {
   const value = await productionNomenclature();
-  assert.equal(value.schemaVersion, 3);
+  assert.equal(value.schemaVersion, 4);
   assert.equal(value.application.displayName, 'Insidia');
+  assert.equal(value.calendar.yearName, 'Annus Solis');
   assert.deepEqual(value.pages, [
     { id: 'page-01', name: 'Calendario' },
     { id: 'page-02', name: 'Destino' },
@@ -112,6 +114,37 @@ test('seven consecutive days resolve exact weekday nomenclature and day eight wr
   }
 });
 
+test('representative year 62 date uses configured names and Roman numerals', async () => {
+  const dayIndex = (61 * 353) + 82;
+  const state = calculateCalendarState(dayIndex * weekdayDayMilliseconds);
+  const display = createDisplayData(state, await context('en'));
+  assert.equal(state.calendar.year, 62);
+  assert.equal(state.calendar.period.monthId, 'month-03');
+  assert.equal(state.calendar.period.day, 19);
+  assert.equal(state.calendar.weekdayId, 'weekday-07');
+  assert.equal(display.calendar.formattedYear, 'Annus Solis LXII');
+  assert.equal(formatFictionalYear(state, await context('en')), 'Annus Solis LXII');
+  assert.equal(display.calendar.periodLabel, 'Dies Solis · XIX Month 3');
+  assert.equal(display.formattedDate, 'Annus Solis LXII · Dies Solis · XIX Month 3');
+  assert.deepEqual(Object.keys(display.calendar).sort(), [
+    'formattedYear', 'interRegnum', 'month', 'periodLabel', 'time', 'weekday', 'yearName'
+  ]);
+  assert.equal(Object.hasOwn(display.calendar, 'metadata'), false);
+
+  const renamed = structuredClone(await productionNomenclature());
+  renamed.calendar.months.find(({ id }) => id === 'month-03').name = 'Mensis Tertius';
+  const renamedDisplay = createDisplayData(state, await context('en', validateNomenclature(renamed)));
+  assert.equal(renamedDisplay.calendar.periodLabel, 'Dies Solis · XIX Mensis Tertius');
+});
+
+test('Inter Regnum dates use weekday, Roman day, and configured period name', async () => {
+  const state = calculateCalendarState(29 * weekdayDayMilliseconds);
+  const display = createDisplayData(state, await context('en'));
+  assert.equal(state.calendar.period.interRegnumId, 'interregnum-01');
+  assert.equal(state.calendar.weekdayId, 'weekday-02');
+  assert.equal(display.calendar.periodLabel, 'Dies Martis · I Inter Regnum 1 → 2');
+});
+
 test('stable page IDs map to fixed non-configurable routes', () => {
   assert.deepEqual(PAGE_IDS, ['page-01','page-02','page-03']);
   assert.deepEqual(PAGE_IDS.map((id) => PAGE_DEFINITIONS[id].route), ['/calendario.html','/destino.html','/tempore.html']);
@@ -139,6 +172,8 @@ test('in-memory nomenclature renaming changes display and never mechanics', asyn
   assert.equal(secondDisplay.season.name, 'Dry');
   assert.equal(firstDisplay.orbits.bodies.find(({ id }) => id === 'body-06').name, 'Luna');
   assert.equal(secondDisplay.orbits.bodies.find(({ id }) => id === 'body-06').name, 'Selene');
+  assert.equal(firstDisplay.calendar.formattedYear, 'Annus Solis I');
+  assert.equal(secondDisplay.calendar.formattedYear, 'Renamed Era I');
   assert.deepEqual(firstDisplay.outcomeType, secondDisplay.outcomeType);
   assert.equal((await context('en', production)).getPage('page-01').name, 'Calendario');
   assert.equal((await context('en', renamed)).getPage('page-01').name, 'Chronica');
@@ -173,13 +208,18 @@ test('Spanish changes generic language and Outcome types but not proper nouns or
   }
   assert.equal(english.season.name, spanish.season.name);
   assert.equal(english.orbits.bodies[0].name, spanish.orbits.bodies[0].name);
-  assert.notEqual(english.formattedDate, spanish.formattedDate);
+  assert.equal(english.calendar.formattedYear, spanish.calendar.formattedYear);
+  assert.equal(english.calendar.periodLabel, spanish.calendar.periodLabel);
+  assert.equal(english.formattedDate, spanish.formattedDate);
+  assert.deepEqual(english.calendar.weekday, spanish.calendar.weekday);
+  assert.deepEqual(english.calendar.month, spanish.calendar.month);
   assert.equal(english.outcomeType.name, 'Common');
   assert.equal(spanish.outcomeType.name, 'Común');
   assert.equal(englishContext.getPage('page-02').name, 'Destino');
   assert.equal(spanishContext.getPage('page-02').name, 'Destino');
-  assert.equal(english.calendar.metadata, 'Week 1 · Dies Lunae · Day 1 of 353');
-  assert.equal(spanish.calendar.metadata, 'Semana 1 · Dies Lunae · Día 1 de 353');
+  assert.equal(english.calendar.formattedYear, 'Annus Solis I');
+  assert.equal(english.calendar.periodLabel, 'Dies Lunae · I Month 1');
+  assert.equal(english.formattedDate, 'Annus Solis I · Dies Lunae · I Month 1');
   assert.deepEqual(raw, calculateCalendarState(0));
 });
 
@@ -196,20 +236,27 @@ test('Destino classification uses nomenclature while Outcome types use locale', 
   assert.equal(spanish.format('outcome.type', { pageName: spanish.getPage('page-02').name, name: spanish.getOutcomeType('outcome-tier-01').name }), 'Destino: Común');
 });
 
-test('JSON v11 exposes the configured weekday while raw state remains neutral', async () => {
+test('JSON v12 exposes the formatted in-universe date while raw state remains neutral', async () => {
   const raw = calculateCalendarState(0);
   const english = createCalendarJson(raw, 0, await context('en'));
   const spanish = createCalendarJson(raw, 0, await context('es'));
-  assert.equal(english.calendarVersion, 'v11');
+  assert.equal(english.calendarVersion, 'v12');
   assert.equal(Object.hasOwn(english, 'universe'), false);
-  assert.deepEqual(english.nomenclature, { schemaVersion: 3, applicationDisplayName: 'Insidia' });
+  assert.deepEqual(english.nomenclature, { schemaVersion: 4, applicationDisplayName: 'Insidia' });
   assert.equal(Object.hasOwn(english.nomenclature, 'requestedId'), false);
   assert.equal(Object.hasOwn(english.nomenclature, 'resolvedId'), false);
-  assert.deepEqual(english.locale, { requestedId: 'en', resolvedId: 'en', languageTag: 'en', schemaVersion: 2 });
+  assert.deepEqual(english.locale, { requestedId: 'en', resolvedId: 'en', languageTag: 'en', schemaVersion: 3 });
   assert.deepEqual(english.state, spanish.state);
+  for (const key of ['year','weekOfYear','dayOfYear','dayOfWeek','weekdayId']) assert.ok(Object.hasOwn(english.state.calendar, key), key);
+  assert.equal(english.state.calendar.period.day, 1);
   assert.equal(english.state.calendar.weekdayId, 'weekday-01');
   assert.doesNotMatch(JSON.stringify(english.state), /"(?:name|shortName|symbol|formatted)"/);
   assert.doesNotMatch(JSON.stringify(english.state), /Dies (?:Lunae|Martis|Mercurii|Iovis|Veneris|Saturni|Solis)/);
+  assert.doesNotMatch(JSON.stringify(english.state), /Annus Solis|Month \d+|Inter Regnum|"[IVXLCDM]+"/);
+  assert.equal(english.display.calendar.yearName, 'Annus Solis');
+  assert.equal(english.display.calendar.formattedYear, 'Annus Solis I');
+  assert.equal(english.display.calendar.periodLabel, 'Dies Lunae · I Month 1');
+  assert.equal(Object.hasOwn(english.display.calendar, 'metadata'), false);
   assert.deepEqual(english.display.calendar.weekday, { id: 'weekday-01', name: 'Dies Lunae' });
   assert.deepEqual(spanish.display.calendar.weekday, english.display.calendar.weekday);
   assert.deepEqual(Object.keys(english.display.calendar.weekday).sort(), ['id', 'name']);
@@ -222,7 +269,7 @@ test('JSON v11 exposes the configured weekday while raw state remains neutral', 
   assert.equal(english.state.lunar.phaseId, 'phase-01');
   assert.equal(english.state.season.id, 'season-01');
   assert.equal(english.state.orbits.bodies[5].id, 'body-06');
-  assert.notEqual(english.display.formattedDate, spanish.display.formattedDate);
+  assert.equal(english.display.formattedDate, spanish.display.formattedDate);
   assert.equal(english.display.outcomeType.name, 'Common');
   assert.equal(spanish.display.outcomeType.name, 'Común');
   assert.doesNotMatch(JSON.stringify(english), /calendario\.html|destino\.html|tempore\.html|calendar\.html|outcome\.html|weather\.html/);
@@ -252,19 +299,19 @@ test('navigation applies only resolved locale and fixed application metadata', a
   assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore']);
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.5');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.5');
+  assert.equal(versionElements[0].textContent, 'v8.6');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.6');
   applyCommonDocumentPresentation(documentRoot, 'page-01', await context('en'));
-  assert.equal(versionElements[0]['aria-label'], 'Application version 8.5');
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.6');
 });
 
-test('static HTML remains neutral and uses v8.5 page IDs and application placeholders', async () => {
-  const properNouns = ['Insidia','Calendario','Destino','Tempore','Ossos','Lacrimas','Renascimento','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente','Month 1', ...WEEKDAYS.map(({ name }) => name)];
+test('static HTML remains neutral and uses v8.6 page IDs and application placeholders', async () => {
+  const properNouns = ['Insidia','Calendario','Destino','Tempore','Annus Solis','Ossos','Lacrimas','Renascimento','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente','Month 1', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.5/);
+    assert.match(html, /data-version>v8\.6/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);
@@ -280,5 +327,5 @@ test('production JavaScript has no runtime universe selection, cookies, or local
 
 test('core source remains proper-noun free', async () => {
   const source = await readFile(path.join(root, 'public', 'core', 'rules.js'), 'utf8') + await readFile(path.join(root, 'public', 'core', 'mechanics.js'), 'utf8');
-  for (const name of ['Insidia','Ossos','Lacrimas','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Renascimento','Marea basse','Attraction dominante', ...WEEKDAYS.map(({ name }) => name)]) assert.ok(!containsProperNoun(source, name), name);
+  for (const name of ['Insidia','Annus Solis','Ossos','Lacrimas','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Renascimento','Marea basse','Attraction dominante', ...WEEKDAYS.map(({ name }) => name)]) assert.ok(!containsProperNoun(source, name), name);
 });

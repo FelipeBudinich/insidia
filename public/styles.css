@@ -66,7 +66,6 @@ body {
 .date p { margin: 0; }
 .year { font-size: clamp(1.45rem, 6vw, 2rem); font-weight: 700; }
 .period { margin-top: 0.25rem !important; font-size: clamp(1.05rem, 4vw, 1.35rem); }
-.metadata { margin: 1.75rem 0 0; color: color-mix(in srgb, CanvasText 72%, Canvas); line-height: 1.5; }
 
 .outcome-section,
 .time-section,

@@ -1,10 +1,25 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calculateCalendarState, calculateOutcomeType } from '../public/core/mechanics.js';
+import { formatRomanNumeral } from '../public/core/formatting.js';
 import * as rules from '../public/core/rules.js';
 
 const dayMs = rules.FICTIONAL_SECONDS_PER_DAY * rules.REAL_MS_PER_FICTIONAL_SECOND;
 const atDay = (index) => index * dayMs;
+
+test('Roman numeral formatter uses uppercase standard subtractive notation', () => {
+  for (const [value, expected] of [
+    [1, 'I'], [4, 'IV'], [9, 'IX'], [19, 'XIX'], [29, 'XXIX'], [40, 'XL'],
+    [62, 'LXII'], [90, 'XC'], [400, 'CD'], [900, 'CM'], [3999, 'MMMCMXCIX']
+  ]) assert.equal(formatRomanNumeral(value), expected);
+});
+
+test('Roman numeral formatter rejects unsupported inputs', () => {
+  for (const value of ['1', null, undefined]) assert.throws(() => formatRomanNumeral(value), TypeError);
+  for (const value of [0, -1, 1.5, NaN, Infinity, -Infinity, 4000]) {
+    assert.throws(() => formatRomanNumeral(value), RangeError);
+  }
+});
 
 test('epoch is Year 1, Month 1, Day 1 at 00:00:00', () => {
   const state = calculateCalendarState(0);

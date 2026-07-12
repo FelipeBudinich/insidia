@@ -71,11 +71,12 @@ function validateEntities(items, expectedIds, label, entityKeys) {
 
 export function validateNomenclature(nomenclature) {
   assertExactKeys(nomenclature, TOP_LEVEL_KEYS, 'nomenclature');
-  if (nomenclature.schemaVersion !== 3) throw new Error('nomenclature schemaVersion must be 3');
+  if (nomenclature.schemaVersion !== 4) throw new Error('nomenclature schemaVersion must be 4');
   assertExactKeys(nomenclature.application, ['displayName'], 'nomenclature.application');
   assertNonEmptyString(nomenclature.application.displayName, 'nomenclature.application.displayName');
   validateEntities(nomenclature.pages, PAGE_IDS, 'nomenclature.pages', ['id', 'name']);
-  assertExactKeys(nomenclature.calendar, ['months', 'weekdays', 'interRegna'], 'nomenclature.calendar');
+  assertExactKeys(nomenclature.calendar, ['yearName', 'months', 'weekdays', 'interRegna'], 'nomenclature.calendar');
+  assertNonEmptyString(nomenclature.calendar.yearName, 'nomenclature.calendar.yearName');
   validateEntities(nomenclature.calendar.months, MONTH_IDS, 'nomenclature.calendar.months', ['id', 'name', 'shortName']);
   validateEntities(nomenclature.calendar.weekdays, WEEKDAY_IDS, 'nomenclature.calendar.weekdays', ['id', 'name']);
   validateEntities(nomenclature.calendar.interRegna, INTER_REGNUM_IDS, 'nomenclature.calendar.interRegna', ['id', 'name']);

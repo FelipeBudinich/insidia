@@ -24,9 +24,17 @@ test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async
 
 test('Calendario preserves date and lunar structures in visible order', async () => {
   const html = await readPublic('calendario.html');
-  for (const id of ['fictional-year','fictional-period','fictional-metadata','fictional-date-accessible','lunar-phase','lunar-metadata']) {
+  for (const id of ['fictional-year','fictional-period','fictional-date-accessible','lunar-phase','lunar-metadata']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
+  assert.doesNotMatch(html, /fictional-metadata|class="metadata"/);
+  const card = html.slice(html.indexOf('<section class="calendar-card"'), html.indexOf('</section>', html.indexOf('<section class="calendar-card"')));
+  const paragraphs = [...card.matchAll(/<p\b[^>]*>/g)].map(([tag]) => tag);
+  assert.equal(paragraphs.length, 3);
+  assert.equal(paragraphs.filter((tag) => !tag.includes('visually-hidden')).length, 2);
+  assert.match(card, /id="fictional-year" class="year"/);
+  assert.match(card, /id="fictional-period" class="period"/);
+  assert.match(card, /id="fictional-date-accessible" class="visually-hidden"/);
   const calendarIndex = html.indexOf('<section class="calendar-card"');
   const lunarIndex = html.indexOf('<section class="lunar-section"');
   const footerIndex = html.indexOf('<footer>');
@@ -59,14 +67,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(script, /bootstrapPage\('page-03', createTemporePageRenderer\)/);
 });
 
-test('each renamed page has one localized v8.5 footer version', async () => {
+test('each renamed page has one localized v8.6 footer version', async () => {
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.5/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.6/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -93,16 +101,26 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   const css = await readPublic('styles.css');
   for (const selector of [
     '.page-header', '.page-kicker', '.primary-clock', '.outcome-heading', '.json-details',
-    '.json-toolbar', '.json-content', '.copy-status', '.clipboard-fallback'
+    '.json-toolbar', '.json-content', '.copy-status', '.clipboard-fallback', '.metadata'
   ]) assert.ok(!css.includes(selector), selector);
   assert.doesNotMatch(css, /(^|\n)button\s*\{|(^|\n)pre\s*\{|(^|\n)summary\s*\{/);
   assert.match(css, /\.footer-version\s*\{\s*white-space:\s*nowrap;/);
 });
 
-test('JSON serialization remains schema v11 with calendar time intact', async () => {
+test('JSON serialization remains schema v12 with calendar time intact', async () => {
   const [presentation, mechanics] = await Promise.all([readPublic('presentation.js'), readPublic('core/mechanics.js')]);
   assert.match(presentation, /export function createCalendarJson/);
-  assert.match(presentation, /calendarVersion: 'v11'/);
+  assert.match(presentation, /calendarVersion: 'v12'/);
   assert.match(presentation, /time: formatClock\(state\.calendar\.time\)/);
   assert.match(mechanics, /time: \{ hour, minute, second \}/);
+});
+
+test('Calendario rendering path omits removed numeric progress indicators', async () => {
+  const renderer = await readPublic('calendario-page.js');
+  const source = renderer + await readPublic('presentation.js');
+  for (const removed of [
+    'weekOfYear', 'dayOfYear', 'DAYS_PER_YEAR', 'label.week', 'calendar.metadata',
+    '#fictional-metadata'
+  ]) assert.ok(!source.includes(removed), removed);
+  assert.doesNotMatch(renderer, /context\.message\(['"]label\.year|state\.calendar\.year|formatRomanNumeral/);
 });

@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.5 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v8.6 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
@@ -38,8 +38,9 @@ public/config/nomenclature.json
 
 The browser always loads it from the fixed same-origin URL `/config/nomenclature.json`. Editing this file and redeploying is sufficient to rename the application/world, months, weekdays, Inter Regna, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. JavaScript and HTML changes are not required.
 
-The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.5 configuration includes:
+The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.6 configuration includes:
 
+- Calendar year name: Annus Solis
 - Weekdays: Dies Lunae, Dies Martis, Dies Mercurii, Dies Iovis, Dies Veneris, Dies Saturni, Dies Solis
 - Lunar phases: Renascimento, Corno, Falce, Passage, Ascrescimento, Crescente, Ascenso, Apice, Morditura, Decrescente, Recedente, Velo, Morte
 - Tides: Marea basse, Marea alte, Marea dividite
@@ -50,6 +51,8 @@ The configured terms are fixed in-universe proper nouns, not English or Spanish 
 These names and symbols are loaded exclusively from `public/config/nomenclature.json` and remain identical when the locale changes.
 
 Weekday entities use exactly `{ id, name }`; they have no `shortName` or symbol. Month entities continue to use `{ id, name, shortName }`. Both categories must retain their complete canonical neutral ID sets and ordering.
+
+Calendario renders visible years and period days with uppercase Roman numerals. Its two-line date header is `Annus Solis {romanYear}` followed by `{weekdayName} · {romanDay} {periodName}`. The period name is always resolved from the active month or Inter Regnum nomenclature, so configuration changes flow through automatically. English and Spanish show the same in-universe date.
 
 Calendario, Destino, and Tempore are in-game page proper nouns stored in the same file under stable page IDs. Locale changes never translate them. Their routes are fixed application infrastructure and are not generated from the configured names.
 
@@ -75,6 +78,8 @@ Changing locale translates Outcome types and generic UI prose without changing c
 
 The epoch is `1970-01-01T00:00:00.000Z`. Mechanical modules own stable IDs, durations, ordering, orbital periods, tie-breaking, thresholds, calculations, and relationships. They never contain configured proper nouns, localized text, symbols, or formatted display values.
 
+Raw calendar state retains numeric `year`, `weekOfYear`, `dayOfYear`, `dayOfWeek`, and period-day values. Roman conversion and in-universe names exist only in the presentation layer.
+
 The shared scheduler recursively targets the next 997 ms boundary and recalculates the full state from `Date.now()` whenever the page becomes visible, avoiding accumulated timer drift.
 
 ## Architecture
@@ -90,24 +95,24 @@ The project has no framework, build system, database, backend time API, WebSocke
 
 ## Page layouts
 
-- Calendar begins directly with the date and calendar metadata, including the configured current weekday proper name, followed by lunar phase/day/cycle details. It has no visible page-card title, fictional clock, or JSON controls.
+- Calendar begins with exactly two visible date lines: the configured year name plus Roman year, then weekday plus Roman period day and configured period name. Week number and day-of-year progress are no longer displayed. Lunar phase/day/cycle details follow; there is no visible page-card title, fictional clock, or JSON controls.
 - Outcome begins directly with the selected celestial object and retains its classification, tide, Pull, orbit, and progress data without a visible Outcome card title.
 - Weather begins directly with the Time card, including both fictional and lunar clocks, then shows Season and Progress. It has no separate page-header card.
 
-Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.5 version in its footer.
+Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.6 version in its footer.
 
-## JSON schema v11
+## JSON schema v12
 
 The public `createCalendarJson()` serialization API remains available even though no page exposes visible JSON or clipboard controls. Its top-level fields are:
 
-- `calendarVersion: "v11"`
+- `calendarVersion: "v12"`
 - `nomenclature`: schema version and application display name, with no requested/resolved selection
 - `locale`: requested/resolved IDs, language tag, and locale schema version
 - `source`: Unix milliseconds and ISO UTC
 - `state`: raw canonical IDs and numeric mechanics without names or symbols
 - `display`: configured names, symbols, localized text, and formatted values
 
-The v11 display calendar exposes the resolved weekday as `{ id, name }`, without a short name or symbol. Raw state remains presentation-neutral and retains only the canonical `weekdayId` and numeric calendar mechanics. The schema contains no universe-selection metadata.
+The v12 display calendar exposes `yearName`, `formattedYear`, the resolved weekday entity, and the Roman-numeral `periodLabel`; the former calendar metadata string is removed. Raw state remains presentation-neutral and retains canonical IDs plus numeric mechanics. The schema contains no universe-selection metadata.
 
 ## Routes and server
 
@@ -118,7 +123,7 @@ The v11 display calendar exposes the resolved weekday as `{ id, name }`, without
 | `/destino.html` | Outcome selection, tides, pulls, orbits, and hour progress |
 | `/tempore.html` | Fictional times, season, and selected progress |
 | `/config/nomenclature.json` | The one read-only nomenclature configuration |
-| `/health` | `{"ok":true,"version":"v8.5"}` |
+| `/health` | `{"ok":true,"version":"v8.6"}` |
 
 Static `.html`, `.css`, `.js`, and `.json` responses—including locale and nomenclature configuration—use explicit MIME types and `Cache-Control: no-cache`. They also include deterministic weak ETags and Last-Modified validators, so repeat requests can revalidate with a bodyless `304 Not Modified` response instead of retransferring unchanged files. Other static formats retain a short revalidating cache policy. Dynamic, redirect, and error responses remain `no-store` and do not participate in static revalidation.
 
@@ -130,7 +135,7 @@ The former English page paths and modules are intentionally unsupported. They ha
 
 1. Edit only `public/config/nomenclature.json`.
 2. Keep every canonical neutral ID, required entity, and category ordering.
-3. Preserve each entity shape: months use `{ id, name, shortName }`, weekdays use `{ id, name }`, and only celestial bodies use symbols.
+3. Preserve each entity shape: calendar includes the non-empty `yearName`, months use `{ id, name, shortName }`, weekdays use `{ id, name }`, and only celestial bodies use symbols.
 4. Keep Outcome types, translations, templates, and mechanics out of the file.
 5. Run `npm test` before deployment.
 
@@ -140,7 +145,7 @@ The former English page paths and modules are intentionally unsupported. They ha
 2. Add its ID and fixed same-origin path to the `LOCALE_FILES` registry in `public/locale-loader.js`.
 3. Add or update loader, validation, and presentation tests, then run `npm test`.
 
-The nomenclature file uses schema version 3, including the three page-name entries and weekday entities without short names. Locale files remain schema version 2. The Calendar JSON API uses schema v11.
+The nomenclature file uses schema version 4, including the configured calendar year name. Locale files use schema version 3 for the shared in-universe date-template contract. The Calendar JSON API uses schema v12.
 
 ## Project structure
 
