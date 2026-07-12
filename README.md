@@ -1,10 +1,10 @@
 # Insidia
 
-Insidia v7.1 is a live fictional calendar whose mechanics, fictional nomenclature, and interface language are independent layers. Every time calculation runs in the browser from `Date.now()`; the Node server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v8 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
-Node.js 24 is the supported runtime (see `.nvmrc`). There are no dependencies or build step.
+Node.js 24 is the supported runtime. There are no runtime dependencies or build step.
 
 ```sh
 npm ci
@@ -14,97 +14,122 @@ npm start
 
 Open [http://localhost:3000](http://localhost:3000). Set `PORT` to override port 3000.
 
-## Selecting a universe and locale
+## Locale selection
 
-Use query parameters on any page:
+Locale is the only presentation option accepted through the query string:
 
 ```text
-/calendar.html?universe=insidia&locale=en
-/outcome.html?universe=demonstration&locale=es
+/calendar.html?locale=en
+/outcome.html?locale=en
+/weather.html?locale=es
 ```
 
-The built-in universes are `insidia` and `demonstration`; the built-in locales are `en` and `es`. Missing or unknown IDs fall back to the defaults declared in `public/universes/index.json` and `public/locales/index.json`. Navigation retains the resolved selection. The root redirect preserves its query string.
+English is the default. Unknown locale IDs resolve to the default declared in `public/locales/index.json`; known malformed locale files stop bootstrap visibly. Navigation preserves only the resolved `locale` value and drops unrelated parameters.
 
-Universe packs own universe-specific fictional display data: universe name; month, weekday, Inter Regnum, season, lunar-phase, and tide names; celestial-body names and symbols; and Orbital Pull names. Locale packs own generic UI terminology, templates, status and accessibility text, and the three Outcome-type names. Both loaders require same-origin JSON, validate exact schemas and canonical IDs, reject incomplete packs, and load the whole selected pack before exposing it.
+There is no universe selector, universe query parameter, alternate world configuration, cookie, local-storage setting, header, route, or configurable frontend path for changing in-game nomenclature.
 
-Outcome types are language-dependent classifications shared by every universe. English resolves the neutral IDs to Common, Uncommon, and Rare; Spanish resolves the same IDs to Común, Poco común, and Raro. Switching universes never changes these classifications, while switching locales does.
+## One fixed nomenclature configuration
+
+The only production nomenclature file is:
+
+```text
+public/config/nomenclature.json
+```
+
+The browser always loads it from the fixed same-origin URL `/config/nomenclature.json`. Editing this file and redeploying is sufficient to rename the application/world, months, weekdays, Inter Regna, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. JavaScript and HTML changes are not required.
+
+The nomenclature file contains names and symbols only. Validation requires complete canonical ID coverage and rejects missing, duplicate, unknown, empty, or non-string entities; wrong schema versions; Outcome types; locale messages or templates; and mechanical fields such as durations, orbital periods, priorities, and thresholds. A missing, malformed, or invalid file stops live rendering and shows the accessible configuration-error view—there are no hard-coded or partial fallbacks.
+
+Outcome-type names are generic language classifications owned by locale files:
+
+- English: Common, Uncommon, Rare
+- Spanish: Común, Poco común, Raro
+
+Changing locale translates Outcome types and generic UI prose without changing configured proper nouns, symbols, IDs, or numeric state.
 
 ## Mechanics
 
 - 997 real milliseconds = 1 fictional second
 - 59 seconds = 1 minute; 61 minutes = 1 hour; 23 hours = 1 calendar day
 - 7 days = 1 week
-- 11 months × 29 days, ten 3-day Inter Regna, and one final 4-day Inter Regnum = 353 days
+- 11 × 29-day months, ten 3-day Inter Regna, and one 4-day final Inter Regnum = 353 days
 - Two continuous 179-day seasons = a 358-day seasonal cycle
 - 31-hour lunar days and 13-day lunar cycles
 - Tides last 17, 13, and 1 lunar hours
 - Six deterministic circular orbits and three ranked three-body pulls
 
-The epoch is `1970-01-01T00:00:00.000Z`. Weekdays, seasons, lunar state, tides, and orbits continue through month, Inter Regnum, and year boundaries. The scheduler recursively targets the next 997 ms boundary and recalculates the complete state immediately whenever the page becomes visible, so it does not accumulate timer drift.
+The epoch is `1970-01-01T00:00:00.000Z`. Mechanical modules own stable IDs, durations, ordering, orbital periods, tie-breaking, thresholds, calculations, and relationships. They never contain configured proper nouns, localized text, symbols, or formatted display values.
 
-## Three-layer architecture
+The shared scheduler recursively targets the next 997 ms boundary and recalculates the full state from `Date.now()` whenever the page becomes visible, avoiding accumulated timer drift.
 
-1. `public/core/` contains immutable numeric rules, formatting primitives, and deterministic mechanics. It emits canonical IDs and numbers only—never names, symbols, localized strings, or formatted presentation.
-2. `public/universes/` supplies universe-specific proper nouns and symbols; `public/locales/` supplies interface language, Outcome-type names, and templates.
-3. `public/presentation.js`, `public/nomenclature.js`, and the renderers resolve raw IDs through the selected presentation context.
+## Architecture
 
-`public/calendar.js` is a compatibility entry point that re-exports the focused modules. `public/live-state.js` owns the shared scheduler. `public/app-bootstrap.js` loads and validates context before it starts rendering. The HTML contains neutral placeholders rather than default-universe proper nouns.
+1. `public/core/` contains immutable numeric rules and deterministic, presentation-neutral mechanics.
+2. `public/config/nomenclature.json` contains the single active set of in-game proper nouns and symbols.
+3. `public/locales/` contains generic UI terminology, templates, status/accessibility text, and Outcome-type names.
+4. The presentation context resolves raw IDs through the validated nomenclature and locale data.
 
-There is no framework, build system, database, backend time API, WebSocket, authentication system, external font, date library, or server-side fictional calculation.
+`public/nomenclature-loader.js` owns the fixed configuration path. `public/locale-loader.js` handles locale selection. `public/app-bootstrap.js` completes and validates both loads before applying labels, preparing renderers, clearing `aria-busy`, and starting `public/live-state.js`.
 
-## JSON schema v9
+The project has no framework, build system, database, backend time API, WebSocket, authentication system, external font, date library, server-side fictional calculation, or backend configuration-selection endpoint.
 
-The Calendar page shows a collapsible, two-space-formatted snapshot and copies a fresh snapshot at click time. Its stable top-level fields are:
+## JSON schema v10
 
-- `calendarVersion: "v9"`
-- `universe`: requested/resolved IDs, display name, and pack schema version
-- `locale`: requested/resolved IDs, language tag, and pack schema version
+The Calendar page displays and copies a fresh, two-space-formatted snapshot. Its top-level fields are:
+
+- `calendarVersion: "v10"`
+- `nomenclature`: schema version and application display name, with no requested/resolved selection
+- `locale`: requested/resolved IDs, language tag, and locale schema version
 - `source`: Unix milliseconds and ISO UTC
-- `state`: raw canonical IDs and numeric mechanics without presentation strings
-- `display`: resolved names, symbols, labels, and formatted values
+- `state`: raw canonical IDs and numeric mechanics without names or symbols
+- `display`: configured names, symbols, localized text, and formatted values
 
-Clipboard API failures fall back to the browser copy command; an accessible live status reports success or manual-copy guidance.
+The v10 schema contains no universe-selection metadata. Clipboard API failures use a browser copy fallback and an accessible status message.
 
 ## Routes and server
 
 | Route | Purpose |
 |---|---|
-| `/` | Redirect to `/calendar.html`, preserving the query string |
-| `/calendar.html` | Calendar, clock, lunar phase, and v9 JSON snapshot |
+| `/` | Redirect to `/calendar.html`, preserving only a non-empty locale |
+| `/calendar.html` | Calendar, clock, lunar phase, and v10 JSON snapshot |
 | `/weather.html` | Calendar/lunar clocks, season, and progress |
-| `/outcome.html` | Tide-driven outcome, pulls, orbits, and hour progress |
-| `/health` | `{"ok":true,"version":"v7.1"}` |
+| `/outcome.html` | Tide-driven Outcome, pulls, orbits, and hour progress |
+| `/config/nomenclature.json` | The one read-only nomenclature configuration |
+| `/health` | `{"ok":true,"version":"v8"}` |
 
-Static `.html`, `.css`, `.js`, and `.json` responses use explicit MIME types and `Cache-Control: no-cache`. The server prevents traversal, returns generic errors, provides security headers, supports `GET`/`HEAD`, and can optionally enforce an HTTPS `CANONICAL_ORIGIN` in production.
+Static `.html`, `.css`, `.js`, and `.json` responses use explicit MIME types and `Cache-Control: no-cache`. The server prevents traversal and dotfile access, returns generic errors, provides CSP and related security headers, supports `GET`/`HEAD`, preserves canonical HTTPS redirect precedence, and shuts down gracefully.
 
-## Adding a universe
+## Editing nomenclature
 
-1. Add its ID and same-origin manifest path to `public/universes/index.json`.
-2. Copy one existing universe directory.
-3. Keep every canonical ID unchanged and edit only names/symbols.
-4. Keep mechanics out of the pack; duration, orbit, threshold, and priority fields are rejected.
-5. Run `npm test`.
+1. Edit only `public/config/nomenclature.json`.
+2. Keep every neutral ID and required entity.
+3. Change only display names, short names, and celestial symbols.
+4. Keep Outcome types, translations, templates, and mechanics out of the file.
+5. Run `npm test` before deployment.
 
 ## Adding a locale
 
-1. Add its ID and file path to `public/locales/index.json`.
-2. Copy an existing locale JSON file.
-3. Translate every message, template, and Outcome-type name without changing keys, neutral IDs, or named placeholders.
+1. Add its ID and same-origin file path to `public/locales/index.json`.
+2. Copy an existing locale file.
+3. Translate every message, template, and Outcome-type name without changing keys, IDs, or named placeholders.
 4. Run `npm test`.
 
 ## Project structure
 
 ```text
 public/
+  config/nomenclature.json
   core/{rules,mechanics,formatting}.js
-  universes/{index,insidia/*,demonstration/*}.json
   locales/{index,en,es}.json
   {calendar,outcome,weather}.html
   {calendar,outcome,weather}-page.js
   app-bootstrap.js
-  live-state.js
+  locale-loader.js
+  nomenclature-loader.js
   nomenclature.js
+  presentation-context-loader.js
   presentation.js
+  live-state.js
   renderers.js
   styles.css
 server.js
@@ -113,7 +138,7 @@ test/{core,loaders,presentation,server}.test.js
 
 ## Deployment
 
-The included `Procfile` runs `npm start` and is compatible with Heroku GitHub deployment. No deployment credentials or GitHub Actions workflow are stored in the repository. Configure environment-specific values as platform variables.
+Heroku deployment is unchanged. The included `Procfile` runs `npm start`; Node remains pinned through `.nvmrc` and `package.json`. No deployment credentials or GitHub Actions workflow are stored in the repository. Configure environment-specific values as platform variables.
 
 ## License
 

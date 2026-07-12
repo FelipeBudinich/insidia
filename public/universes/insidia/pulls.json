@@ -1,5 +1,0 @@
-{ "schemaVersion": 1, "items": [
-  { "id": "pull-01", "name": "Dominant Pull" },
-  { "id": "pull-02", "name": "Minor Pull" },
-  { "id": "pull-03", "name": "Negative Pull" }
-] }

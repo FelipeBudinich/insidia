@@ -20,27 +20,25 @@ function requireMapped(map, id, category) {
   return value;
 }
 
-export function createPresentationContext({ universeResult, localeResult }) {
-  const { pack } = universeResult;
+export function createPresentationContext({ nomenclatureResult, localeResult }) {
+  const nomenclature = nomenclatureResult.nomenclature;
   const locale = localeResult.locale;
   const maps = {
-    months: mapItems(pack.calendar.months),
-    weekdays: mapItems(pack.calendar.weekdays),
-    interRegna: mapItems(pack.calendar.interRegna),
-    seasons: mapItems(pack.seasons.items),
-    lunarPhases: mapItems(pack.lunarPhases.items),
-    tides: mapItems(pack.tides.items),
-    celestialBodies: mapItems(pack.celestialBodies.items),
-    pulls: mapItems(pack.pulls.items),
+    months: mapItems(nomenclature.calendar.months),
+    weekdays: mapItems(nomenclature.calendar.weekdays),
+    interRegna: mapItems(nomenclature.calendar.interRegna),
+    seasons: mapItems(nomenclature.seasons),
+    lunarPhases: mapItems(nomenclature.lunarPhases),
+    tides: mapItems(nomenclature.tides),
+    celestialBodies: mapItems(nomenclature.celestialBodies),
+    pulls: mapItems(nomenclature.pulls),
     outcomeTypes: mapRecord(locale.outcomeTypes)
   };
   const context = {
-    requestedUniverseId: universeResult.requestedUniverseId,
-    resolvedUniverseId: universeResult.resolvedUniverseId,
     requestedLocaleId: localeResult.requestedLocaleId,
     resolvedLocaleId: localeResult.resolvedLocaleId,
-    universeDisplayName: pack.app.displayName,
-    universeSchemaVersion: universeResult.schemaVersion,
+    applicationDisplayName: nomenclature.application.displayName,
+    nomenclatureSchemaVersion: nomenclatureResult.schemaVersion,
     localeSchemaVersion: localeResult.schemaVersion,
     languageTag: locale.languageTag,
     getMonth: (id) => requireMapped(maps.months, id, 'month'),

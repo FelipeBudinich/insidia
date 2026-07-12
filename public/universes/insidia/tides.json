@@ -1,5 +1,0 @@
-{ "schemaVersion": 1, "items": [
-  { "id": "tide-01", "name": "Low" },
-  { "id": "tide-02", "name": "High" },
-  { "id": "tide-03", "name": "Parted" }
-] }

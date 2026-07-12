@@ -1,9 +1,0 @@
-{ "schemaVersion": 1, "items": [
-  { "id": "phase-01", "name": "Phase A" }, { "id": "phase-02", "name": "Phase B" },
-  { "id": "phase-03", "name": "Phase C" }, { "id": "phase-04", "name": "Phase D" },
-  { "id": "phase-05", "name": "Phase E" }, { "id": "phase-06", "name": "Phase F" },
-  { "id": "phase-07", "name": "Phase G" }, { "id": "phase-08", "name": "Phase H" },
-  { "id": "phase-09", "name": "Phase I" }, { "id": "phase-10", "name": "Phase J" },
-  { "id": "phase-11", "name": "Phase K" }, { "id": "phase-12", "name": "Phase L" },
-  { "id": "phase-13", "name": "Phase M" }
-] }

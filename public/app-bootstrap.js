@@ -1,10 +1,10 @@
 import { loadLocale } from './locale-loader.js';
+import { loadNomenclature } from './nomenclature-loader.js';
 import { createPresentationContext } from './nomenclature.js';
-import { requestedContextIds } from './presentation-context-loader.js';
-import { loadUniverse } from './universe-loader.js';
+import { requestedPresentationOptions } from './presentation-context-loader.js';
 import { startLiveState } from './live-state.js';
 
-const APPLICATION_VERSION = '7.1';
+const APPLICATION_VERSION = '8';
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
 
 function pageMessageKey(pageId) {
@@ -20,20 +20,17 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
   const pageName = context.message(pageMessageKey(pageId));
   documentRoot.title = context.format('document.title', {
     pageName,
-    universeName: context.universeDisplayName
+    applicationName: context.applicationDisplayName
   });
   const metaDescription = documentRoot.querySelector('meta[name="description"]');
   if (metaDescription) {
     metaDescription.setAttribute('content', context.format(documentDescriptionKey(pageId), {
-      universeName: context.universeDisplayName
+      applicationName: context.applicationDisplayName
     }));
   }
   const nav = documentRoot.querySelector('.primary-nav');
   nav.setAttribute('aria-label', context.message('nav.aria'));
-  const query = new URLSearchParams({
-    universe: context.resolvedUniverseId,
-    locale: context.resolvedLocaleId
-  }).toString();
+  const query = new URLSearchParams({ locale: context.resolvedLocaleId }).toString();
   for (const link of documentRoot.querySelectorAll('[data-page-link]')) {
     const targetPage = link.dataset.pageLink;
     link.textContent = context.message(`nav.${targetPage}`);
@@ -42,11 +39,11 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
   for (const element of documentRoot.querySelectorAll('[data-message-key]')) {
     element.textContent = context.message(element.dataset.messageKey);
   }
-  for (const element of documentRoot.querySelectorAll('[data-universe-name]')) {
-    element.textContent = context.universeDisplayName;
+  for (const element of documentRoot.querySelectorAll('[data-application-name]')) {
+    element.textContent = context.applicationDisplayName;
   }
   for (const element of documentRoot.querySelectorAll('[data-version]')) {
-    element.textContent = 'v7.1';
+    element.textContent = 'v8';
     element.setAttribute('aria-label', context.format('accessibility.version', {
       label: context.message('accessibility.applicationVersion'),
       version: APPLICATION_VERSION
@@ -82,12 +79,12 @@ export async function bootstrapPage(pageId, createRenderer, options = {}) {
   const locationLike = options.locationLike ?? window.location;
   const fetchFn = options.fetchFn ?? window.fetch.bind(window);
   documentRoot.documentElement.setAttribute('aria-busy', 'true');
-  const { requestedUniverseId, requestedLocaleId } = requestedContextIds(locationLike);
+  const { requestedLocaleId } = requestedPresentationOptions(locationLike);
   let localeResult;
   try {
     localeResult = await loadLocale({ requestedId: requestedLocaleId, fetchFn, baseUrl: locationLike.href });
-    const universeResult = await loadUniverse({ requestedId: requestedUniverseId, fetchFn, baseUrl: locationLike.href });
-    const context = createPresentationContext({ universeResult, localeResult });
+    const nomenclatureResult = await loadNomenclature({ fetchFn, baseUrl: locationLike.href });
+    const context = createPresentationContext({ nomenclatureResult, localeResult });
     applyCommonDocumentPresentation(documentRoot, pageId, context);
     const renderer = createRenderer(documentRoot, context);
     documentRoot.documentElement.setAttribute('aria-busy', 'false');

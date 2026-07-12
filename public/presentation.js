@@ -94,12 +94,10 @@ function copyRawState(state) {
 
 export function createCalendarJson(state, realUnixMilliseconds, context) {
   return {
-    calendarVersion: 'v9',
-    universe: {
-      requestedId: context.requestedUniverseId,
-      resolvedId: context.resolvedUniverseId,
-      displayName: context.universeDisplayName,
-      schemaVersion: context.universeSchemaVersion
+    calendarVersion: 'v10',
+    nomenclature: {
+      schemaVersion: context.nomenclatureSchemaVersion,
+      applicationDisplayName: context.applicationDisplayName
     },
     locale: {
       requestedId: context.requestedLocaleId,

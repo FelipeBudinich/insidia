@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "application": {
+    "displayName": "Insidia"
+  },
+  "calendar": {
+    "months": [
+      { "id": "month-01", "name": "Month 1", "shortName": "1" },
+      { "id": "month-02", "name": "Month 2", "shortName": "2" },
+      { "id": "month-03", "name": "Month 3", "shortName": "3" },
+      { "id": "month-04", "name": "Month 4", "shortName": "4" },
+      { "id": "month-05", "name": "Month 5", "shortName": "5" },
+      { "id": "month-06", "name": "Month 6", "shortName": "6" },
+      { "id": "month-07", "name": "Month 7", "shortName": "7" },
+      { "id": "month-08", "name": "Month 8", "shortName": "8" },
+      { "id": "month-09", "name": "Month 9", "shortName": "9" },
+      { "id": "month-10", "name": "Month 10", "shortName": "10" },
+      { "id": "month-11", "name": "Month 11", "shortName": "11" }
+    ],
+    "weekdays": [
+      { "id": "weekday-01", "name": "Day 1", "shortName": "D1" },
+      { "id": "weekday-02", "name": "Day 2", "shortName": "D2" },
+      { "id": "weekday-03", "name": "Day 3", "shortName": "D3" },
+      { "id": "weekday-04", "name": "Day 4", "shortName": "D4" },
+      { "id": "weekday-05", "name": "Day 5", "shortName": "D5" },
+      { "id": "weekday-06", "name": "Day 6", "shortName": "D6" },
+      { "id": "weekday-07", "name": "Day 7", "shortName": "D7" }
+    ],
+    "interRegna": [
+      { "id": "interregnum-01", "name": "Inter Regnum 1 → 2" },
+      { "id": "interregnum-02", "name": "Inter Regnum 2 → 3" },
+      { "id": "interregnum-03", "name": "Inter Regnum 3 → 4" },
+      { "id": "interregnum-04", "name": "Inter Regnum 4 → 5" },
+      { "id": "interregnum-05", "name": "Inter Regnum 5 → 6" },
+      { "id": "interregnum-06", "name": "Inter Regnum 6 → 7" },
+      { "id": "interregnum-07", "name": "Inter Regnum 7 → 8" },
+      { "id": "interregnum-08", "name": "Inter Regnum 8 → 9" },
+      { "id": "interregnum-09", "name": "Inter Regnum 9 → 10" },
+      { "id": "interregnum-10", "name": "Inter Regnum 10 → 11" },
+      { "id": "interregnum-11", "name": "Inter Regnum 11 → 1" }
+    ]
+  },
+  "seasons": [
+    { "id": "season-01", "name": "Bones" },
+    { "id": "season-02", "name": "Tears" }
+  ],
+  "lunarPhases": [
+    { "id": "phase-01", "name": "Rebirth" },
+    { "id": "phase-02", "name": "Horn" },
+    { "id": "phase-03", "name": "Crescent" },
+    { "id": "phase-04", "name": "Passage" },
+    { "id": "phase-05", "name": "Growing" },
+    { "id": "phase-06", "name": "Waxing" },
+    { "id": "phase-07", "name": "Ascent" },
+    { "id": "phase-08", "name": "Apex" },
+    { "id": "phase-09", "name": "Bite" },
+    { "id": "phase-10", "name": "Waning" },
+    { "id": "phase-11", "name": "Receding" },
+    { "id": "phase-12", "name": "Veil" },
+    { "id": "phase-13", "name": "Death" }
+  ],
+  "tides": [
+    { "id": "tide-01", "name": "Low" },
+    { "id": "tide-02", "name": "High" },
+    { "id": "tide-03", "name": "Parted" }
+  ],
+  "celestialBodies": [
+    { "id": "body-01", "name": "Mercury", "symbol": "☿" },
+    { "id": "body-02", "name": "Venus", "symbol": "♀" },
+    { "id": "body-03", "name": "Mars", "symbol": "♂" },
+    { "id": "body-04", "name": "Jupiter", "symbol": "♃" },
+    { "id": "body-05", "name": "Saturn", "symbol": "♄" },
+    { "id": "body-06", "name": "Moon", "symbol": "☾" }
+  ],
+  "pulls": [
+    { "id": "pull-01", "name": "Dominant Pull" },
+    { "id": "pull-02", "name": "Minor Pull" },
+    { "id": "pull-03", "name": "Negative Pull" }
+  ]
+}

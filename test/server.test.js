@@ -4,25 +4,156 @@ import http from 'node:http';
 import test from 'node:test';
 import { createStaticServer, installGracefulShutdown, parsePort } from '../server.js';
 
-async function start() { const server = createStaticServer({ environment: 'development' }); server.listen(0, '127.0.0.1'); await once(server, 'listening'); return server; }
-async function stop(server) { await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve())); }
-function request(server, path, method = 'GET') { return new Promise((resolve, reject) => { const req = http.request({ host: '127.0.0.1', port: server.address().port, path, method }, (res) => { const chunks=[]; res.on('data',(chunk)=>chunks.push(chunk)); res.on('end',()=>resolve({ status:res.statusCode, headers:res.headers, body:Buffer.concat(chunks).toString() })); }); req.on('error',reject); req.end(); }); }
+async function start(options = {}) {
+  const server = createStaticServer({ environment: 'development', ...options });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  return server;
+}
 
-test('root redirects to calendar while preserving context query', async () => { const server=await start(); try { const response=await request(server,'/?universe=demonstration&locale=es'); assert.equal(response.status,302); assert.equal(response.headers.location,'/calendar.html?universe=demonstration&locale=es'); } finally { await stop(server); } });
-test('health reports v7.1 JSON', async () => { const server=await start(); try { const response=await request(server,'/health'); assert.equal(response.status,200); assert.equal(response.headers['content-type'],'application/json; charset=utf-8'); assert.deepEqual(JSON.parse(response.body),{ok:true,version:'v7.1'}); } finally { await stop(server); } });
-test('HTML, modules, and JSON have correct MIME and no-cache', async () => { const server=await start(); try { for (const [file,type] of [['/calendar.html','text/html; charset=utf-8'],['/core/mechanics.js','text/javascript; charset=utf-8'],['/universes/index.json','application/json; charset=utf-8']]) { const response=await request(server,file); assert.equal(response.status,200); assert.equal(response.headers['content-type'],type); assert.equal(response.headers['cache-control'],'no-cache'); assert.ok(response.headers['content-security-policy'].includes("default-src 'self'")); } } finally { await stop(server); } });
-test('HEAD returns headers without a body', async () => { const server=await start(); try { const response=await request(server,'/calendar.html','HEAD'); assert.equal(response.status,200); assert.equal(response.body,''); } finally { await stop(server); } });
-test('unknown and traversal paths do not expose files', async () => { const server=await start(); try { for (const path of ['/missing','/%2e%2e/package.json','/.git/config','/%252e%252e%252fserver.js']) { const response=await request(server,path); assert.equal(response.status,404,path); assert.equal(response.body,'Not Found'); } } finally { await stop(server); } });
-test('unsupported methods return 405', async () => { const server=await start(); try { const response=await request(server,'/','POST'); assert.equal(response.status,405); assert.equal(response.headers.allow,'GET, HEAD'); } finally { await stop(server); } });
-test('PORT parser defaults and validates', () => { assert.equal(parsePort(undefined),3000); assert.equal(parsePort('8080'),8080); assert.throws(()=>parsePort('0'),RangeError); assert.throws(()=>parsePort('abc'),RangeError); });
+async function stop(server) {
+  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+}
+
+function request(server, requestPath, { method = 'GET', headers = {} } = {}) {
+  return new Promise((resolve, reject) => {
+    const req = http.request({ host: '127.0.0.1', port: server.address().port, path: requestPath, method, headers }, (res) => {
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks).toString() }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function assertSecurityHeaders(headers) {
+  assert.equal(headers['x-frame-options'], 'DENY');
+  assert.equal(headers['x-content-type-options'], 'nosniff');
+  assert.equal(headers['referrer-policy'], 'no-referrer');
+  assert.equal(headers['cross-origin-opener-policy'], 'same-origin');
+  assert.equal(headers['cross-origin-resource-policy'], 'same-origin');
+  assert.match(headers['content-security-policy'], /default-src 'self'/);
+  assert.match(headers['content-security-policy'], /connect-src 'self'/);
+  assert.doesNotMatch(headers['content-security-policy'], /unsafe-inline|unsafe-eval/);
+}
+
+test('root redirect preserves only a non-empty locale for GET and HEAD', async () => {
+  const server = await start();
+  const cases = [
+    ['/', '/calendar.html'],
+    ['/?locale=es', '/calendar.html?locale=es'],
+    ['/?universe=other&locale=es', '/calendar.html?locale=es'],
+    ['/?universe=other', '/calendar.html'],
+    ['/?locale=es&unused=value', '/calendar.html?locale=es'],
+    ['/?unused=value&locale=en', '/calendar.html?locale=en'],
+    ['/?locale=', '/calendar.html']
+  ];
+  try {
+    for (const [requestPath, location] of cases) {
+      for (const method of ['GET', 'HEAD']) {
+        const response = await request(server, requestPath, { method });
+        assert.equal(response.status, 302, `${method} ${requestPath}`);
+        assert.equal(response.headers.location, location, `${method} ${requestPath}`);
+        assert.equal(response.headers['cache-control'], 'no-store');
+        assert.equal(response.body, '');
+        assertSecurityHeaders(response.headers);
+      }
+    }
+  } finally { await stop(server); }
+});
+
+test('canonical HTTPS redirect takes precedence and preserves the original request URL', async () => {
+  const server = await start({ environment: 'production', canonicalOrigin: 'https://example.test' });
+  try {
+    const response = await request(server, '/?universe=other&locale=es', { headers: { host: 'wrong.test', 'x-forwarded-proto': 'http' } });
+    assert.equal(response.status, 308);
+    assert.equal(response.headers.location, 'https://example.test/?universe=other&locale=es');
+    assert.equal(response.headers['strict-transport-security'], 'max-age=31536000; includeSubDomains');
+  } finally { await stop(server); }
+});
+
+test('health reports v8 JSON for GET and HEAD', async () => {
+  const server = await start();
+  try {
+    const get = await request(server, '/health');
+    const head = await request(server, '/health', { method: 'HEAD' });
+    assert.equal(get.status, 200);
+    assert.equal(get.headers['content-type'], 'application/json; charset=utf-8');
+    assert.equal(get.headers['cache-control'], 'no-store');
+    assert.deepEqual(JSON.parse(get.body), { ok: true, version: 'v8' });
+    assert.equal(head.status, 200);
+    assert.equal(head.body, '');
+    assertSecurityHeaders(get.headers);
+  } finally { await stop(server); }
+});
+
+test('fixed nomenclature has JSON MIME, no-cache, and no configurable endpoint', async () => {
+  const server = await start();
+  try {
+    const response = await request(server, '/config/nomenclature.json', {
+      headers: { 'x-nomenclature': '/other.json', 'x-universe': 'other' }
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers['content-type'], 'application/json; charset=utf-8');
+    assert.equal(response.headers['cache-control'], 'no-cache');
+    assert.equal(JSON.parse(response.body).application.displayName, 'Insidia');
+    for (const requestPath of ['/config?file=nomenclature.json', '/universes/index.json', '/universe-loader.js']) {
+      assert.equal((await request(server, requestPath)).status, 404);
+    }
+  } finally { await stop(server); }
+});
+
+test('HTML, modules, and locale JSON retain MIME, caching, and security headers', async () => {
+  const server = await start();
+  try {
+    for (const [file, type] of [
+      ['/calendar.html', 'text/html; charset=utf-8'],
+      ['/core/mechanics.js', 'text/javascript; charset=utf-8'],
+      ['/locales/en.json', 'application/json; charset=utf-8']
+    ]) {
+      const response = await request(server, file);
+      assert.equal(response.status, 200, file);
+      assert.equal(response.headers['content-type'], type, file);
+      assert.equal(response.headers['cache-control'], 'no-cache', file);
+      assertSecurityHeaders(response.headers);
+    }
+  } finally { await stop(server); }
+});
+
+test('unknown, dotfile, malformed, and traversal paths fail safely', async () => {
+  const server = await start();
+  try {
+    for (const requestPath of ['/missing','/%2e%2e/package.json','/.git/config','/%252e%252e%252fserver.js']) {
+      const response = await request(server, requestPath);
+      assert.equal(response.status, 404, requestPath);
+      assert.equal(response.body, 'Not Found');
+    }
+    assert.equal((await request(server, '/%')).status, 400);
+  } finally { await stop(server); }
+});
+
+test('unsupported methods return 405', async () => {
+  const server = await start();
+  try {
+    const response = await request(server, '/', { method: 'POST' });
+    assert.equal(response.status, 405);
+    assert.equal(response.headers.allow, 'GET, HEAD');
+    assertSecurityHeaders(response.headers);
+  } finally { await stop(server); }
+});
+
+test('PORT parser defaults and validates', () => {
+  assert.equal(parsePort(undefined), 3000);
+  assert.equal(parsePort('8080'), 8080);
+  assert.throws(() => parsePort('0'), RangeError);
+  assert.throws(() => parsePort('abc'), RangeError);
+});
 
 test('SIGTERM closes the server gracefully', () => {
   const handlers = new Map();
   const calls = [];
-  const processRef = {
-    exitCode: undefined,
-    on(event, handler) { handlers.set(event, handler); }
-  };
+  const processRef = { exitCode: undefined, on(event, handler) { handlers.set(event, handler); } };
   const server = {
     close(callback) { calls.push('close'); callback(); },
     closeAllConnections() { calls.push('closeAllConnections'); },

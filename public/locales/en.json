@@ -57,13 +57,13 @@
     "accessibility.applicationVersion": "Application version",
     "accessibility.seasonProgress": "Current season progress",
     "accessibility.copyStatus": "Copy status",
-    "error.configuration": "Unable to load the selected universe or locale configuration."
+    "error.configuration": "Unable to load the application or locale configuration."
   },
   "templates": {
-    "document.title": "{pageName} · {universeName}",
-    "document.calendarDescription": "Live fictional calendar and lunar state for {universeName}.",
-    "document.outcomeDescription": "Live outcome, tides, pulls, and celestial orbits for {universeName}.",
-    "document.weatherDescription": "Live fictional times, season, and progress for {universeName}.",
+    "document.title": "{pageName} · {applicationName}",
+    "document.calendarDescription": "Live fictional calendar and lunar state for {applicationName}.",
+    "document.outcomeDescription": "Live outcome, tides, pulls, and celestial orbits for {applicationName}.",
+    "document.weatherDescription": "Live fictional times, season, and progress for {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Orbital progress for {bodyName}",
     "calendar.monthPeriod": "{monthName} · {dayLabel} {day}",

@@ -57,13 +57,13 @@
     "accessibility.applicationVersion": "Versión de la aplicación",
     "accessibility.seasonProgress": "Progreso de la estación actual",
     "accessibility.copyStatus": "Estado de copia",
-    "error.configuration": "No se pudo cargar la configuración de universo o idioma seleccionada."
+    "error.configuration": "No se pudo cargar la configuración de la aplicación o del idioma."
   },
   "templates": {
-    "document.title": "{pageName} · {universeName}",
-    "document.calendarDescription": "Calendario ficticio y estado lunar en vivo para {universeName}.",
-    "document.outcomeDescription": "Resultado, mareas, fuerzas y órbitas celestes en vivo para {universeName}.",
-    "document.weatherDescription": "Tiempos ficticios, estación y progreso en vivo para {universeName}.",
+    "document.title": "{pageName} · {applicationName}",
+    "document.calendarDescription": "Calendario ficticio y estado lunar en vivo para {applicationName}.",
+    "document.outcomeDescription": "Resultado, mareas, fuerzas y órbitas celestes en vivo para {applicationName}.",
+    "document.weatherDescription": "Tiempos ficticios, estación y progreso en vivo para {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Progreso orbital de {bodyName}",
     "calendar.monthPeriod": "{monthName} · {dayLabel} {day}",
