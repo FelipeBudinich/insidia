@@ -25,6 +25,13 @@ export const OUTCOME_TYPE_IDS = Object.freeze([
   'outcome-tier-03'
 ]);
 
+export const DEFAULT_LOCALE_ID = 'en';
+
+export const LOCALE_FILES = Object.freeze({
+  en: '/locales/en.json',
+  es: '/locales/es.json'
+});
+
 function assertNonEmpty(value, label) {
   if (typeof value !== 'string' || value.trim() === '') throw new Error(`${label} must be a non-empty string`);
 }
@@ -67,14 +74,6 @@ export function validateLocale(locale) {
   return locale;
 }
 
-export function validateLocaleIndex(index) {
-  if (!index || typeof index !== 'object' || index.schemaVersion !== 1) throw new Error('locale index schemaVersion must be 1');
-  if (!Array.isArray(index.locales) || index.locales.length === 0) throw new Error('locales must not be empty');
-  const ids = index.locales.map((entry) => entry.id);
-  if (new Set(ids).size !== ids.length) throw new Error('Locale IDs must be unique');
-  if (!ids.includes(index.defaultLocaleId)) throw new Error('Default locale is not indexed');
-}
-
 async function fetchJson(url, fetchFn) {
   const response = await fetchFn(url.href, { cache: 'no-cache' });
   if (!response?.ok) throw new Error(`Unable to load JSON: ${url.pathname}`);
@@ -83,15 +82,13 @@ async function fetchJson(url, fetchFn) {
 
 export async function loadLocale({ requestedId, fetchFn = window.fetch.bind(window), baseUrl = window.location.href }) {
   const base = new URL(baseUrl);
-  const indexUrl = new URL('/locales/index.json', base);
-  const index = await fetchJson(indexUrl, fetchFn);
-  validateLocaleIndex(index);
-  const requestedLocaleId = requestedId || index.defaultLocaleId;
-  const entry = index.locales.find((candidate) => candidate.id === requestedLocaleId)
-    ?? index.locales.find((candidate) => candidate.id === index.defaultLocaleId);
-  const fileUrl = new URL(entry.file, indexUrl);
+  const requestedLocaleId = requestedId || DEFAULT_LOCALE_ID;
+  const resolvedLocaleId = Object.hasOwn(LOCALE_FILES, requestedLocaleId)
+    ? requestedLocaleId
+    : DEFAULT_LOCALE_ID;
+  const fileUrl = new URL(LOCALE_FILES[resolvedLocaleId], base);
   if (fileUrl.origin !== base.origin) throw new Error('Locale file must be same-origin');
   const locale = validateLocale(await fetchJson(fileUrl, fetchFn));
-  if (locale.id !== entry.id) throw new Error('Locale ID does not match index');
-  return { requestedLocaleId, resolvedLocaleId: entry.id, schemaVersion: locale.schemaVersion, locale };
+  if (locale.id !== resolvedLocaleId) throw new Error('Locale ID does not match registry');
+  return { requestedLocaleId, resolvedLocaleId, schemaVersion: locale.schemaVersion, locale };
 }

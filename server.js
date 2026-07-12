@@ -73,6 +73,39 @@ function getContentType(filePath) {
   return CONTENT_TYPES[path.extname(filePath).toLowerCase()] ?? 'application/octet-stream';
 }
 
+export function createStaticEtag(fileStats) {
+  const size = Math.trunc(fileStats.size).toString(16);
+  const modifiedMilliseconds = fileStats.mtimeMs.toString(16);
+  return `W/"${size}-${modifiedMilliseconds}"`;
+}
+
+function headerValue(value) {
+  return Array.isArray(value) ? value.join(',') : value;
+}
+
+function weakEtagValue(value) {
+  return value.trim().replace(/^W\//i, '');
+}
+
+function matchesIfNoneMatch(value, etag) {
+  const header = headerValue(value);
+  if (typeof header !== 'string') return false;
+  const current = weakEtagValue(etag);
+  return header.split(',').some((candidate) => {
+    const trimmed = candidate.trim();
+    return trimmed === '*' || weakEtagValue(trimmed) === current;
+  });
+}
+
+function matchesIfModifiedSince(value, fileStats) {
+  const header = headerValue(value);
+  if (typeof header !== 'string') return false;
+  const suppliedTime = Date.parse(header);
+  if (Number.isNaN(suppliedTime)) return false;
+  const modifiedTime = Math.floor(fileStats.mtimeMs / 1000) * 1000;
+  return modifiedTime <= suppliedTime;
+}
+
 function createHeaders(environment, headers = {}) {
   return { ...getSecurityHeaders(environment), ...headers };
 }
@@ -84,6 +117,19 @@ function sendResponse(response, method, environment, statusCode, headers, body =
     'Content-Length': responseBody.byteLength
   }));
   response.end(method === 'HEAD' ? undefined : responseBody);
+}
+
+function sendNotModified(response, environment, headers) {
+  response.writeHead(304, createHeaders(environment, headers));
+  response.end();
+}
+
+function sendStaticHead(response, environment, headers, contentLength) {
+  response.writeHead(200, createHeaders(environment, {
+    ...headers,
+    'Content-Length': contentLength
+  }));
+  response.end();
 }
 
 function sendNotFound(response, method, environment) {
@@ -306,7 +352,7 @@ export function createStaticServer(options = {}) {
       sendResponse(response, method, environment, 200, {
         'Cache-Control': 'no-store',
         'Content-Type': 'application/json; charset=utf-8'
-      }, JSON.stringify({ ok: true, version: 'v8.3' }));
+      }, JSON.stringify({ ok: true, version: 'v8.4' }));
       return;
     }
 
@@ -330,11 +376,31 @@ export function createStaticServer(options = {}) {
         return;
       }
 
-      const content = await readFile(requestedFile);
-      sendResponse(response, method, environment, 200, {
+      const etag = createStaticEtag(fileStats);
+      const staticHeaders = {
         'Cache-Control': getCacheControl(requestedFile),
-        'Content-Type': getContentType(requestedFile)
-      }, content);
+        'Content-Type': getContentType(requestedFile),
+        ETag: etag,
+        'Last-Modified': fileStats.mtime.toUTCString()
+      };
+      const ifNoneMatch = request.headers['if-none-match'];
+      if (ifNoneMatch !== undefined) {
+        if (matchesIfNoneMatch(ifNoneMatch, etag)) {
+          sendNotModified(response, environment, staticHeaders);
+          return;
+        }
+      } else if (matchesIfModifiedSince(request.headers['if-modified-since'], fileStats)) {
+        sendNotModified(response, environment, staticHeaders);
+        return;
+      }
+
+      if (method === 'HEAD') {
+        sendStaticHead(response, environment, staticHeaders, fileStats.size);
+        return;
+      }
+
+      const content = await readFile(requestedFile);
+      sendResponse(response, method, environment, 200, staticHeaders, content);
     } catch (error) {
       if (isMissingFileError(error)) {
         sendNotFound(response, method, environment);

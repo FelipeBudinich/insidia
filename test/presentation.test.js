@@ -220,19 +220,19 @@ test('navigation applies only resolved locale and fixed application metadata', a
   assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore']);
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.3');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.3');
+  assert.equal(versionElements[0].textContent, 'v8.4');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.4');
   applyCommonDocumentPresentation(documentRoot, 'page-01', await context('en'));
-  assert.equal(versionElements[0]['aria-label'], 'Application version 8.3');
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.4');
 });
 
-test('static HTML remains neutral and uses v8.3 page IDs and application placeholders', async () => {
+test('static HTML remains neutral and uses v8.4 page IDs and application placeholders', async () => {
   const properNouns = ['Insidia','Calendario','Destino','Tempore','Ossos','Lacrimas','Renascimento','Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente','Month 1'];
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.3/);
+    assert.match(html, /data-version>v8\.4/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);

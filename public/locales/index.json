@@ -1,8 +1,0 @@
-{
-  "schemaVersion": 1,
-  "defaultLocaleId": "en",
-  "locales": [
-    { "id": "en", "file": "/locales/en.json" },
-    { "id": "es", "file": "/locales/es.json" }
-  ]
-}

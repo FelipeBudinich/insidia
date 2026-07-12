@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import http from 'node:http';
 import test from 'node:test';
-import { createStaticServer, installGracefulShutdown, parsePort } from '../server.js';
+import { createStaticEtag, createStaticServer, installGracefulShutdown, parsePort } from '../server.js';
 
 async function start(options = {}) {
   const server = createStaticServer({ environment: 'development', ...options });
@@ -73,7 +73,7 @@ test('canonical HTTPS redirect takes precedence and preserves the original reque
   } finally { await stop(server); }
 });
 
-test('health reports v8.3 JSON for GET and HEAD', async () => {
+test('health reports v8.4 JSON for GET and HEAD', async () => {
   const server = await start();
   try {
     const get = await request(server, '/health');
@@ -81,7 +81,7 @@ test('health reports v8.3 JSON for GET and HEAD', async () => {
     assert.equal(get.status, 200);
     assert.equal(get.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(get.headers['cache-control'], 'no-store');
-    assert.equal(get.body, '{"ok":true,"version":"v8.3"}');
+    assert.equal(get.body, '{"ok":true,"version":"v8.4"}');
     assert.equal(head.status, 200);
     assert.equal(head.body, '');
     assertSecurityHeaders(get.headers);
@@ -104,7 +104,7 @@ test('fixed nomenclature has JSON MIME, no-cache, and no configurable endpoint',
   } finally { await stop(server); }
 });
 
-test('new HTML pages, modules, and locale JSON retain MIME, caching, and security headers', async () => {
+test('successful static files include MIME, caching, validators, and security headers', async () => {
   const server = await start();
   try {
     for (const [file, type] of [
@@ -114,19 +114,118 @@ test('new HTML pages, modules, and locale JSON retain MIME, caching, and securit
       ['/calendario-page.js', 'text/javascript; charset=utf-8'],
       ['/destino-page.js', 'text/javascript; charset=utf-8'],
       ['/tempore-page.js', 'text/javascript; charset=utf-8'],
+      ['/styles.css', 'text/css; charset=utf-8'],
       ['/core/mechanics.js', 'text/javascript; charset=utf-8'],
-      ['/locales/en.json', 'application/json; charset=utf-8']
+      ['/locales/en.json', 'application/json; charset=utf-8'],
+      ['/config/nomenclature.json', 'application/json; charset=utf-8']
     ]) {
       const response = await request(server, file);
       const head = await request(server, file, { method: 'HEAD' });
       assert.equal(response.status, 200, file);
       assert.equal(response.headers['content-type'], type, file);
       assert.equal(response.headers['cache-control'], 'no-cache', file);
+      assert.match(response.headers.etag, /^W\/"[0-9a-f]+-[0-9a-f]+(?:\.[0-9a-f]+)?"$/, file);
+      assert.equal(Number.isNaN(Date.parse(response.headers['last-modified'])), false, file);
       assertSecurityHeaders(response.headers);
       assert.equal(head.status, 200, `HEAD ${file}`);
       assert.equal(head.body, '', `HEAD ${file}`);
       assert.equal(head.headers['content-type'], type, `HEAD ${file}`);
       assert.equal(head.headers['cache-control'], 'no-cache', `HEAD ${file}`);
+      assert.equal(head.headers.etag, response.headers.etag, `HEAD ${file}`);
+      assert.equal(head.headers['last-modified'], response.headers['last-modified'], `HEAD ${file}`);
+      assert.equal(Number(head.headers['content-length']), Buffer.byteLength(response.body), `HEAD ${file}`);
+      assertSecurityHeaders(head.headers);
+    }
+  } finally { await stop(server); }
+});
+
+test('static ETags are deterministic, path-free metadata validators', () => {
+  const first = createStaticEtag({ size: 4096, mtimeMs: 123456789 });
+  assert.equal(first, 'W/"1000-75bcd15"');
+  assert.equal(createStaticEtag({ size: 4096, mtimeMs: 123456789 }), first);
+  assert.notEqual(createStaticEtag({ size: 4097, mtimeMs: 123456789 }), first);
+  assert.notEqual(createStaticEtag({ size: 4096, mtimeMs: 123456790 }), first);
+  assert.notEqual(createStaticEtag({ size: 4096, mtimeMs: 123456789.5 }), first);
+  assert.doesNotMatch(first.slice(2), /\/|\\|calendario/);
+});
+
+test('If-None-Match supports exact, wildcard, lists, weak comparison, and nonmatches', async () => {
+  const server = await start();
+  try {
+    const initial = await request(server, '/calendario.html');
+    const etag = initial.headers.etag;
+    for (const value of [etag, '*', `"other", ${etag}`, etag.replace(/^W\//, '')]) {
+      const response = await request(server, '/calendario.html', { headers: { 'if-none-match': value } });
+      assert.equal(response.status, 304, value);
+      assert.equal(response.body, '', value);
+      assert.equal(response.headers.etag, etag, value);
+      assert.equal(response.headers['last-modified'], initial.headers['last-modified'], value);
+      assert.equal(response.headers['cache-control'], initial.headers['cache-control'], value);
+      assert.equal(response.headers['content-length'], undefined, value);
+      assertSecurityHeaders(response.headers);
+    }
+    assert.equal((await request(server, '/calendario.html', { headers: { 'if-none-match': 'W/"not-current"' } })).status, 200);
+  } finally { await stop(server); }
+});
+
+test('If-Modified-Since handles matching, stale, invalid, and If-None-Match precedence', async () => {
+  const server = await start();
+  try {
+    const initial = await request(server, '/styles.css');
+    const modified = Date.parse(initial.headers['last-modified']);
+    const matching = await request(server, '/styles.css', { headers: { 'if-modified-since': initial.headers['last-modified'] } });
+    assert.equal(matching.status, 304);
+    assert.equal(matching.body, '');
+    assert.equal(matching.headers.etag, initial.headers.etag);
+    assertSecurityHeaders(matching.headers);
+    assert.equal((await request(server, '/styles.css', {
+      headers: { 'if-modified-since': new Date(modified - 86_400_000).toUTCString() }
+    })).status, 200);
+    assert.equal((await request(server, '/styles.css', { headers: { 'if-modified-since': 'not-a-date' } })).status, 200);
+    assert.equal((await request(server, '/styles.css', {
+      headers: {
+        'if-none-match': 'W/"not-current"',
+        'if-modified-since': new Date(modified + 86_400_000).toUTCString()
+      }
+    })).status, 200);
+  } finally { await stop(server); }
+});
+
+test('static HEAD returns validators and length without a body, including conditional 304', async () => {
+  const server = await start();
+  try {
+    const get = await request(server, '/calendario.html');
+    const head = await request(server, '/calendario.html', { method: 'HEAD' });
+    assert.equal(head.status, 200);
+    assert.equal(head.body, '');
+    assert.equal(head.headers.etag, get.headers.etag);
+    assert.equal(head.headers['last-modified'], get.headers['last-modified']);
+    assert.equal(Number(head.headers['content-length']), Buffer.byteLength(get.body));
+    const conditional = await request(server, '/calendario.html', {
+      method: 'HEAD', headers: { 'if-none-match': get.headers.etag }
+    });
+    assert.equal(conditional.status, 304);
+    assert.equal(conditional.body, '');
+    assert.equal(conditional.headers.etag, get.headers.etag);
+    assert.equal(conditional.headers['content-length'], undefined);
+    assertSecurityHeaders(conditional.headers);
+  } finally { await stop(server); }
+});
+
+test('conditional headers do not revalidate dynamic, redirect, or error responses', async () => {
+  const server = await start();
+  const headers = {
+    'if-none-match': '*',
+    'if-modified-since': new Date(Date.now() + 86_400_000).toUTCString()
+  };
+  try {
+    for (const [requestPath, status] of [['/', 302], ['/health', 200], ['/missing', 404]]) {
+      const response = await request(server, requestPath, { headers });
+      assert.equal(response.status, status, requestPath);
+      assert.equal(response.headers['cache-control'], 'no-store', requestPath);
+      assert.equal(response.headers.etag, undefined, requestPath);
+      assert.equal(response.headers['last-modified'], undefined, requestPath);
+      assertSecurityHeaders(response.headers);
     }
   } finally { await stop(server); }
 });

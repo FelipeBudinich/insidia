@@ -1,11 +1,8 @@
-import { loadLocale } from './locale-loader.js';
-import { loadNomenclature } from './nomenclature-loader.js';
-import { createPresentationContext } from './nomenclature.js';
 import { getPageDefinition } from './page-definitions.js';
-import { requestedPresentationOptions } from './presentation-context-loader.js';
+import { loadPresentationContext } from './presentation-context-loader.js';
 import { startLiveState } from './live-state.js';
 
-const APPLICATION_VERSION = '8.3';
+const APPLICATION_VERSION = '8.4';
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
 
 export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
@@ -43,7 +40,7 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
     element.textContent = context.applicationDisplayName;
   }
   for (const element of documentRoot.querySelectorAll('[data-version]')) {
-    element.textContent = 'v8.3';
+    element.textContent = 'v8.4';
     element.setAttribute('aria-label', context.format('accessibility.version', {
       label: context.message('accessibility.applicationVersion'),
       version: APPLICATION_VERSION
@@ -77,17 +74,14 @@ export async function bootstrapPage(pageId, createRenderer, options = {}) {
   const locationLike = options.locationLike ?? window.location;
   const fetchFn = options.fetchFn ?? window.fetch.bind(window);
   documentRoot.documentElement.setAttribute('aria-busy', 'true');
-  const { requestedLocaleId } = requestedPresentationOptions(locationLike);
-  let localeResult;
   try {
-    localeResult = await loadLocale({ requestedId: requestedLocaleId, fetchFn, baseUrl: locationLike.href });
-    const nomenclatureResult = await loadNomenclature({ fetchFn, baseUrl: locationLike.href });
-    const context = createPresentationContext({ nomenclatureResult, localeResult });
+    const context = await loadPresentationContext(locationLike, { fetchFn });
     applyCommonDocumentPresentation(documentRoot, pageId, context);
     const renderer = createRenderer(documentRoot, context);
     documentRoot.documentElement.setAttribute('aria-busy', 'false');
     return startLiveState(renderer);
   } catch (error) {
+    const localeResult = error?.localeResult;
     const message = localeResult?.locale?.messages?.['error.configuration']
       ?? 'Unable to load application configuration.';
     renderConfigurationError(documentRoot, message, localeResult?.locale?.languageTag ?? 'en');

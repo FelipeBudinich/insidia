@@ -4,9 +4,9 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { bootstrapPage } from '../public/app-bootstrap.js';
-import { loadLocale, validateLocale } from '../public/locale-loader.js';
+import { DEFAULT_LOCALE_ID, LOCALE_FILES, loadLocale, validateLocale } from '../public/locale-loader.js';
 import { loadNomenclature, NOMENCLATURE_PATH, validateNomenclature } from '../public/nomenclature-loader.js';
-import { requestedPresentationOptions } from '../public/presentation-context-loader.js';
+import { loadPresentationContext, requestedPresentationOptions } from '../public/presentation-context-loader.js';
 import { formatTemplate } from '../public/templates.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -39,6 +39,12 @@ test('there is exactly one production nomenclature JSON file and no universe inf
   await access(nomenclaturePath);
   await assert.rejects(access(path.join(publicDirectory, 'universes')));
   await assert.rejects(access(path.join(publicDirectory, 'universe-loader.js')));
+});
+
+test('locale index is removed and supported locale files are fixed in the loader registry', async () => {
+  await assert.rejects(access(path.join(publicDirectory, 'locales', 'index.json')));
+  assert.equal(DEFAULT_LOCALE_ID, 'en');
+  assert.deepEqual(LOCALE_FILES, { en: '/locales/en.json', es: '/locales/es.json' });
 });
 
 test('loadNomenclature always requests the one fixed same-origin path', async () => {
@@ -139,24 +145,43 @@ function configurationErrorDocument() {
   return { documentElement, body: makeElement(), createElement: makeElement };
 }
 
-test('missing or invalid nomenclature prevents rendering and shows an accessible error', async (t) => {
+test('missing or invalid nomenclature prevents rendering and shows a localized accessible error', async (t) => {
   t.mock.method(console, 'error', () => {});
   const valid = await readJson(nomenclaturePath);
   const invalid = structuredClone(valid); invalid.calendar.months.pop();
   for (const replacement of ['missing', invalid]) {
-    const documentRoot = configurationErrorDocument();
-    let rendererCreated = false;
-    const result = await bootstrapPage('page-01', () => { rendererCreated = true; }, {
-      documentRoot,
-      locationLike: { href: 'http://app.test/calendario.html?locale=en' },
-      fetchFn: localFetch(new Map([[NOMENCLATURE_PATH, replacement]]))
-    });
-    assert.equal(result, null);
-    assert.equal(rendererCreated, false);
-    assert.equal(documentRoot.documentElement.attributes['aria-busy'], undefined);
-    assert.equal(documentRoot.body.children[0].attributes.role, 'alert');
-    assert.equal(documentRoot.body.children[0].children[0].textContent, 'Unable to load the application or locale configuration.');
+    for (const [localeId, message, languageTag] of [
+      ['en', 'Unable to load the application or locale configuration.', 'en'],
+      ['es', 'No se pudo cargar la configuración de la aplicación o del idioma.', 'es']
+    ]) {
+      const documentRoot = configurationErrorDocument();
+      let rendererCreated = false;
+      const result = await bootstrapPage('page-01', () => { rendererCreated = true; }, {
+        documentRoot,
+        locationLike: { href: `http://app.test/calendario.html?locale=${localeId}` },
+        fetchFn: localFetch(new Map([[NOMENCLATURE_PATH, replacement]]))
+      });
+      assert.equal(result, null);
+      assert.equal(rendererCreated, false);
+      assert.equal(documentRoot.documentElement.attributes['aria-busy'], undefined);
+      assert.equal(documentRoot.documentElement.lang, languageTag);
+      assert.equal(documentRoot.body.children[0].attributes.role, 'alert');
+      assert.equal(documentRoot.body.children[0].children[0].textContent, message);
+    }
   }
+});
+
+test('locale failure uses the minimal emergency English configuration error', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const documentRoot = configurationErrorDocument();
+  const result = await bootstrapPage('page-01', () => assert.fail('renderer must not start'), {
+    documentRoot,
+    locationLike: { href: 'http://app.test/calendario.html?locale=es' },
+    fetchFn: localFetch(new Map([['/locales/es.json', 'malformed']]))
+  });
+  assert.equal(result, null);
+  assert.equal(documentRoot.documentElement.lang, 'en');
+  assert.equal(documentRoot.body.children[0].children[0].textContent, 'Unable to load application configuration.');
 });
 
 test('locale-only query parsing defaults, resolves Spanish, and ignores all other parameters', () => {
@@ -165,11 +190,60 @@ test('locale-only query parsing defaults, resolves Spanish, and ignores all othe
   assert.deepEqual(requestedPresentationOptions('http://app.test/calendario.html?universe=other&locale=es&unused=x'), { requestedLocaleId: 'es' });
 });
 
-test('locale loader resolves Spanish and falls back from an unknown locale to English', async () => {
-  const fetchFn = localFetch();
-  assert.equal((await loadLocale({ requestedId: 'es', fetchFn, baseUrl: 'http://app.test/' })).resolvedLocaleId, 'es');
-  const fallback = await loadLocale({ requestedId: 'unknown', fetchFn, baseUrl: 'http://app.test/' });
-  assert.deepEqual([fallback.requestedLocaleId, fallback.resolvedLocaleId], ['unknown', 'en']);
+test('locale loader performs exactly one allowlisted request for default, Spanish, and unknown IDs', async () => {
+  for (const [requestedId, expectedPath, expectedRequestedId, expectedResolvedId] of [
+    [undefined, '/locales/en.json', 'en', 'en'],
+    ['en', '/locales/en.json', 'en', 'en'],
+    ['es', '/locales/es.json', 'es', 'es'],
+    ['unknown', '/locales/en.json', 'unknown', 'en'],
+    ['../config/nomenclature', '/locales/en.json', '../config/nomenclature', 'en']
+  ]) {
+    const requests = [];
+    const result = await loadLocale({
+      requestedId,
+      fetchFn: localFetch(new Map(), requests),
+      baseUrl: 'http://app.test/calendario.html'
+    });
+    assert.deepEqual(requests, [expectedPath]);
+    assert.equal(result.requestedLocaleId, expectedRequestedId);
+    assert.equal(result.resolvedLocaleId, expectedResolvedId);
+  }
+});
+
+test('locale and nomenclature begin concurrently with exactly two configuration requests', async () => {
+  const localeValues = {
+    en: await readJson(path.join(publicDirectory, 'locales', 'en.json')),
+    es: await readJson(path.join(publicDirectory, 'locales', 'es.json'))
+  };
+  const nomenclature = await readJson(nomenclaturePath);
+  for (const localeId of ['en', 'es']) {
+    const requests = [];
+    const pending = new Map();
+    const fetchFn = (url, options) => {
+      assert.equal(options.cache, 'no-cache');
+      const pathname = new URL(url).pathname;
+      requests.push(pathname);
+      return new Promise((resolve) => pending.set(pathname, resolve));
+    };
+    const contextPromise = loadPresentationContext(
+      `http://app.test/calendario.html?locale=${localeId}`,
+      { fetchFn }
+    );
+    assert.deepEqual(requests.sort(), [`/locales/${localeId}.json`, NOMENCLATURE_PATH].sort());
+    assert.equal(requests.length, 2);
+    assert.equal(requests.includes('/locales/index.json'), false);
+    pending.get(`/locales/${localeId}.json`)({ ok: true, json: async () => structuredClone(localeValues[localeId]) });
+    pending.get(NOMENCLATURE_PATH)({ ok: true, json: async () => structuredClone(nomenclature) });
+    const context = await contextPromise;
+    assert.equal(context.resolvedLocaleId, localeId);
+    assert.equal(context.applicationDisplayName, 'Insidia');
+  }
+});
+
+test('app bootstrap delegates presentation-resource loading to the shared orchestrator only', async () => {
+  const source = await readFile(path.join(publicDirectory, 'app-bootstrap.js'), 'utf8');
+  assert.match(source, /import \{ loadPresentationContext \} from '\.\/presentation-context-loader\.js'/);
+  assert.doesNotMatch(source, /loadLocale|loadNomenclature|createPresentationContext|requestedPresentationOptions/);
 });
 
 test('locale Outcome types are exact and malformed known locales fail', async () => {
@@ -186,6 +260,11 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
   }
   const invalid = structuredClone(spanish); delete invalid.outcomeTypes['outcome-tier-01'];
   await assert.rejects(() => loadLocale({ requestedId: 'es', fetchFn: localFetch(new Map([['/locales/es.json', invalid]])), baseUrl: 'http://app.test/' }));
+  const mismatched = structuredClone(spanish); mismatched.id = 'en';
+  await assert.rejects(
+    () => loadLocale({ requestedId: 'es', fetchFn: localFetch(new Map([['/locales/es.json', mismatched]])), baseUrl: 'http://app.test/' }),
+    /Locale ID does not match registry/
+  );
 });
 
 test('template formatter replaces named values and rejects missing values', () => {

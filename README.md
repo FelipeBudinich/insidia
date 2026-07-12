@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.3 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v8.4 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
@@ -24,7 +24,7 @@ Locale is the only presentation option accepted through the query string:
 /tempore.html?locale=es
 ```
 
-English is the default. Unknown locale IDs resolve to the default declared in `public/locales/index.json`; known malformed locale files stop bootstrap visibly. Navigation preserves only the resolved `locale` value and drops unrelated parameters.
+English is the default. Supported locale IDs and their fixed same-origin paths are allowlisted directly in `public/locale-loader.js`; `/locales/index.json` no longer exists. Unknown locale IDs resolve safely to English, while known malformed locale files stop bootstrap visibly. Query values never become file paths. Navigation preserves only the resolved `locale` value and drops unrelated parameters.
 
 There is no universe selector, universe query parameter, alternate world configuration, cookie, local-storage setting, header, route, or configurable frontend path for changing in-game nomenclature.
 
@@ -38,7 +38,7 @@ public/config/nomenclature.json
 
 The browser always loads it from the fixed same-origin URL `/config/nomenclature.json`. Editing this file and redeploying is sufficient to rename the application/world, months, weekdays, Inter Regna, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. JavaScript and HTML changes are not required.
 
-The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.3 configuration includes:
+The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.4 configuration includes:
 
 - Lunar phases: Renascimento, Corno, Falce, Passage, Ascrescimento, Crescente, Ascenso, Apice, Morditura, Decrescente, Recedente, Velo, Morte
 - Tides: Marea basse, Marea alte, Marea dividite
@@ -81,7 +81,7 @@ The shared scheduler recursively targets the next 997 ms boundary and recalculat
 3. `public/locales/` contains generic UI terminology, templates, status/accessibility text, and Outcome-type names.
 4. The presentation context resolves raw IDs through the validated nomenclature and locale data.
 
-`public/nomenclature-loader.js` owns the fixed configuration path. `public/locale-loader.js` handles locale selection. `public/app-bootstrap.js` completes and validates both loads before applying labels, preparing renderers, clearing `aria-busy`, and starting `public/live-state.js`.
+`public/nomenclature-loader.js` owns the fixed nomenclature path, and `public/locale-loader.js` owns the locale allowlist and direct locale request. `public/presentation-context-loader.js` starts locale and nomenclature loading concurrently and constructs their shared context. A page therefore requires exactly two configuration JSON requests—one locale file and `/config/nomenclature.json`—instead of an indexed, serial request chain. `public/app-bootstrap.js` applies the loaded context, prepares renderers, clears `aria-busy`, and starts `public/live-state.js`.
 
 The project has no framework, build system, database, backend time API, WebSocket, authentication system, external font, date library, server-side fictional calculation, or backend configuration-selection endpoint.
 
@@ -91,7 +91,7 @@ The project has no framework, build system, database, backend time API, WebSocke
 - Outcome begins directly with the selected celestial object and retains its classification, tide, Pull, orbit, and progress data without a visible Outcome card title.
 - Weather begins directly with the Time card, including both fictional and lunar clocks, then shows Season and Progress. It has no separate page-header card.
 
-Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.3 version in its footer.
+Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.4 version in its footer.
 
 ## JSON schema v10
 
@@ -115,9 +115,11 @@ The v10 schema contains no universe-selection metadata. Removing the visible JSO
 | `/destino.html` | Outcome selection, tides, pulls, orbits, and hour progress |
 | `/tempore.html` | Fictional times, season, and selected progress |
 | `/config/nomenclature.json` | The one read-only nomenclature configuration |
-| `/health` | `{"ok":true,"version":"v8.3"}` |
+| `/health` | `{"ok":true,"version":"v8.4"}` |
 
-Static `.html`, `.css`, `.js`, and `.json` responses use explicit MIME types and `Cache-Control: no-cache`. The server prevents traversal and dotfile access, returns generic errors, provides CSP and related security headers, supports `GET`/`HEAD`, preserves canonical HTTPS redirect precedence, and shuts down gracefully.
+Static `.html`, `.css`, `.js`, and `.json` responses—including locale and nomenclature configuration—use explicit MIME types and `Cache-Control: no-cache`. They also include deterministic weak ETags and Last-Modified validators, so repeat requests can revalidate with a bodyless `304 Not Modified` response instead of retransferring unchanged files. Other static formats retain a short revalidating cache policy. Dynamic, redirect, and error responses remain `no-store` and do not participate in static revalidation.
+
+The server prevents traversal and dotfile access, returns generic errors, provides CSP and related security headers on both 200 and 304 static responses, supports conditional `GET`/`HEAD`, preserves canonical HTTPS redirect precedence, and shuts down gracefully. These improvements use only Node built-in modules; no dependency, build step, file watcher, service worker, or compatibility layer was added.
 
 The former English page paths and modules are intentionally unsupported. They have no redirects, aliases, compatibility files, or duplicate pages and return ordinary static 404 responses.
 
@@ -131,10 +133,9 @@ The former English page paths and modules are intentionally unsupported. They ha
 
 ## Adding a locale
 
-1. Add its ID and same-origin file path to `public/locales/index.json`.
-2. Copy an existing locale file.
-3. Translate every message, template, and Outcome-type name without changing keys, IDs, or named placeholders.
-4. Run `npm test`.
+1. Add its locale JSON file, translating every message, template, and Outcome-type name without changing keys, IDs, or named placeholders.
+2. Add its ID and fixed same-origin path to the `LOCALE_FILES` registry in `public/locale-loader.js`.
+3. Add or update loader, validation, and presentation tests, then run `npm test`.
 
 The nomenclature file uses schema version 2, including the three page-name entries. Locale files use schema version 2 after moving page proper nouns out of locale ownership. The Calendar JSON API remains schema v10.
 
@@ -144,7 +145,7 @@ The nomenclature file uses schema version 2, including the three page-name entri
 public/
   config/nomenclature.json
   core/{rules,mechanics,formatting}.js
-  locales/{index,en,es}.json
+  locales/{en,es}.json
   {calendario,destino,tempore}.html
   {calendario,destino,tempore}-page.js
   app-bootstrap.js
