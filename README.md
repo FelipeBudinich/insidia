@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.19 is a browser-calculated fictional calendar and world-state interface. It has three live pages and eight configuration-driven static pages, one fixed in-game nomenclature configuration, and localized generic UI language. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time calculations.
+Insidia v8.20 is a browser-calculated fictional calendar and world-state interface. It has three live pages and six configuration-driven static pages, one fixed in-game nomenclature configuration, and localized generic UI language. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time calculations.
 
 ## Run locally
 
@@ -16,18 +16,17 @@ Open [http://localhost:3000](http://localhost:3000). Set `PORT` to override port
 
 ## Pages and navigation
 
-The page registry contains exactly eleven stable IDs, fixed routes, and nomenclature-owned names. Every page uses the same sticky navigation structure and preserves only the resolved `locale` query value in its links.
+The page registry contains exactly nine stable IDs, fixed routes, and nomenclature-owned names. Every page uses the same sticky navigation structure and preserves only the resolved `locale` query value in its links.
 
 The top category row is always Personage, Almanac, Location, in that order. Each top item is a navigation group rather than a page: Personage is `navigation-group-02` and opens Identitate; Almanac is `navigation-group-01` and opens Calendario; Location is `navigation-group-03` and opens Locus.
 
-Only the active category's secondary row appears. Explorar is both an actual page and a nested navigation category, so its tertiary row also appears while Explorar, Observationes, or Decisiones is current:
+Only the active category's secondary row appears. Navigation has exactly two levels; there is no tertiary or subcategory row:
 
 - Personage pages (`page-04` through `page-06`): Identitate, Inventario, Subordinatos
 - Almanac pages (`page-01` through `page-03`): Calendario, Destino, Tempore
-- Location pages (`page-07` through `page-11`): Locus, Rutas, Explorar
-- Explorar pages (`page-09` through `page-11`): Observationes, Decisiones in the tertiary row
+- Location pages (`page-07` through `page-09`): Locus, Rutas, Explorar
 
-The actual page link alone receives `aria-current="page"`. Active top groups and the Explorar category receive `data-active-section="true"` for context without falsely claiming a group is the current page. Explorar has no separate navigation-group entity.
+The actual page link alone receives `aria-current="page"`. The active top group receives `data-active-section="true"` for context without falsely claiming a group is the current page.
 
 ```text
 Personage
@@ -42,8 +41,6 @@ Location
 ├── Locus
 ├── Rutas
 └── Explorar
-    ├── Observationes
-    └── Decisiones
 ```
 
 | ID | Name | Route | Behavior |
@@ -51,28 +48,27 @@ Location
 | `page-01` | Calendario | `/calendario.html` | Live calendar, season title, and lunar summary |
 | `page-02` | Destino | `/destino.html` | Live outcome, tide, Pull, orbit, and progress state |
 | `page-03` | Tempore | `/tempore.html` | Live calendar/lunar clocks, season, and progress |
-| `page-04` | Identitate | `/identitate.html` | Static identity and memories shell |
+| `page-04` | Identitate | `/identitate.html` | Static identity, memories, and decisions shell |
 | `page-05` | Inventario | `/inventario.html` | Static equipment and storage shell |
 | `page-06` | Subordinatos | `/subordinatos.html` | Static champions and minions shell |
 | `page-07` | Locus | `/locus.html` | Static configured current location |
 | `page-08` | Rutas | `/rutas.html` | Empty configuration-driven page shell |
-| `page-09` | Explorar | `/explorar.html` | Empty configuration-driven page shell and nested category |
-| `page-10` | Observationes | `/observationes.html` | Empty configuration-driven exploration shell |
-| `page-11` | Decisiones | `/decisiones.html` | Empty configuration-driven exploration shell |
+| `page-09` | Explorar | `/explorar.html` | Static exploration observations shell |
 
 The static section shells are intentionally empty apart from their configured headings:
 
-- Identitate: Titulo, Nomine, Epitheto, Memorias
+- Identitate: Titulo, Nomine, Epitheto, Memorias, Decisiones
 - Inventario: Equipamento, Deposito
 - Subordinatos: Campiones, Miniones
 - Locus: the current configured location, Santiago
-- Rutas, Explorar, Observationes, and Decisiones: one configuration-driven page-name card each
+- Rutas: one configuration-driven page-name card
+- Explorar: Observationes
 
-Mappa, Pensamentos, Commandamento, Investigationes, and Ordines were removed. `/mappa.html`, `/mappa-page.js`, `/location.html`, the former Personage route, and the other legacy routes have no redirects, aliases, or compatibility files and return ordinary static 404 responses.
+Mappa, Pensamentos, Commandamento, Investigationes, and Ordines were removed. Observationes and Decisiones now exist only as sections on Explorar and Identitate respectively. Their former HTML routes and page modules, `/mappa.html`, `/mappa-page.js`, `/location.html`, the former Personage route, and the other legacy routes have no redirects, aliases, or compatibility files and return ordinary static 404 responses.
 
 Location pages do not use browser geolocation, request location permission, display coordinates, or load a graphical map, iframe, route provider, external map provider, or map tiles.
 
-The eight static pages use `bootstrapStaticPage()`. They share locale/nomenclature loading, titles, descriptions, navigation, footer presentation, accessibility state, and configuration-error handling with the live pages, but do not start the live calendar scheduler or create a recurring timer.
+The six static pages use `bootstrapStaticPage()`. They share locale/nomenclature loading, titles, descriptions, navigation, footer presentation, accessibility state, and configuration-error handling with the live pages, but do not start the live calendar scheduler or create a recurring timer.
 
 ## Locale selection
 
@@ -88,18 +84,18 @@ Locale is the only presentation option accepted through the query string:
 
 English is the default. English and Spanish paths are allowlisted in `public/locale-loader.js`. Unknown IDs resolve safely to English; a known malformed locale stops bootstrap visibly. Query values never become file paths. There is no runtime universe selector, alternate world configuration, cookie, local-storage setting, header, route, or configurable frontend path for changing in-game nomenclature.
 
-Locale schema 9 contains exactly `schemaVersion`, `id`, `languageTag`, `messages`, and `templates`. Locale files own generic language such as Current Location / Ubicación actual, localized descriptions, and surrounding prose. They do not own page names, navigation-group names, page-section names, current-location names, Outcome-type names, or other fixed in-universe terms.
+Locale schema 10 contains exactly `schemaVersion`, `id`, `languageTag`, `messages`, and `templates`. Locale files own generic language such as Current Location / Ubicación actual, localized descriptions, and surrounding prose. They do not own page names, navigation-group names, page-section names, current-location names, Outcome-type names, or other fixed in-universe terms.
 
 ## Fixed nomenclature
 
-The browser always loads the single production nomenclature file from the fixed same-origin URL `/config/nomenclature.json`. It uses schema 10. Editing and redeploying this file is sufficient to rename the application, navigation groups, pages, page sections, current location, outcome classifications, calendar names, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls.
+The browser always loads the single production nomenclature file from the fixed same-origin URL `/config/nomenclature.json`. It uses schema 11. Editing and redeploying this file is sufficient to rename the application, navigation groups, pages, page sections, current location, outcome classifications, calendar names, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls.
 
 The active configured terms include:
 
 - Application: Insidia
 - Navigation groups: Almanac (`navigation-group-01`), Personage (`navigation-group-02`), Location (`navigation-group-03`)
-- Pages: Calendario, Destino, Tempore, Identitate, Inventario, Subordinatos, Locus, Rutas, Explorar, Observationes, Decisiones
-- Page sections: Titulo, Nomine, Epitheto, Equipamento, Memorias, Campiones, Miniones, Deposito
+- Pages: Calendario, Destino, Tempore, Identitate, Inventario, Subordinatos, Locus, Rutas, Explorar
+- Page sections: Titulo, Nomine, Epitheto, Equipamento, Observationes, Decisiones, Memorias, Campiones, Miniones, Deposito
 - Location configuration: `location.currentLocation` is Santiago (`location-01`); no `mappa` compatibility object exists
 - Outcome types: Commune, Infrequens, Rarum
 - Calendar year: Annus Solis
@@ -139,7 +135,7 @@ For the representative state it reads `Cyclus Lunae MCCXXXIV · Morditura`. This
 
 ## Destino outcomes
 
-Outcome names are schema-10 nomenclature, not translations:
+Outcome names are schema-11 nomenclature, not translations:
 
 - `outcome-tier-01` → Commune
 - `outcome-tier-02` → Infrequens
@@ -176,13 +172,13 @@ All mechanics are deterministic browser-side calculations. Calendar and lunar el
 ## Architecture and request topology
 
 1. `public/core/` contains immutable numeric rules and presentation-neutral mechanics.
-2. `public/config/nomenclature.json` contains the single schema-10 in-game vocabulary.
-3. `public/locales/` contains schema-9 generic UI messages and templates.
+2. `public/config/nomenclature.json` contains the single schema-11 in-game vocabulary.
+3. `public/locales/` contains schema-10 generic UI messages and templates.
 4. `public/presentation-context-loader.js` starts exactly one locale request and one nomenclature request concurrently.
 5. `public/nomenclature.js` builds the frozen presentation context.
 6. `public/app-bootstrap.js` applies common document presentation, then either starts live state or completes a static page.
 
-Every page uses the same two concurrent configuration requests. The navigation hierarchy introduces no location, route, map, or exploration request. Its three possible visible rows—the top groups, one secondary group, and the Explorar tertiary group—remain inside the same sticky site header.
+Every page uses the same two concurrent configuration requests. The navigation hierarchy introduces no location, route, map, or exploration request. Its two visible rows—the top groups and one secondary group—remain inside the same sticky site header.
 
 The project has no frontend framework, build system, runtime dependency, database, backend time API, WebSocket, authentication, external font, date library, server-side rendering, service worker, geolocation integration, or external map integration.
 
@@ -191,8 +187,8 @@ The project has no frontend framework, build system, runtime dependency, databas
 `createCalendarJson()` remains a public serialization API even though no page exposes a visible JSON or clipboard control. Its top-level fields are:
 
 - `calendarVersion: "v19"`
-- `nomenclature`: schema version 10 and application display name
-- `locale`: requested/resolved IDs, language tag, and schema version 9
+- `nomenclature`: schema version 11 and application display name
+- `locale`: requested/resolved IDs, language tag, and schema version 10
 - `source`: Unix milliseconds and ISO UTC
 - `state`: raw canonical IDs and numeric mechanics without configured names or symbols
 - `display`: configured entities, localized prose, and formatted values
@@ -204,18 +200,18 @@ English and Spanish JSON snapshots have identical raw state and identical `displ
 | Route | Purpose |
 |---|---|
 | `/` | Redirect to `/calendario.html`, preserving only a non-empty locale |
-| Eleven page routes | Static HTML described above |
+| Nine page routes | Static HTML described above |
 | `/config/nomenclature.json` | Single read-only nomenclature configuration |
 | `/locales/en.json`, `/locales/es.json` | Allowlisted locale files |
-| `/health` | `{"ok":true,"version":"v8.19"}` |
+| `/health` | `{"ok":true,"version":"v8.20"}` |
 
 The built-in-module Node server supports GET and HEAD, explicit MIME types, `Cache-Control: no-cache` for HTML/CSS/JavaScript/JSON, deterministic weak ETags, Last-Modified validation, bodyless 304 responses, CSP and related security headers, safe traversal/dotfile rejection, generic errors, canonical HTTPS redirects, and graceful shutdown. Static page additions and removals require no route-specific handlers.
 
 ## Editing configuration
 
-When editing nomenclature, retain schema 10, all canonical IDs, canonical ordering, and exact entity shapes. Keep translations, UI templates, routes, submenu membership, durations, orbital periods, thresholds, priorities, and other mechanics out of the file.
+When editing nomenclature, retain schema 11, all canonical IDs, canonical ordering, and exact entity shapes. Keep translations, UI templates, routes, submenu membership, durations, orbital periods, thresholds, priorities, and other mechanics out of the file.
 
-When adding a locale, translate every required message and template, retain the exact schema-9 top-level shape, add its fixed same-origin path to `LOCALE_FILES`, and do not duplicate nomenclature-owned names.
+When adding a locale, translate every required message and template, retain the exact schema-10 top-level shape, add its fixed same-origin path to `LOCALE_FILES`, and do not duplicate nomenclature-owned names.
 
 Run `npm test` before deployment.
 
@@ -245,10 +241,6 @@ public/
   rutas-page.js
   explorar.html
   explorar-page.js
-  observationes.html
-  observationes-page.js
-  decisiones.html
-  decisiones-page.js
   styles.css
   page-definitions.js
   presentation-context-loader.js

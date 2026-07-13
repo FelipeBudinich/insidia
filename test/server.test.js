@@ -73,7 +73,7 @@ test('canonical HTTPS redirect takes precedence and preserves the original reque
   } finally { await stop(server); }
 });
 
-test('health reports v8.19 JSON for GET and HEAD', async () => {
+test('health reports v8.20 JSON for GET and HEAD', async () => {
   const server = await start();
   try {
     const get = await request(server, '/health');
@@ -81,7 +81,7 @@ test('health reports v8.19 JSON for GET and HEAD', async () => {
     assert.equal(get.status, 200);
     assert.equal(get.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(get.headers['cache-control'], 'no-store');
-    assert.equal(get.body, '{"ok":true,"version":"v8.19"}');
+    assert.equal(get.body, '{"ok":true,"version":"v8.20"}');
     assert.equal(head.status, 200);
     assert.equal(head.body, '');
     assertSecurityHeaders(get.headers);
@@ -117,8 +117,6 @@ test('successful static files include MIME, caching, validators, and security he
       ['/locus.html', 'text/html; charset=utf-8'],
       ['/rutas.html', 'text/html; charset=utf-8'],
       ['/explorar.html', 'text/html; charset=utf-8'],
-      ['/observationes.html', 'text/html; charset=utf-8'],
-      ['/decisiones.html', 'text/html; charset=utf-8'],
       ['/calendario-page.js', 'text/javascript; charset=utf-8'],
       ['/destino-page.js', 'text/javascript; charset=utf-8'],
       ['/tempore-page.js', 'text/javascript; charset=utf-8'],
@@ -128,8 +126,6 @@ test('successful static files include MIME, caching, validators, and security he
       ['/locus-page.js', 'text/javascript; charset=utf-8'],
       ['/rutas-page.js', 'text/javascript; charset=utf-8'],
       ['/explorar-page.js', 'text/javascript; charset=utf-8'],
-      ['/observationes-page.js', 'text/javascript; charset=utf-8'],
-      ['/decisiones-page.js', 'text/javascript; charset=utf-8'],
       ['/styles.css', 'text/css; charset=utf-8'],
       ['/core/mechanics.js', 'text/javascript; charset=utf-8'],
       ['/locales/en.json', 'application/json; charset=utf-8'],
@@ -255,7 +251,9 @@ test('former HTML routes and page modules are ordinary generic 404s for GET and 
     '/personage.html','/pensamentos.html','/commandamento.html',
     '/personage-page.js','/pensamentos-page.js','/commandamento-page.js',
     '/mappa.html','/mappa-page.js','/location.html',
-    '/investigationes.html','/ordines.html'
+    '/investigationes.html','/ordines.html',
+    '/observationes.html','/observationes-page.js',
+    '/decisiones.html','/decisiones-page.js'
   ];
   try {
     for (const requestPath of oldPaths) {

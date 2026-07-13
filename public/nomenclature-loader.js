@@ -76,7 +76,7 @@ function validateEntities(items, expectedIds, label, entityKeys) {
 
 export function validateNomenclature(nomenclature) {
   assertExactKeys(nomenclature, TOP_LEVEL_KEYS, 'nomenclature');
-  if (nomenclature.schemaVersion !== 10) throw new Error('nomenclature schemaVersion must be 10');
+  if (nomenclature.schemaVersion !== 11) throw new Error('nomenclature schemaVersion must be 11');
   assertExactKeys(nomenclature.application, ['displayName'], 'nomenclature.application');
   assertNonEmptyString(nomenclature.application.displayName, 'nomenclature.application.displayName');
   validateEntities(nomenclature.pages, PAGE_IDS, 'nomenclature.pages', ['id', 'name']);

@@ -25,9 +25,7 @@ const PAGE_SHELLS = Object.freeze([
   ['subordinatos.html', 'page-06', 'subordinatos-page.js', '/subordinatos.html'],
   ['locus.html', 'page-07', 'locus-page.js', '/locus.html'],
   ['rutas.html', 'page-08', 'rutas-page.js', '/rutas.html'],
-  ['explorar.html', 'page-09', 'explorar-page.js', '/explorar.html'],
-  ['observationes.html', 'page-10', 'observationes-page.js', '/observationes.html'],
-  ['decisiones.html', 'page-11', 'decisiones-page.js', '/decisiones.html']
+  ['explorar.html', 'page-09', 'explorar-page.js', '/explorar.html']
 ]);
 const PAGE_ROUTES = Object.freeze(PAGE_SHELLS.map(([, , , route]) => route));
 
@@ -61,15 +59,15 @@ async function listSourceFiles(directory) {
   return nested.flat();
 }
 
-test('package and visible application versions are v8.19', async () => {
+test('package and visible application versions are v8.20', async () => {
   const [packageJson, packageLock, bootstrap] = await Promise.all([
     readFile(path.join(root, 'package.json'), 'utf8'),
     readFile(path.join(root, 'package-lock.json'), 'utf8'),
     readPublic('app-bootstrap.js')
   ]);
-  assert.equal(JSON.parse(packageJson).version, '8.19.0');
-  assert.equal(JSON.parse(packageLock).version, '8.19.0');
-  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.19'/);
+  assert.equal(JSON.parse(packageJson).version, '8.20.0');
+  assert.equal(JSON.parse(packageLock).version, '8.20.0');
+  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.20'/);
 });
 
 test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async () => {
@@ -206,23 +204,23 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each configured page has one localized v8.19 footer version', async () => {
+test('each configured page has one localized v8.20 footer version', async () => {
   for (const [file] of PAGE_SHELLS) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.19/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.20/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
 });
 
-test('eleven pages use neutral IDs, fixed routes, one active link, and matching modules', async () => {
+test('nine pages use neutral IDs, fixed routes, one active link, and matching modules', async () => {
   for (const [file, activeId, module] of PAGE_SHELLS) {
     const html = await readPublic(file);
-    assert.equal((html.match(/data-page-id=/g) ?? []).length, 11);
+    assert.equal((html.match(/data-page-id=/g) ?? []).length, 9);
     assert.equal((html.match(/aria-current="page"/g) ?? []).length, 1);
     assert.match(html, new RegExp(`data-page-id="${activeId}"[^>]*aria-current="page"`));
     for (const route of PAGE_ROUTES) assert.ok(html.includes(`href="${route}"`), `${file}: ${route}`);
@@ -239,14 +237,14 @@ test('all pages use the exact neutral three-category navigation hierarchy', asyn
     assert.equal((html.match(/<div class="primary-nav-categories">/g) ?? []).length, 1, file);
     assert.equal((html.match(/class="navigation-category-link"/g) ?? []).length, 3, file);
     assert.equal((html.match(/<div class="secondary-nav"/g) ?? []).length, 3, file);
-    assert.equal((html.match(/<div class="tertiary-nav"/g) ?? []).length, 1, file);
-    assert.equal((html.match(/data-page-id=/g) ?? []).length, 11, file);
+    assert.equal((html.match(/<div class="tertiary-nav"/g) ?? []).length, 0, file);
+    assert.equal((html.match(/data-page-id=/g) ?? []).length, 9, file);
     assert.equal((html.match(/data-navigation-group-id=/g) ?? []).length, 3, file);
     assert.equal((html.match(/data-navigation-target-page-id=/g) ?? []).length, 3, file);
     assert.equal((html.match(/data-navigation-target-page-id="page-01"/g) ?? []).length, 1, file);
     assert.equal((html.match(/data-navigation-target-page-id="page-04"/g) ?? []).length, 1, file);
     assert.equal((html.match(/data-navigation-target-page-id="page-07"/g) ?? []).length, 1, file);
-    assert.equal((html.match(/<a\b[^>]*>\s*<\/a>/g) ?? []).length, 14, file);
+    assert.equal((html.match(/<a\b[^>]*>\s*<\/a>/g) ?? []).length, 12, file);
 
     const categoryStart = html.indexOf('<div class="primary-nav-categories">');
     const categories = html.slice(categoryStart, html.indexOf('</div>', categoryStart));
@@ -260,7 +258,7 @@ test('all pages use the exact neutral three-category navigation hierarchy', asyn
     assert.match(categoryAnchors[2], /data-navigation-group-id="navigation-group-03"/);
     assert.match(categoryAnchors[2], /data-navigation-target-page-id="page-07"/);
     assert.doesNotMatch(categoryAnchors[2], /data-page-id=/);
-    assert.match(categoryAnchors[2], /data-navigation-category-pages="page-07 page-08 page-09 page-10 page-11"/);
+    assert.match(categoryAnchors[2], /data-navigation-category-pages="page-07 page-08 page-09"/);
 
     const submenus = [...html.matchAll(/<div class="secondary-nav"([^>]*)>([\s\S]*?)<\/div>/g)];
     const personage = submenus.find((match) => match[1].includes('navigation-category-personage'));
@@ -273,15 +271,11 @@ test('all pages use the exact neutral three-category navigation hierarchy', asyn
     assert.deepEqual([...personage[2].matchAll(/data-page-id="([^"]+)"/g)].map((match) => match[1]), ['page-04', 'page-05', 'page-06']);
     assert.match(almanac[1], /data-navigation-submenu-pages="page-01 page-02 page-03"[^>]*hidden/);
     assert.deepEqual([...almanac[2].matchAll(/data-page-id="([^"]+)"/g)].map((match) => match[1]), ['page-01', 'page-02', 'page-03']);
-    assert.match(location[1], /data-navigation-submenu-pages="page-07 page-08 page-09 page-10 page-11"[^>]*hidden/);
+    assert.match(location[1], /data-navigation-submenu-pages="page-07 page-08 page-09"[^>]*hidden/);
     assert.deepEqual([...location[2].matchAll(/data-page-id="([^"]+)"/g)].map((match) => match[1]), ['page-07', 'page-08', 'page-09']);
     assert.doesNotMatch(location[2], /data-page-id="page-(?:10|11)"/);
-    assert.match(location[2], /id="navigation-category-explorar" class="navigation-subcategory-link"[^>]*data-page-id="page-09"[^>]*data-navigation-category-pages="page-09 page-10 page-11"[^>]*href="\/explorar\.html"/);
-
-    const tertiary = html.match(/<div class="tertiary-nav"([^>]*)>([\s\S]*?)<\/div>/);
-    assert.ok(tertiary, file);
-    assert.match(tertiary[1], /role="group"[^>]*aria-labelledby="navigation-category-explorar"[^>]*data-navigation-submenu-pages="page-09 page-10 page-11"[^>]*hidden/);
-    assert.deepEqual([...tertiary[2].matchAll(/data-page-id="([^"]+)"/g)].map((match) => match[1]), ['page-10', 'page-11']);
+    assert.match(location[2], /data-page-id="page-09" href="\/explorar\.html"/);
+    assert.doesNotMatch(html, /tertiary-nav|navigation-category-explorar|navigation-subcategory-link|page-10|page-11|\/observationes\.html|\/decisiones\.html/);
     assert.doesNotMatch(html, /href="\/(?:almanac|personage|location|mappa|pensamentos|commandamento|investigationes|ordines)\.html"/);
   }
   for (const removed of [
@@ -290,13 +284,15 @@ test('all pages use the exact neutral three-category navigation hierarchy', asyn
     'pensamentos.html', 'pensamentos-page.js',
     'commandamento.html', 'commandamento-page.js',
     'mappa.html', 'mappa-page.js', 'location.html',
+    'observationes.html', 'observationes-page.js',
+    'decisiones.html', 'decisiones-page.js',
     'investigationes.html', 'ordines.html'
   ]) await assert.rejects(readPublic(removed), removed);
 });
 
-test('character static page shells contain only their exact configured sections', async () => {
+test('static page shells contain only their exact configured sections', async () => {
   for (const [file, module, pageId, sectionIds] of [
-    ['identitate.html', 'identitate-page.js', 'page-04', ['01','02','03','09']],
+    ['identitate.html', 'identitate-page.js', 'page-04', ['01','02','03','09','07']],
     ['inventario.html', 'inventario-page.js', 'page-05', ['04','13']],
     ['subordinatos.html', 'subordinatos-page.js', 'page-06', ['11','12']]
   ]) {
@@ -311,20 +307,26 @@ test('character static page shells contain only their exact configured sections'
     assert.doesNotMatch(html, /Empty|None|Coming soon|Próximamente/);
   }
 
-  for (const [file, module, pageId, headingId] of [
-    ['rutas.html', 'rutas-page.js', 'page-08', 'rutas-content-heading'],
-    ['explorar.html', 'explorar-page.js', 'page-09', 'explorar-content-heading'],
-    ['observationes.html', 'observationes-page.js', 'page-10', 'observationes-content-heading'],
-    ['decisiones.html', 'decisiones-page.js', 'page-11', 'decisiones-content-heading']
-  ]) {
-    const [html, script] = await Promise.all([readPublic(file), readPublic(module)]);
-    assert.equal((html.match(/class="content-section"/g) ?? []).length, 1, file);
-    assert.match(html, new RegExp(`<section class="content-section" aria-labelledby="${headingId}">\\s*<h2 id="${headingId}" class="content-section-title" data-page-name><\\/h2>`));
-    assert.equal((html.match(/data-page-section-id/g) ?? []).length, 0, file);
-    assert.match(script, new RegExp(`bootstrapStaticPage\\('${pageId}'\\)`));
-    assert.doesNotMatch(script, /bootstrapPage|startLiveState|calculateCalendarState/);
-    assert.doesNotMatch(html, /Empty|None|Coming soon|Próximamente/);
-  }
+  const identitateHtml = await readPublic('identitate.html');
+  assert.equal((identitateHtml.match(/data-page-section-id="page-section-07"/g) ?? []).length, 1);
+  assert.ok(identitateHtml.indexOf('data-page-section-id="page-section-09"') < identitateHtml.indexOf('data-page-section-id="page-section-07"'));
+  assert.doesNotMatch(identitateHtml, /page-section-(?:06|08|10)/);
+
+  const [rutasHtml, rutasScript] = await Promise.all([readPublic('rutas.html'), readPublic('rutas-page.js')]);
+  assert.equal((rutasHtml.match(/class="content-section"/g) ?? []).length, 1);
+  assert.match(rutasHtml, /<section class="content-section" aria-labelledby="rutas-content-heading">\s*<h2 id="rutas-content-heading" class="content-section-title" data-page-name><\/h2>/);
+  assert.equal((rutasHtml.match(/data-page-section-id/g) ?? []).length, 0);
+  assert.match(rutasScript, /bootstrapStaticPage\('page-08'\)/);
+  assert.doesNotMatch(rutasScript, /bootstrapPage|startLiveState|calculateCalendarState/);
+
+  const [explorarHtml, explorarScript] = await Promise.all([readPublic('explorar.html'), readPublic('explorar-page.js')]);
+  assert.equal((explorarHtml.match(/class="content-section"/g) ?? []).length, 1);
+  assert.match(explorarHtml, /<section class="content-section" aria-labelledby="page-section-06-heading">\s*<h2 id="page-section-06-heading" class="content-section-title" data-page-section-id="page-section-06"><\/h2>/);
+  assert.equal((explorarHtml.match(/data-page-section-id/g) ?? []).length, 1);
+  assert.equal((explorarHtml.match(/data-page-name/g) ?? []).length, 1);
+  assert.doesNotMatch(explorarHtml, /page-section-07|explorar-content-heading|tertiary-nav|Empty|None|Coming soon|Próximamente/);
+  assert.match(explorarScript, /bootstrapStaticPage\('page-09'\)/);
+  assert.doesNotMatch(explorarScript, /bootstrapPage|startLiveState|calculateCalendarState/);
 
   const [locusHtml, locusScript] = await Promise.all([readPublic('locus.html'), readPublic('locus-page.js')]);
   assert.equal((locusHtml.match(/class="location-section"/g) ?? []).length, 1);
@@ -333,7 +335,7 @@ test('character static page shells contain only their exact configured sections'
   assert.doesNotMatch(locusHtml, /Santiago|coordinates|iframe|img|geolocation/);
   assert.match(locusScript, /bootstrapStaticPage\('page-07'\)/);
   assert.doesNotMatch(locusScript, /bootstrapPage|startLiveState|calculateCalendarState/);
-  assert.match(locusHtml, /data-navigation-submenu-pages="page-07 page-08 page-09 page-10 page-11"/);
+  assert.match(locusHtml, /data-navigation-submenu-pages="page-07 page-08 page-09"/);
   const productionSource = (await Promise.all((await listSourceFiles(path.join(root, 'public'))).map((file) => readFile(file, 'utf8')))).join('\n');
   assert.doesNotMatch(productionSource, /navigator\.geolocation|<iframe|maps\.google|mapbox|leaflet/i);
 });
@@ -355,7 +357,7 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   const siteHeader = css.match(/\.site-header\s*\{[^}]*\}/)?.[0] ?? '';
   const primaryNav = css.match(/\.primary-nav\s*\{[^}]*\}/)?.[0] ?? '';
   const categories = css.match(/\.primary-nav-categories\s*\{[^}]*\}/)?.[0] ?? '';
-  const secondaryAndTertiary = css.match(/\.secondary-nav,\s*\.tertiary-nav\s*\{[^}]*\}/)?.[0] ?? '';
+  const secondary = css.match(/\.secondary-nav\s*\{[^}]*\}/)?.[0] ?? '';
   assert.doesNotMatch(body, /display:\s*grid|place-items:\s*center/);
   assert.match(body, /padding:\s*0 1\.25rem 1\.25rem/);
   assert.match(pageShell, /margin-inline:\s*auto/);
@@ -366,13 +368,10 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   assert.doesNotMatch(siteHeader, /position:\s*fixed/);
   assert.doesNotMatch(primaryNav, /display:\s*grid|grid-template-columns|gap:|margin-bottom/);
   assert.match(categories, /grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
-  assert.match(secondaryAndTertiary, /grid-template-columns:\s*repeat\(auto-fit, minmax\(7rem, 1fr\)\)/);
-  assert.match(css, /\.secondary-nav\[hidden\],\s*\.tertiary-nav\[hidden\]\s*\{\s*display:\s*none/);
-  assert.match(css, /\.tertiary-nav\s*\{\s*background:\s*color-mix\(in srgb, Canvas 90%, CanvasText 10%\)/);
-  assert.match(css, /\.tertiary-nav a\s*\{[^}]*padding:\s*0\.5rem 0\.4rem[^}]*font-size:\s*0\.75rem/);
-  assert.match(css, /\.navigation-subcategory-link\s*\{\s*font-weight:\s*700/);
+  assert.match(secondary, /grid-template-columns:\s*repeat\(auto-fit, minmax\(7rem, 1fr\)\)/);
+  assert.match(css, /\.secondary-nav\[hidden\]\s*\{\s*display:\s*none/);
+  assert.doesNotMatch(css, /\.tertiary-nav|\.navigation-subcategory-link/);
   assert.match(css, /\.navigation-category-link\[data-active-section="true"\]/);
-  assert.match(css, /\.navigation-subcategory-link\[data-active-section="true"\]/);
   assert.doesNotMatch(css, /\.primary-nav a \+ a/);
   for (const selector of ['.content-section', '.location-section', '.content-section-title', '.location-name']) {
     assert.ok(css.includes(selector), selector);

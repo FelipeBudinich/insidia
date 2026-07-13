@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "application": {
     "displayName": "Insidia"
   },
@@ -12,9 +12,7 @@
     { "id": "page-06", "name": "Subordinatos" },
     { "id": "page-07", "name": "Locus" },
     { "id": "page-08", "name": "Rutas" },
-    { "id": "page-09", "name": "Explorar" },
-    { "id": "page-10", "name": "Observationes" },
-    { "id": "page-11", "name": "Decisiones" }
+    { "id": "page-09", "name": "Explorar" }
   ],
   "navigationGroups": [
     { "id": "navigation-group-01", "name": "Almanac" },
@@ -26,6 +24,8 @@
     { "id": "page-section-02", "name": "Nomine" },
     { "id": "page-section-03", "name": "Epitheto" },
     { "id": "page-section-04", "name": "Equipamento" },
+    { "id": "page-section-06", "name": "Observationes" },
+    { "id": "page-section-07", "name": "Decisiones" },
     { "id": "page-section-09", "name": "Memorias" },
     { "id": "page-section-11", "name": "Campiones" },
     { "id": "page-section-12", "name": "Miniones" },

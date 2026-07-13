@@ -43,16 +43,6 @@ export const PAGE_DEFINITIONS = Object.freeze({
     id: 'page-09',
     route: '/explorar.html',
     descriptionTemplateKey: 'document.page-09Description'
-  }),
-  'page-10': Object.freeze({
-    id: 'page-10',
-    route: '/observationes.html',
-    descriptionTemplateKey: 'document.page-10Description'
-  }),
-  'page-11': Object.freeze({
-    id: 'page-11',
-    route: '/decisiones.html',
-    descriptionTemplateKey: 'document.page-11Description'
   })
 });
 
@@ -69,6 +59,8 @@ export const PAGE_SECTION_IDS = Object.freeze([
   'page-section-02',
   'page-section-03',
   'page-section-04',
+  'page-section-06',
+  'page-section-07',
   'page-section-09',
   'page-section-11',
   'page-section-12',
