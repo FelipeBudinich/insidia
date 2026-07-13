@@ -10,10 +10,6 @@ function mapItems(items) {
   return new Map(items.map((item) => [item.id, deepFreeze({ ...item })]));
 }
 
-function mapRecord(record) {
-  return new Map(Object.entries(record).map(([id, item]) => [id, deepFreeze({ id, ...item })]));
-}
-
 function requireMapped(map, id, category) {
   const value = map.get(id);
   if (!value) throw new Error(`Unknown ${category} ID: ${id}`);
@@ -25,6 +21,7 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
   const locale = localeResult.locale;
   const maps = {
     pages: mapItems(nomenclature.pages),
+    pageSections: mapItems(nomenclature.pageSections),
     monthRulers: mapItems(nomenclature.calendar.monthReign.rulers),
     reignOrdinals: mapItems(nomenclature.calendar.monthReign.ordinals),
     weekdays: mapItems(nomenclature.calendar.weekdays),
@@ -35,7 +32,7 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
     tides: mapItems(nomenclature.tides),
     celestialBodies: mapItems(nomenclature.celestialBodies),
     pulls: mapItems(nomenclature.pulls),
-    outcomeTypes: mapRecord(locale.outcomeTypes)
+    outcomeTypes: mapItems(nomenclature.outcomeTypes)
   };
   const context = {
     requestedLocaleId: localeResult.requestedLocaleId,
@@ -44,10 +41,12 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
     calendarYearName: nomenclature.calendar.yearName,
     monthReignName: nomenclature.calendar.monthReign.name,
     lunarCycleName: nomenclature.lunarCycle.name,
+    currentLocation: deepFreeze({ ...nomenclature.mappa.currentLocation }),
     nomenclatureSchemaVersion: nomenclatureResult.schemaVersion,
     localeSchemaVersion: localeResult.schemaVersion,
     languageTag: locale.languageTag,
     getPage: (id) => requireMapped(maps.pages, id, 'page'),
+    getPageSection: (id) => requireMapped(maps.pageSections, id, 'page section'),
     getMonthRuler: (id) => requireMapped(maps.monthRulers, id, 'month ruler'),
     getReignOrdinal: (id) => requireMapped(maps.reignOrdinals, id, 'reign ordinal'),
     getWeekday: (id) => requireMapped(maps.weekdays, id, 'weekday'),

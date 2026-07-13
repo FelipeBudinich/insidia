@@ -1,12 +1,7 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "id": "en",
   "languageTag": "en",
-  "outcomeTypes": {
-    "outcome-tier-01": { "name": "Common" },
-    "outcome-tier-02": { "name": "Uncommon" },
-    "outcome-tier-03": { "name": "Rare" }
-  },
   "messages": {
     "nav.aria": "Primary navigation",
     "section.time": "Time",
@@ -36,6 +31,7 @@
     "label.orbitalProgress": "Orbital progress",
     "label.circularSpan": "Circular span",
     "label.alignment": "Alignment",
+    "label.currentLocation": "Current Location",
     "label.epoch": "Epoch",
     "label.copyJson": "Copy JSON",
     "status.copied": "Copied",
@@ -55,6 +51,10 @@
     "document.page-01Description": "Live fictional date, lunar state, and season state for {applicationName}.",
     "document.page-02Description": "Live selected outcome, tides, tide progress, pulls, and celestial orbits for {applicationName}.",
     "document.page-03Description": "Live fictional times, season, and progress for {applicationName}.",
+    "document.page-04Description": "Player title, name, epithet, equipment, and inventory for {applicationName}.",
+    "document.page-05Description": "Observations, decisions, investigations, and memories for {applicationName}.",
+    "document.page-06Description": "Orders, champions, and minions for {applicationName}.",
+    "document.page-07Description": "Current location for {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Orbital progress for {bodyName}",
     "calendar.formattedYear": "{yearName} {yearRoman}",
@@ -70,7 +70,6 @@
     "season.progress": "{progressLabel}: {percentage}",
     "tide.metadata": "{hourLabel} {hour} of {length}",
     "tide.time": "{time} into {name}",
-    "outcome.type": "{pageName}: {name}",
     "outcome.attempts": "{attemptsLabel} until {rareName}: {count}",
     "outcome.source": "{tideName} · {pullName}",
     "outcome.progress": "{progressLabel}: {percentage}",

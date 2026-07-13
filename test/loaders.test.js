@@ -3,7 +3,7 @@ import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { bootstrapPage } from '../public/app-bootstrap.js';
+import { bootstrapPage, bootstrapStaticPage } from '../public/app-bootstrap.js';
 import { DEFAULT_LOCALE_ID, LOCALE_FILES, MESSAGE_KEYS, TEMPLATE_KEYS, loadLocale, validateLocale } from '../public/locale-loader.js';
 import { loadNomenclature, NOMENCLATURE_PATH, validateNomenclature } from '../public/nomenclature-loader.js';
 import { loadPresentationContext, requestedPresentationOptions } from '../public/presentation-context-loader.js';
@@ -74,13 +74,20 @@ test('query parameters cannot change the nomenclature request', async () => {
 
 test('production nomenclature validates complete neutral ID coverage', async () => {
   const value = validateNomenclature(await readJson(nomenclaturePath));
-  assert.equal(value.schemaVersion, 7);
+  assert.equal(value.schemaVersion, 8);
   assert.deepEqual(value.lunarCycle, { name: 'Cyclus Lunae' });
   assert.deepEqual(Object.keys(value.lunarCycle), ['name']);
   assert.equal(value.calendar.yearName, 'Annus Solis');
   assert.deepEqual(Object.keys(value.calendar).sort(), ['interRegna', 'monthReign', 'namedDays', 'weekdays', 'yearName']);
   assert.equal(Object.hasOwn(value.calendar, 'months'), false);
-  assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03']);
+  assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03', 'page-04', 'page-05', 'page-06', 'page-07']);
+  assert.deepEqual(value.pageSections.map(({ id }) => id), Array.from({ length: 12 }, (_, index) => `page-section-${String(index + 1).padStart(2, '0')}`));
+  assert.deepEqual(value.outcomeTypes, [
+    { id: 'outcome-tier-01', name: 'Commune' },
+    { id: 'outcome-tier-02', name: 'Infrequens' },
+    { id: 'outcome-tier-03', name: 'Rarum' }
+  ]);
+  assert.deepEqual(value.mappa, { currentLocation: { id: 'location-01', name: 'Santiago' } });
   assert.equal(value.calendar.weekdays.length, 7);
   assert.equal(value.calendar.namedDays.length, 5);
   assert.equal(value.calendar.interRegna.length, 11);
@@ -250,10 +257,36 @@ test('nomenclature page names require exact IDs, valid names, and no route field
   }
 });
 
-test('nomenclature rejects Outcome types, locale data, mechanics, and extra keys', async () => {
+test('page sections, Outcome types, and current location are exact nomenclature', async () => {
+  const valid = await readJson(nomenclaturePath);
+  const value = validateNomenclature(valid);
+  assert.deepEqual(value.pageSections.map(({ name }) => name), [
+    'Titulo', 'Nomine', 'Epitheto', 'Equipamento', 'Inventario', 'Observationes',
+    'Decisiones', 'Investigationes', 'Memorias', 'Ordines', 'Campiones', 'Miniones'
+  ]);
+  assert.deepEqual(value.outcomeTypes.map(({ name }) => name), ['Commune', 'Infrequens', 'Rarum']);
+  assert.deepEqual(value.mappa.currentLocation, { id: 'location-01', name: 'Santiago' });
+
+  const invalidValues = [];
+  for (const key of ['pageSections', 'outcomeTypes']) {
+    const missing = structuredClone(valid); missing[key].pop(); invalidValues.push(missing);
+    const duplicate = structuredClone(valid); duplicate[key][1].id = duplicate[key][0].id; invalidValues.push(duplicate);
+    const reordered = structuredClone(valid); reordered[key].reverse(); invalidValues.push(reordered);
+    const empty = structuredClone(valid); empty[key][0].name = ''; invalidValues.push(empty);
+    const extra = structuredClone(valid); extra[key][0].mechanics = true; invalidValues.push(extra);
+  }
+  const missingMappa = structuredClone(valid); delete missingMappa.mappa; invalidValues.push(missingMappa);
+  const extraMappa = structuredClone(valid); extraMappa.mappa.provider = 'external'; invalidValues.push(extraMappa);
+  const wrongLocation = structuredClone(valid); wrongLocation.mappa.currentLocation.id = 'location-02'; invalidValues.push(wrongLocation);
+  const emptyLocation = structuredClone(valid); emptyLocation.mappa.currentLocation.name = ''; invalidValues.push(emptyLocation);
+  const locationCoordinates = structuredClone(valid); locationCoordinates.mappa.currentLocation.coordinates = []; invalidValues.push(locationCoordinates);
+  for (const invalid of invalidValues) assert.throws(() => validateNomenclature(invalid));
+});
+
+test('nomenclature rejects locale data, mechanics, and extra keys', async () => {
   const valid = await readJson(nomenclaturePath);
   for (const [key, value] of [
-    ['outcomeTypes', {}], ['messages', {}], ['durationDays', 179],
+    ['messages', {}], ['durationDays', 179],
     ['orbitalPeriod', { unit: 'day', value: 1 }], ['maximumPercentage', 99]
   ]) {
     const invalid = structuredClone(valid);
@@ -388,17 +421,77 @@ test('app bootstrap delegates presentation-resource loading to the shared orches
   assert.doesNotMatch(source, /loadLocale|loadNomenclature|createPresentationContext|requestedPresentationOptions/);
 });
 
-test('locale Outcome types are exact and malformed known locales fail', async () => {
+test('static bootstrap applies shared presentation without starting a recurring timer', async (t) => {
+  const makeElement = (dataset = {}) => ({
+    dataset, attributes: {}, textContent: '',
+    setAttribute(name, value) { this.attributes[name] = value; }
+  });
+  const links = Array.from({ length: 7 }, (_, index) => makeElement({
+    pageId: `page-${String(index + 1).padStart(2, '0')}`
+  }));
+  const pageName = makeElement();
+  const section = makeElement({ pageSectionId: 'page-section-01' });
+  const location = makeElement();
+  const message = makeElement({ messageKey: 'label.currentLocation' });
+  const application = makeElement();
+  const version = makeElement();
+  const epoch = makeElement();
+  const nav = makeElement();
+  const meta = makeElement();
+  const selectorLists = new Map([
+    ['[data-page-id]', links], ['[data-page-name]', [pageName]],
+    ['[data-page-section-id]', [section]], ['[data-current-location]', [location]],
+    ['[data-message-key]', [message]], ['[data-application-name]', [application]],
+    ['[data-version]', [version]], ['[data-epoch]', [epoch]]
+  ]);
+  const documentRoot = {
+    title: '',
+    documentElement: makeElement(),
+    querySelector(selector) {
+      if (selector === 'meta[name="description"]') return meta;
+      if (selector === '.primary-nav') return nav;
+      return null;
+    },
+    querySelectorAll(selector) { return selectorLists.get(selector) ?? []; }
+  };
+  const timeoutMock = t.mock.method(globalThis, 'setTimeout', () => assert.fail('static bootstrap must not schedule a timer'));
+  const result = await bootstrapStaticPage('page-04', {
+    documentRoot,
+    locationLike: { href: 'http://app.test/personage.html?locale=es' },
+    fetchFn: localFetch()
+  });
+  assert.ok(result);
+  assert.equal(timeoutMock.mock.callCount(), 0);
+  assert.equal(documentRoot.documentElement.attributes['aria-busy'], 'false');
+  assert.equal(documentRoot.documentElement.lang, 'es');
+  assert.equal(documentRoot.title, 'Personage · Insidia');
+  assert.equal(meta.attributes.content, 'Título, nombre, epíteto, equipo e inventario del jugador para Insidia.');
+  assert.equal(links[6].textContent, 'Mappa');
+  assert.equal(links[6].attributes.href, '/mappa.html?locale=es');
+  assert.equal(pageName.textContent, 'Personage');
+  assert.equal(section.textContent, 'Titulo');
+  assert.equal(message.textContent, 'Ubicación actual');
+  assert.equal(location.textContent, 'Santiago');
+  assert.equal(application.textContent, 'Insidia');
+  assert.equal(version.textContent, 'v8.17');
+  assert.match(epoch.textContent, /1970-01-01 00:00:00 UTC/);
+});
+
+test('locale schema 8 contains only localized UI language and exact page descriptions', async () => {
   const english = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'en.json')));
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
-  assert.deepEqual(Object.values(english.outcomeTypes).map(({ name }) => name), ['Common', 'Uncommon', 'Rare']);
-  assert.deepEqual(Object.values(spanish.outcomeTypes).map(({ name }) => name), ['Común', 'Poco común', 'Raro']);
-  assert.equal(english.schemaVersion, 7);
-  assert.equal(spanish.schemaVersion, 7);
+  assert.equal(english.schemaVersion, 8);
+  assert.equal(spanish.schemaVersion, 8);
+  assert.deepEqual(Object.keys(english).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
+  assert.deepEqual(Object.keys(spanish).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
+  assert.equal(Object.hasOwn(english, 'outcomeTypes'), false);
+  assert.equal(Object.hasOwn(spanish, 'outcomeTypes'), false);
   assert.equal(english.messages['label.currentTideProgress'], 'Current Tide Progress');
   assert.equal(spanish.messages['label.currentTideProgress'], 'Progreso de la marea actual');
   assert.equal(english.messages['label.currentHour'], 'Current Hour');
   assert.equal(spanish.messages['label.currentHour'], 'Hora actual');
+  assert.equal(english.messages['label.currentLocation'], 'Current Location');
+  assert.equal(spanish.messages['label.currentLocation'], 'Ubicación actual');
   assert.equal(
     english.templates['document.page-02Description'],
     'Live selected outcome, tides, tide progress, pulls, and celestial orbits for {applicationName}.'
@@ -409,6 +502,35 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
   );
   assert.equal(MESSAGE_KEYS.includes('label.currentTideProgress'), true);
   assert.equal(MESSAGE_KEYS.includes('label.currentHour'), true);
+  assert.equal(MESSAGE_KEYS.includes('label.currentLocation'), true);
+  assert.deepEqual(
+    [
+      english.templates['document.page-04Description'],
+      english.templates['document.page-05Description'],
+      english.templates['document.page-06Description'],
+      english.templates['document.page-07Description']
+    ],
+    [
+      'Player title, name, epithet, equipment, and inventory for {applicationName}.',
+      'Observations, decisions, investigations, and memories for {applicationName}.',
+      'Orders, champions, and minions for {applicationName}.',
+      'Current location for {applicationName}.'
+    ]
+  );
+  assert.deepEqual(
+    [
+      spanish.templates['document.page-04Description'],
+      spanish.templates['document.page-05Description'],
+      spanish.templates['document.page-06Description'],
+      spanish.templates['document.page-07Description']
+    ],
+    [
+      'Título, nombre, epíteto, equipo e inventario del jugador para {applicationName}.',
+      'Observaciones, decisiones, investigaciones y memorias para {applicationName}.',
+      'Órdenes, campeones y esbirros para {applicationName}.',
+      'Ubicación actual para {applicationName}.'
+    ]
+  );
   const calendarTemplates = {
     'calendar.formattedYear': '{yearName} {yearRoman}',
     'calendar.firstMonthReign': '{reignName} {rulerName}',
@@ -422,6 +544,7 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
     assert.equal(Object.hasOwn(locale.templates, 'calendar.metadata'), false);
     assert.equal(locale.templates['lunar.summary'], '{phaseName} • {cycleName} {cycleRoman}');
     assert.equal(Object.hasOwn(locale.templates, 'lunar.metadata'), false);
+    assert.equal(Object.hasOwn(locale.templates, 'outcome.type'), false);
     for (const key of ['section.lunar', 'label.phase', 'label.lunarDay']) assert.equal(Object.hasOwn(locale.messages, key), false, key);
     assert.equal(locale.messages['label.cycle'] !== undefined, true);
     assert.doesNotMatch(JSON.stringify(locale), /Morditura|Cyclus Lunae/);
@@ -432,13 +555,23 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
   assert.equal(MESSAGE_KEYS.includes('label.cycle'), true);
   assert.equal(TEMPLATE_KEYS.includes('lunar.metadata'), false);
   assert.equal(TEMPLATE_KEYS.includes('lunar.summary'), true);
+  assert.equal(TEMPLATE_KEYS.includes('outcome.type'), false);
   for (const locale of [english, spanish]) {
     for (const key of ['nav.calendar','nav.outcome','nav.weather','page.calendar','page.outcome','page.weather','label.outcome']) {
       assert.equal(Object.hasOwn(locale.messages, key), false, key);
     }
   }
-  const invalid = structuredClone(spanish); delete invalid.outcomeTypes['outcome-tier-01'];
-  await assert.rejects(() => loadLocale({ requestedId: 'es', fetchFn: localFetch(new Map([['/locales/es.json', invalid]])), baseUrl: 'http://app.test/' }));
+  for (const mutate of [
+    (locale) => { locale.outcomeTypes = {}; },
+    (locale) => { locale.extra = true; },
+    (locale) => { delete locale.messages['label.currentLocation']; },
+    (locale) => { locale.templates['outcome.type'] = '{name}'; },
+    (locale) => { locale.schemaVersion = 7; }
+  ]) {
+    const invalid = structuredClone(spanish);
+    mutate(invalid);
+    await assert.rejects(() => loadLocale({ requestedId: 'es', fetchFn: localFetch(new Map([['/locales/es.json', invalid]])), baseUrl: 'http://app.test/' }));
+  }
   const mismatched = structuredClone(spanish); mismatched.id = 'en';
   await assert.rejects(
     () => loadLocale({ requestedId: 'es', fetchFn: localFetch(new Map([['/locales/es.json', mismatched]])), baseUrl: 'http://app.test/' }),

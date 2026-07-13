@@ -21,7 +21,8 @@ body {
 
 .primary-nav {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 1px;
   margin-bottom: 1rem;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, CanvasText 28%, transparent);
@@ -36,8 +37,8 @@ body {
   font-weight: 650;
   text-align: center;
   text-decoration: none;
+  background: Canvas;
 }
-.primary-nav a + a { border-left: 1px solid color-mix(in srgb, CanvasText 22%, transparent); }
 .primary-nav a:hover { background: color-mix(in srgb, Canvas 85%, CanvasText 15%); }
 .primary-nav a[aria-current="page"] {
   background: color-mix(in srgb, Highlight 18%, Canvas);
@@ -52,7 +53,9 @@ body {
 .lunar-section,
 .orbital-pulls,
 .orbital-section,
-.progress-section {
+.progress-section,
+.content-section,
+.location-section {
   border: 1px solid color-mix(in srgb, CanvasText 24%, transparent);
   border-radius: 0.75rem;
   background: color-mix(in srgb, Canvas 94%, CanvasText 6%);
@@ -73,7 +76,19 @@ body {
 .lunar-section,
 .orbital-pulls,
 .orbital-section,
-.progress-section { margin-top: 1rem; padding: clamp(1.25rem, 4vw, 1.75rem); }
+.progress-section,
+.content-section,
+.location-section { margin-top: 1rem; padding: clamp(1.25rem, 4vw, 1.75rem); }
+.content-section-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.location-name {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.45rem, 6vw, 2rem);
+  font-weight: 700;
+}
 .section-label,
 .group-label { margin: 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
 .section-label { margin-bottom: 1rem; }

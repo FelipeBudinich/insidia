@@ -1,13 +1,39 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "application": {
     "displayName": "Insidia"
   },
   "pages": [
     { "id": "page-01", "name": "Calendario" },
     { "id": "page-02", "name": "Destino" },
-    { "id": "page-03", "name": "Tempore" }
+    { "id": "page-03", "name": "Tempore" },
+    { "id": "page-04", "name": "Personage" },
+    { "id": "page-05", "name": "Pensamentos" },
+    { "id": "page-06", "name": "Commandamento" },
+    { "id": "page-07", "name": "Mappa" }
   ],
+  "pageSections": [
+    { "id": "page-section-01", "name": "Titulo" },
+    { "id": "page-section-02", "name": "Nomine" },
+    { "id": "page-section-03", "name": "Epitheto" },
+    { "id": "page-section-04", "name": "Equipamento" },
+    { "id": "page-section-05", "name": "Inventario" },
+    { "id": "page-section-06", "name": "Observationes" },
+    { "id": "page-section-07", "name": "Decisiones" },
+    { "id": "page-section-08", "name": "Investigationes" },
+    { "id": "page-section-09", "name": "Memorias" },
+    { "id": "page-section-10", "name": "Ordines" },
+    { "id": "page-section-11", "name": "Campiones" },
+    { "id": "page-section-12", "name": "Miniones" }
+  ],
+  "outcomeTypes": [
+    { "id": "outcome-tier-01", "name": "Commune" },
+    { "id": "outcome-tier-02", "name": "Infrequens" },
+    { "id": "outcome-tier-03", "name": "Rarum" }
+  ],
+  "mappa": {
+    "currentLocation": { "id": "location-01", "name": "Santiago" }
+  },
   "calendar": {
     "yearName": "Annus Solis",
     "monthReign": {

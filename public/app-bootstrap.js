@@ -2,7 +2,7 @@ import { getPageDefinition } from './page-definitions.js';
 import { loadPresentationContext } from './presentation-context-loader.js';
 import { startLiveState } from './live-state.js';
 
-const APPLICATION_VERSION = '8.16';
+const APPLICATION_VERSION = '8.17';
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
 
 export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
@@ -33,6 +33,12 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
   for (const element of documentRoot.querySelectorAll('[data-page-name]')) {
     element.textContent = page.name;
   }
+  for (const element of documentRoot.querySelectorAll('[data-page-section-id]')) {
+    element.textContent = context.getPageSection(element.dataset.pageSectionId).name;
+  }
+  for (const element of documentRoot.querySelectorAll('[data-current-location]')) {
+    element.textContent = context.currentLocation.name;
+  }
   for (const element of documentRoot.querySelectorAll('[data-message-key]')) {
     element.textContent = context.message(element.dataset.messageKey);
   }
@@ -40,7 +46,7 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
     element.textContent = context.applicationDisplayName;
   }
   for (const element of documentRoot.querySelectorAll('[data-version]')) {
-    element.textContent = 'v8.16';
+    element.textContent = 'v8.17';
     element.setAttribute('aria-label', context.format('accessibility.version', {
       label: context.message('accessibility.applicationVersion'),
       version: APPLICATION_VERSION
@@ -69,7 +75,7 @@ function renderConfigurationError(documentRoot, message, languageTag = 'en') {
   documentRoot.body.append(main);
 }
 
-export async function bootstrapPage(pageId, createRenderer, options = {}) {
+async function bootstrapDocument(pageId, options, complete) {
   const documentRoot = options.documentRoot ?? document;
   const locationLike = options.locationLike ?? window.location;
   const fetchFn = options.fetchFn ?? window.fetch.bind(window);
@@ -77,9 +83,9 @@ export async function bootstrapPage(pageId, createRenderer, options = {}) {
   try {
     const context = await loadPresentationContext(locationLike, { fetchFn });
     applyCommonDocumentPresentation(documentRoot, pageId, context);
-    const renderer = createRenderer(documentRoot, context);
+    const completionValue = complete(context, documentRoot);
     documentRoot.documentElement.setAttribute('aria-busy', 'false');
-    return startLiveState(renderer);
+    return completionValue;
   } catch (error) {
     const localeResult = error?.localeResult;
     const message = localeResult?.locale?.messages?.['error.configuration']
@@ -88,4 +94,15 @@ export async function bootstrapPage(pageId, createRenderer, options = {}) {
     console.error('Application configuration failed.', error);
     return null;
   }
+}
+
+export function bootstrapPage(pageId, createRenderer, options = {}) {
+  return bootstrapDocument(pageId, options, (context, documentRoot) => {
+    const renderer = createRenderer(documentRoot, context);
+    return startLiveState(renderer);
+  });
+}
+
+export function bootstrapStaticPage(pageId, options = {}) {
+  return bootstrapDocument(pageId, options, (context) => context);
 }

@@ -4,25 +4,26 @@ import {
   LUNAR_PHASE_RULES,
   NAMED_DAY_IDS,
   MONTH_RULER_IDS,
+  OUTCOME_TYPE_RULES,
   PULL_RULES,
   REIGN_ORDINAL_IDS,
   SEASON_RULES,
   TIDE_RULES,
   WEEKDAY_IDS
 } from './core/rules.js';
-import { PAGE_IDS } from './page-definitions.js';
+import { PAGE_IDS, PAGE_SECTION_IDS } from './page-definitions.js';
 
 export const NOMENCLATURE_PATH = '/config/nomenclature.json';
 
 const TOP_LEVEL_KEYS = Object.freeze([
-  'schemaVersion', 'application', 'pages', 'calendar', 'seasons', 'lunarPhases',
-  'lunarCycle', 'tides', 'celestialBodies', 'pulls'
+  'schemaVersion', 'application', 'pages', 'pageSections', 'outcomeTypes', 'mappa',
+  'calendar', 'seasons', 'lunarPhases', 'lunarCycle', 'tides', 'celestialBodies', 'pulls'
 ]);
 
 const FORBIDDEN_KEYS = new Set([
   'durationDays', 'durationHours', 'orbitalPeriod', 'orbitalPeriodDays',
   'orbitalPeriodLunarDays', 'tieBreakPriorityRank', 'threshold',
-  'maximumPercentage', 'outcomeTypes', 'messages', 'templates', 'route'
+  'maximumPercentage', 'messages', 'templates', 'route'
 ]);
 
 function assertObject(value, label) {
@@ -75,10 +76,18 @@ function validateEntities(items, expectedIds, label, entityKeys) {
 
 export function validateNomenclature(nomenclature) {
   assertExactKeys(nomenclature, TOP_LEVEL_KEYS, 'nomenclature');
-  if (nomenclature.schemaVersion !== 7) throw new Error('nomenclature schemaVersion must be 7');
+  if (nomenclature.schemaVersion !== 8) throw new Error('nomenclature schemaVersion must be 8');
   assertExactKeys(nomenclature.application, ['displayName'], 'nomenclature.application');
   assertNonEmptyString(nomenclature.application.displayName, 'nomenclature.application.displayName');
   validateEntities(nomenclature.pages, PAGE_IDS, 'nomenclature.pages', ['id', 'name']);
+  validateEntities(nomenclature.pageSections, PAGE_SECTION_IDS, 'nomenclature.pageSections', ['id', 'name']);
+  validateEntities(nomenclature.outcomeTypes, OUTCOME_TYPE_RULES.map(({ id }) => id), 'nomenclature.outcomeTypes', ['id', 'name']);
+  assertExactKeys(nomenclature.mappa, ['currentLocation'], 'nomenclature.mappa');
+  assertExactKeys(nomenclature.mappa.currentLocation, ['id', 'name'], 'nomenclature.mappa.currentLocation');
+  if (nomenclature.mappa.currentLocation.id !== 'location-01') {
+    throw new Error('nomenclature.mappa.currentLocation.id must be location-01');
+  }
+  assertNonEmptyString(nomenclature.mappa.currentLocation.name, 'nomenclature.mappa.currentLocation.name');
   assertExactKeys(nomenclature.calendar, ['yearName', 'monthReign', 'weekdays', 'namedDays', 'interRegna'], 'nomenclature.calendar');
   assertNonEmptyString(nomenclature.calendar.yearName, 'nomenclature.calendar.yearName');
   assertExactKeys(nomenclature.calendar.monthReign, ['name', 'rulers', 'ordinals'], 'nomenclature.calendar.monthReign');

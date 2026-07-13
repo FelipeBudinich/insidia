@@ -5,16 +5,14 @@ function createCalendarioPageRenderer(root, context) {
   const year = root.querySelector('#fictional-year');
   const period = root.querySelector('#fictional-period');
   const accessibleDate = root.querySelector('#fictional-date-accessible');
-  const lunarCycleTitle = root.querySelector('#lunar-cycle-title');
-  const lunarPhaseSubtitle = root.querySelector('#lunar-phase-subtitle');
+  const lunarSummary = root.querySelector('#lunar-summary');
 
   return function renderCalendario(state) {
     const display = createDisplayData(state, context);
     year.textContent = `${display.calendar.formattedYear} · ${display.season.name}`;
     period.textContent = display.calendar.periodLabel;
     accessibleDate.textContent = display.formattedDate;
-    lunarCycleTitle.textContent = `${display.lunar.cycleName} ${display.lunar.formattedCycle}`;
-    lunarPhaseSubtitle.textContent = display.lunar.phase.name;
+    lunarSummary.textContent = `${display.lunar.cycleName} ${display.lunar.formattedCycle} · ${display.lunar.phase.name}`;
   };
 }
 

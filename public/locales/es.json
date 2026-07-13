@@ -1,12 +1,7 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "id": "es",
   "languageTag": "es",
-  "outcomeTypes": {
-    "outcome-tier-01": { "name": "Común" },
-    "outcome-tier-02": { "name": "Poco común" },
-    "outcome-tier-03": { "name": "Raro" }
-  },
   "messages": {
     "nav.aria": "Navegación principal",
     "section.time": "Tiempo",
@@ -36,6 +31,7 @@
     "label.orbitalProgress": "Progreso orbital",
     "label.circularSpan": "Arco circular",
     "label.alignment": "Alineación",
+    "label.currentLocation": "Ubicación actual",
     "label.epoch": "Época",
     "label.copyJson": "Copiar JSON",
     "status.copied": "Copiado",
@@ -55,6 +51,10 @@
     "document.page-01Description": "Fecha ficticia, estado lunar y estado estacional en vivo para {applicationName}.",
     "document.page-02Description": "Resultado seleccionado, mareas, progreso de la marea, fuerzas y órbitas celestes en vivo para {applicationName}.",
     "document.page-03Description": "Tiempos ficticios, estación y progreso en vivo para {applicationName}.",
+    "document.page-04Description": "Título, nombre, epíteto, equipo e inventario del jugador para {applicationName}.",
+    "document.page-05Description": "Observaciones, decisiones, investigaciones y memorias para {applicationName}.",
+    "document.page-06Description": "Órdenes, campeones y esbirros para {applicationName}.",
+    "document.page-07Description": "Ubicación actual para {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Progreso orbital de {bodyName}",
     "calendar.formattedYear": "{yearName} {yearRoman}",
@@ -70,7 +70,6 @@
     "season.progress": "{progressLabel}: {percentage}",
     "tide.metadata": "{hourLabel} {hour} de {length}",
     "tide.time": "{time} dentro de {name}",
-    "outcome.type": "{pageName}: {name}",
     "outcome.attempts": "{attemptsLabel} hasta {rareName}: {count}",
     "outcome.source": "{tideName} · {pullName}",
     "outcome.progress": "{progressLabel}: {percentage}",

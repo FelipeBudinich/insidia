@@ -47,6 +47,17 @@ async function listSourceFiles(directory) {
   return nested.flat();
 }
 
+test('package and visible application versions are v8.17', async () => {
+  const [packageJson, packageLock, bootstrap] = await Promise.all([
+    readFile(path.join(root, 'package.json'), 'utf8'),
+    readFile(path.join(root, 'package-lock.json'), 'utf8'),
+    readPublic('app-bootstrap.js')
+  ]);
+  assert.equal(JSON.parse(packageJson).version, '8.17.0');
+  assert.equal(JSON.parse(packageLock).version, '8.17.0');
+  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.17'/);
+});
+
 test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async () => {
   const [html, script] = await Promise.all([readPublic('calendario.html'), readPublic('calendario-page.js')]);
   for (const removed of [
@@ -64,7 +75,7 @@ test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async
 
 test('Calendario preserves date and lunar structures with the footer directly after the lunar card', async () => {
   const html = await readPublic('calendario.html');
-  for (const id of ['fictional-year','fictional-period','fictional-date-accessible','lunar-cycle-title','lunar-phase-subtitle']) {
+  for (const id of ['fictional-year','fictional-period','fictional-date-accessible','lunar-summary']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.doesNotMatch(html, /fictional-metadata|class="metadata"/);
@@ -99,18 +110,17 @@ test('Calendario contains no standalone season-card markup', async () => {
   assert.doesNotMatch(html, /<section class="season-section"|<progress/);
 });
 
-test('Calendario lunar card mirrors the two-line calendar title hierarchy', async () => {
+test('Calendario lunar card uses one visible configured summary line', async () => {
   const html = await readPublic('calendario.html');
   const start = html.indexOf('<section class="lunar-section"');
   const section = html.slice(start, html.indexOf('</section>', start) + '</section>'.length);
-  assert.match(section, /<section class="lunar-section" aria-labelledby="lunar-cycle-title">/);
-  assert.match(section, /<div class="date">\s*<p id="lunar-cycle-title" class="year"><\/p>\s*<p id="lunar-phase-subtitle" class="period"><\/p>\s*<\/div>/);
+  assert.match(section, /<section class="lunar-section" aria-labelledby="lunar-summary">/);
+  assert.match(section, /<div class="date">\s*<p id="lunar-summary" class="year"><\/p>\s*<\/div>/);
   const paragraphs = [...section.matchAll(/<p\b[^>]*>/g)].map(([tag]) => tag);
-  assert.equal(paragraphs.length, 2);
-  assert.equal(paragraphs.filter((tag) => !tag.includes('visually-hidden')).length, 2);
-  assert.match(section, /id="lunar-cycle-title" class="year"/);
-  assert.match(section, /id="lunar-phase-subtitle" class="period"/);
-  assert.doesNotMatch(section, /lunar-summary|lunar-name|section\.lunar|label\.phase|lunar-metadata|data-message-key|•/);
+  assert.equal(paragraphs.length, 1);
+  assert.equal(paragraphs.filter((tag) => !tag.includes('visually-hidden')).length, 1);
+  assert.match(section, /id="lunar-summary" class="year"/);
+  assert.doesNotMatch(section, /lunar-cycle-title|lunar-phase-subtitle|lunar-name|section\.lunar|label\.phase|lunar-metadata|data-message-key|•/);
   assert.doesNotMatch(html, /Lunar Cycle|Phase|Lunar Day|Ciclo lunar|Fase|Día lunar/);
 });
 
@@ -182,14 +192,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each renamed page has one localized v8.16 footer version', async () => {
-  for (const file of ['calendario.html','destino.html','tempore.html']) {
+test('each configured page has one localized v8.17 footer version', async () => {
+  for (const file of ['calendario.html','destino.html','tempore.html','personage.html','pensamentos.html','commandamento.html','mappa.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.16/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.17/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -199,17 +209,49 @@ test('new pages use neutral IDs, fixed routes, one active link, and renamed modu
   const pages = [
     ['calendario.html','page-01','calendario-page.js'],
     ['destino.html','page-02','destino-page.js'],
-    ['tempore.html','page-03','tempore-page.js']
+    ['tempore.html','page-03','tempore-page.js'],
+    ['personage.html','page-04','personage-page.js'],
+    ['pensamentos.html','page-05','pensamentos-page.js'],
+    ['commandamento.html','page-06','commandamento-page.js'],
+    ['mappa.html','page-07','mappa-page.js']
   ];
   for (const [file, activeId, module] of pages) {
     const html = await readPublic(file);
-    assert.equal((html.match(/data-page-id=/g) ?? []).length, 3);
+    assert.equal((html.match(/data-page-id=/g) ?? []).length, 7);
     assert.equal((html.match(/aria-current="page"/g) ?? []).length, 1);
     assert.match(html, new RegExp(`data-page-id="${activeId}"[^>]*aria-current="page"`));
-    for (const route of ['/calendario.html','/destino.html','/tempore.html']) assert.ok(html.includes(`href="${route}"`));
+    for (const route of ['/calendario.html','/destino.html','/tempore.html','/personage.html','/pensamentos.html','/commandamento.html','/mappa.html']) assert.ok(html.includes(`href="${route}"`));
     assert.match(html, new RegExp(`src="/${module}"`));
     assert.doesNotMatch(html, /data-page-link/);
   }
+});
+
+test('static page shells contain only their exact neutral configured sections', async () => {
+  for (const [file, module, pageId, sectionIds] of [
+    ['personage.html', 'personage-page.js', 'page-04', ['01','02','03','04','05']],
+    ['pensamentos.html', 'pensamentos-page.js', 'page-05', ['06','07','08','09']],
+    ['commandamento.html', 'commandamento-page.js', 'page-06', ['10','11','12']]
+  ]) {
+    const [html, script] = await Promise.all([readPublic(file), readPublic(module)]);
+    assert.equal((html.match(/class="content-section"/g) ?? []).length, sectionIds.length, file);
+    assert.deepEqual([...html.matchAll(/data-page-section-id="page-section-(\d{2})"/g)].map((match) => match[1]), sectionIds, file);
+    for (const sectionId of sectionIds) {
+      assert.match(html, new RegExp(`aria-labelledby="page-section-${sectionId}-heading"[^]*id="page-section-${sectionId}-heading"[^]*data-page-section-id="page-section-${sectionId}"`));
+    }
+    assert.match(script, new RegExp(`bootstrapStaticPage\\('${pageId}'\\)`));
+    assert.doesNotMatch(script, /bootstrapPage|startLiveState|calculateCalendarState/);
+    assert.doesNotMatch(html, /Empty|None|Coming soon|Próximamente/);
+  }
+
+  const [mappaHtml, mappaScript] = await Promise.all([readPublic('mappa.html'), readPublic('mappa-page.js')]);
+  assert.equal((mappaHtml.match(/class="location-section"/g) ?? []).length, 1);
+  assert.equal((mappaHtml.match(/data-current-location/g) ?? []).length, 1);
+  assert.match(mappaHtml, /<section class="location-section" aria-labelledby="current-location-heading">[^]*id="current-location-heading"[^]*data-message-key="label\.currentLocation"[^]*class="location-name" data-current-location/);
+  assert.doesNotMatch(mappaHtml, /Santiago|coordinates|iframe|img|geolocation/);
+  assert.match(mappaScript, /bootstrapStaticPage\('page-07'\)/);
+  assert.doesNotMatch(mappaScript, /bootstrapPage|startLiveState|calculateCalendarState/);
+  const productionSource = (await Promise.all((await listSourceFiles(path.join(root, 'public'))).map((file) => readFile(file, 'utf8')))).join('\n');
+  assert.doesNotMatch(productionSource, /navigator\.geolocation|<iframe|maps\.google|mapbox|leaflet/i);
 });
 
 test('removed layout and JSON selectors no longer remain in shared CSS', async () => {
@@ -224,6 +266,12 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   assert.match(css, /\.date p\s*\{\s*margin:\s*0;/);
   assert.match(css, /\.year\s*\{[^}]*font-size:[^}]*font-weight:/);
   assert.match(css, /\.period\s*\{[^}]*margin-top:[^}]*font-size:/);
+  assert.match(css, /repeat\(auto-fit, minmax\(7rem, 1fr\)\)/);
+  assert.match(css, /gap:\s*1px/);
+  assert.doesNotMatch(css, /\.primary-nav a \+ a/);
+  for (const selector of ['.content-section', '.location-section', '.content-section-title', '.location-name']) {
+    assert.ok(css.includes(selector), selector);
+  }
   for (const preserved of [
     '.section-label', '.group-label', '.lunar-metadata', '.lunar-time', '.lunar-name',
     '.season-section', '.season-name', '.season-metadata', '.season-cycle-metadata',
@@ -231,10 +279,10 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   ]) assert.ok(css.includes(preserved), preserved);
 });
 
-test('JSON serialization is schema v18 with calendar time intact', async () => {
+test('JSON serialization is schema v19 with calendar time intact', async () => {
   const [presentation, mechanics] = await Promise.all([readPublic('presentation.js'), readPublic('core/mechanics.js')]);
   assert.match(presentation, /export function createCalendarJson/);
-  assert.match(presentation, /calendarVersion: 'v18'/);
+  assert.match(presentation, /calendarVersion: 'v19'/);
   assert.match(presentation, /time: formatClock\(state\.calendar\.time\)/);
   assert.match(mechanics, /time: \{ hour, minute, second \}/);
 });
@@ -270,19 +318,18 @@ test('Interregno proper names are sourced only from nomenclature', async () => {
   ]);
 });
 
-test('Calendario renderer arranges presentation-ready lunar title and subtitle values', async () => {
+test('Calendario renderer arranges the presentation-ready lunar summary values', async () => {
   const renderer = await readPublic('calendario-page.js');
   for (const removed of [
-    '#lunar-summary', '#lunar-metadata', 'lunar.metadata', 'label.lunarDay',
+    '#lunar-metadata', 'lunar.metadata', 'label.lunarDay',
     'cycleLengthDays', 'state.lunar.day', 'state.lunar.cycle', 'state.lunar.phaseId',
     'formatRomanNumeral', 'context.getLunarPhase', 'context.lunarCycleName',
     'display.lunar.formattedSummary', '.split('
   ]) assert.ok(!renderer.includes(removed), removed);
   assert.doesNotMatch(renderer, /querySelector\('#lunar-phase'\)/);
-  assert.match(renderer, /querySelector\('#lunar-cycle-title'\)/);
-  assert.match(renderer, /querySelector\('#lunar-phase-subtitle'\)/);
-  assert.match(renderer, /lunarCycleTitle\.textContent = `\$\{display\.lunar\.cycleName\} \$\{display\.lunar\.formattedCycle\}`/);
-  assert.match(renderer, /lunarPhaseSubtitle\.textContent = display\.lunar\.phase\.name/);
+  assert.match(renderer, /querySelector\('#lunar-summary'\)/);
+  assert.doesNotMatch(renderer, /lunar-cycle-title|lunar-phase-subtitle/);
+  assert.match(renderer, /lunarSummary\.textContent = `\$\{display\.lunar\.cycleName\} \$\{display\.lunar\.formattedCycle\} · \$\{display\.lunar\.phase\.name\}`/);
   assert.equal((renderer.match(/createDisplayData\(state, context\)/g) ?? []).length, 1);
 });
 
