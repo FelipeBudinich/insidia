@@ -619,7 +619,11 @@ test('JSON v17 exposes ruler decisions plus tide and hour progress while raw sta
   assert.deepEqual(Object.keys(english.display.calendar.weekday).sort(), ['id', 'name']);
   assert.equal(Object.hasOwn(english.display.calendar.weekday, 'shortName'), false);
   assert.equal(Object.hasOwn(english.display.calendar.weekday, 'symbol'), false);
-  assert.equal(english.display.season.name, 'Ossos');
+  assert.deepEqual(english.display.season, {
+    id: 'season-01',
+    name: 'Ossos',
+    next: { id: 'season-02', name: 'Lacrimas' }
+  });
   assert.equal(english.display.lunar.phase.name, 'Renascimento');
   assert.equal(english.display.lunar.cycleName, 'Cyclus Lunae');
   assert.equal(english.display.lunar.formattedCycle, 'I');
@@ -629,7 +633,15 @@ test('JSON v17 exposes ruler decisions plus tide and hour progress while raw sta
   assert.equal(english.display.orbits.bodies[5].id, 'body-06');
   assert.equal(english.display.orbits.bodies[5].name, 'Luna');
   assert.equal(english.state.lunar.phaseId, 'phase-01');
-  assert.equal(english.state.season.id, 'season-01');
+  assert.deepEqual(english.state.season, {
+    id: 'season-01',
+    cycle: 1,
+    dayOfCycle: 1,
+    cycleLengthDays: 358,
+    day: 1,
+    lengthDays: 179,
+    nextId: 'season-02'
+  });
   assert.equal(english.state.orbits.bodies[5].id, 'body-06');
   assert.equal(english.display.formattedDate, spanish.display.formattedDate);
   assert.equal(english.display.outcomeType.name, 'Common');
@@ -662,20 +674,20 @@ test('navigation applies only resolved locale and fixed application metadata', a
   assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore']);
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.14');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.14');
+  assert.equal(versionElements[0].textContent, 'v8.15');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.15');
   applyCommonDocumentPresentation(documentRoot, 'page-01', await context('en'));
   assert.equal(meta.content, 'Live fictional date, lunar state, and season state for Insidia.');
-  assert.equal(versionElements[0]['aria-label'], 'Application version 8.14');
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.15');
 });
 
-test('static HTML remains neutral and uses v8.14 page IDs and application placeholders', async () => {
+test('static HTML remains neutral and uses v8.15 page IDs and application placeholders', async () => {
   const properNouns = ['Insidia','Calendario','Destino','Tempore','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),...INTERREGNOS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.14/);
+    assert.match(html, /data-version>v8\.15/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);

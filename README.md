@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.14 is a live fictional calendar with independent calendar and lunar clocks, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v8.15 is a live fictional calendar with independent calendar and lunar clocks, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
@@ -38,7 +38,7 @@ public/config/nomenclature.json
 
 The browser always loads it from the fixed same-origin URL `/config/nomenclature.json`. Editing this file and redeploying is sufficient to rename the application/world, the month-reign system, weekdays, Interregnos, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. JavaScript and HTML changes are not required.
 
-The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.14 configuration includes:
+The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.15 configuration includes:
 
 - Calendar year name: Annus Solis
 - Lunar cycle name: Cyclus Lunae
@@ -55,7 +55,7 @@ These names and symbols are loaded exclusively from `public/config/nomenclature.
 
 Weekday, month-ruler, and reign-ordinal entities use exactly `{ id, name }`; they have no `shortName` or symbol. Their complete canonical neutral ID sets and ordering must be retained. Static month names are not configured: each visible month name is derived from its ruler and its ruler's reign number within that year.
 
-Calendario renders visible years and period days with uppercase Roman numerals. Its two-line date header is `Annus Solis {romanYear}` followed by `{weekdayName} · {romanDay} {periodName}`. A ruler's first month in a year is named `Regno de {ruler}`; later months use `{ordinal} Regno de {ruler}`. `Prime` remains structured nomenclature but is deliberately omitted from the first visible reign name. Interregno names continue to resolve directly from nomenclature. English and Spanish show the same in-universe date.
+Calendario renders visible years and period days with uppercase Roman numerals. Its two-line date header is `Annus Solis {romanYear} · {currentSeasonName}` followed by `{weekdayName} · {romanDay} {periodName}`. A ruler's first month in a year is named `Regno de {ruler}`; later months use `{ordinal} Regno de {ruler}`. `Prime` remains structured nomenclature but is deliberately omitted from the first visible reign name. Interregno names and the current live season continue to resolve directly from nomenclature. English and Spanish show the same in-universe date.
 
 The lunar Calendario card mirrors the date card's two-line hierarchy. Its title is the configured lunar-cycle name plus Roman cycle number, and its subtitle is the configured current phase name. For lunar cycle 1234, it displays `Cyclus Lunae MCCXXXIV` above `Morditura`. Both lines come from presentation-ready nomenclature data and remain identical in English and Spanish. The combined `Morditura • Cyclus Lunae MCCXXXIV` summary remains available in the display and Calendar JSON v17 APIs, while lunar day and cycle-length values remain in raw state.
 
@@ -111,11 +111,11 @@ The project has no framework, build system, database, backend time API, WebSocke
 
 ## Page layouts
 
-- Calendar presents three cards in order: the calendar date, the lunar cycle and phase, then season details and progress. The date card retains exactly two visible lines: configured year name plus Roman year, then weekday plus Roman period day and configured period name. The lunar card retains the cycle name and Roman cycle number as its title and the current phase as its subtitle. The season card is shared with Tempore and includes the current season, day within the season, seasonal-cycle position, next season, and season progress. Week number, day-of-year progress, fictional clock, and JSON controls remain absent.
+- Calendario presents two cards: the calendar date and the lunar cycle. The date-card title displays the configured year name, Roman year, and current season name on one line, for example `Annus Solis LXII · Ossos`. Its second line remains the weekday, Roman period day, and configured month or Interregno name. The lunar card remains unchanged, with the cycle name and Roman cycle number as its title and the current phase as its subtitle. Detailed season metadata and progress remain available on Tempore. Week number, day-of-year progress, fictional clock, and JSON controls remain absent.
 - Outcome begins directly with the selected celestial object and retains its classification, tide, Pull, and orbit data without a visible Outcome card title. Its bottom progress card displays progress through the current tide; the selected body's orbital-progress line remains separate in the top Outcome area.
 - Weather begins directly with the Time card, including both fictional and lunar clocks, then shows Season and Progress. It has no separate page-header card.
 
-Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.14 version in its footer.
+Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.15 version in its footer.
 
 ## JSON schema v17
 
@@ -137,11 +137,11 @@ The display calendar maps the rotation season, rulers, decision bodies, qualifyi
 | Route | Purpose |
 |---|---|
 | `/` | Redirect to `/calendario.html`, preserving only a non-empty locale |
-| `/calendario.html` | Calendar-date, lunar-cycle, and season view; no visible clock or JSON |
+| `/calendario.html` | Calendar date with current season, plus lunar-cycle view; no visible clock or JSON |
 | `/destino.html` | Outcome selection, tides, tide progress, Pulls, and orbits |
 | `/tempore.html` | Fictional times, season, and selected progress |
 | `/config/nomenclature.json` | The one read-only nomenclature configuration |
-| `/health` | `{"ok":true,"version":"v8.14"}` |
+| `/health` | `{"ok":true,"version":"v8.15"}` |
 
 Static `.html`, `.css`, `.js`, and `.json` responses—including locale and nomenclature configuration—use explicit MIME types and `Cache-Control: no-cache`. They also include deterministic weak ETags and Last-Modified validators, so repeat requests can revalidate with a bodyless `304 Not Modified` response instead of retransferring unchanged files. Other static formats retain a short revalidating cache policy. Dynamic, redirect, and error responses remain `no-store` and do not participate in static revalidation.
 

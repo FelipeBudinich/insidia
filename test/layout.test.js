@@ -3,9 +3,40 @@ import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { calculateCalendarState } from '../public/core/mechanics.js';
+import {
+  FICTIONAL_SECONDS_PER_DAY,
+  REAL_MS_PER_FICTIONAL_SECOND,
+  SEASON_LENGTH_DAYS
+} from '../public/core/rules.js';
+import { validateLocale } from '../public/locale-loader.js';
+import { validateNomenclature } from '../public/nomenclature-loader.js';
+import { createPresentationContext } from '../public/nomenclature.js';
+import { createDisplayData } from '../public/presentation.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readPublic = (file) => readFile(path.join(root, 'public', file), 'utf8');
+
+async function productionContext() {
+  const [nomenclatureSource, localeSource] = await Promise.all([
+    readPublic('config/nomenclature.json'),
+    readPublic('locales/en.json')
+  ]);
+  const nomenclature = validateNomenclature(JSON.parse(nomenclatureSource));
+  const locale = validateLocale(JSON.parse(localeSource));
+  return createPresentationContext({
+    nomenclatureResult: {
+      schemaVersion: nomenclature.schemaVersion,
+      nomenclature
+    },
+    localeResult: {
+      requestedLocaleId: 'en',
+      resolvedLocaleId: 'en',
+      schemaVersion: locale.schemaVersion,
+      locale
+    }
+  });
+}
 
 async function listSourceFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -31,7 +62,7 @@ test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async
   assert.match(script, /bootstrapPage\('page-01', createCalendarioPageRenderer\)/);
 });
 
-test('Calendario preserves date and lunar structures and adds season before the footer', async () => {
+test('Calendario preserves date and lunar structures with the footer directly after the lunar card', async () => {
   const html = await readPublic('calendario.html');
   for (const id of ['fictional-year','fictional-period','fictional-date-accessible','lunar-cycle-title','lunar-phase-subtitle']) {
     assert.match(html, new RegExp(`id="${id}"`));
@@ -46,20 +77,16 @@ test('Calendario preserves date and lunar structures and adds season before the 
   assert.match(card, /id="fictional-date-accessible" class="visually-hidden"/);
   const calendarIndex = html.indexOf('<section class="calendar-card"');
   const lunarIndex = html.indexOf('<section class="lunar-section"');
-  const seasonIndex = html.indexOf('<section class="season-section"');
   const footerIndex = html.indexOf('<footer>');
-  assert.ok(calendarIndex < lunarIndex && lunarIndex < seasonIndex && seasonIndex < footerIndex);
+  assert.ok(calendarIndex < lunarIndex && lunarIndex < footerIndex);
+  assert.equal(html.indexOf('<section class="season-section"'), -1);
 });
 
-test('Calendario season card reuses the exact shared renderer markup contract once', async () => {
+test('Calendario contains no standalone season-card markup', async () => {
   const html = await readPublic('calendario.html');
-  const start = html.indexOf('<section class="season-section"');
-  const section = html.slice(start, html.indexOf('</section>', start) + '</section>'.length);
-  assert.ok(start >= 0);
-  assert.match(section, /<section class="season-section" aria-labelledby="season-heading">/);
-  assert.match(section, /id="season-heading"/);
-  assert.match(section, /data-message-key="section\.season"/);
-  for (const attribute of [
+  for (const removed of [
+    'season-heading',
+    'data-message-key="section.season"',
     'data-season-name',
     'data-season-metadata',
     'data-season-cycle-metadata',
@@ -67,11 +94,9 @@ test('Calendario season card reuses the exact shared renderer markup contract on
     'data-season-progress',
     'data-season-progress-bar'
   ]) {
-    assert.equal((html.match(new RegExp(`${attribute}(?=[\\s>])`, 'g')) ?? []).length, 1, attribute);
-    assert.match(section, new RegExp(`${attribute}(?=[\\s>])`));
+    assert.equal(html.includes(removed), false, removed);
   }
-  assert.match(section, /<progress\s+max="1"\s+value="0"\s+data-season-progress-bar\s*><\/progress>/s);
-  assert.doesNotMatch(html, /data-calendar-season-name|id="calendario-season"|id="calendar-season-progress"/);
+  assert.doesNotMatch(html, /<section class="season-section"|<progress/);
 });
 
 test('Calendario lunar card mirrors the two-line calendar title hierarchy', async () => {
@@ -157,14 +182,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each renamed page has one localized v8.14 footer version', async () => {
+test('each renamed page has one localized v8.15 footer version', async () => {
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.14/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.15/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -199,7 +224,11 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   assert.match(css, /\.date p\s*\{\s*margin:\s*0;/);
   assert.match(css, /\.year\s*\{[^}]*font-size:[^}]*font-weight:/);
   assert.match(css, /\.period\s*\{[^}]*margin-top:[^}]*font-size:/);
-  for (const preserved of ['.section-label', '.group-label', '.lunar-metadata', '.lunar-time', '.lunar-name']) assert.ok(css.includes(preserved), preserved);
+  for (const preserved of [
+    '.section-label', '.group-label', '.lunar-metadata', '.lunar-time', '.lunar-name',
+    '.season-section', '.season-name', '.season-metadata', '.season-cycle-metadata',
+    '.weather-progress', '.weather-progress-heading'
+  ]) assert.ok(css.includes(preserved), preserved);
 });
 
 test('JSON serialization is schema v17 with calendar time intact', async () => {
@@ -252,22 +281,50 @@ test('Calendario renderer arranges presentation-ready lunar title and subtitle v
   assert.equal((renderer.match(/createDisplayData\(state, context\)/g) ?? []).length, 1);
 });
 
-test('Calendario composes the shared season renderer without duplicating season formatting', async () => {
+test('Calendario combines the presentation-ready year and current season in its title', async () => {
   const renderer = await readPublic('calendario-page.js');
-  assert.match(renderer, /import \{ createSeasonRenderer \} from '\.\/renderers\.js';/);
-  assert.match(renderer, /const renderSeason = createSeasonRenderer\(root, context\);/);
-  assert.equal((renderer.match(/createSeasonRenderer\(root, context\)/g) ?? []).length, 1);
-  assert.match(renderer, /return function renderCalendario\(state\) \{[\s\S]*renderSeason\(state\);[\s\S]*\};/);
-  for (const duplicated of [
-    "context.format('season.metadata'",
-    "context.format('season.cycle'",
-    "context.format('season.next'",
-    "context.format('season.progress'",
-    'context.getSeason(state.season.id)',
-    'data-season-progress-bar',
-    '.progress.season',
-    'fetch('
-  ]) assert.equal(renderer.includes(duplicated), false, duplicated);
+  assert.match(
+    renderer,
+    /year\.textContent\s*=\s*`\$\{display\.calendar\.formattedYear\} · \$\{display\.season\.name\}`;/
+  );
+  for (const removed of [
+    'createSeasonRenderer', 'renderSeason', 'context.getSeason', 'state.season.id',
+    'season.metadata', 'season.progress'
+  ]) assert.equal(renderer.includes(removed), false, removed);
+  assert.match(renderer, /period\.textContent = display\.calendar\.periodLabel/);
+  assert.match(renderer, /accessibleDate\.textContent = display\.formattedDate/);
+  assert.match(renderer, /display\.lunar\.cycleName/);
+  assert.match(renderer, /display\.lunar\.formattedCycle/);
+  assert.match(renderer, /display\.lunar\.phase\.name/);
+});
+
+test('Calendario title uses the configured current season in both season states', async () => {
+  const context = await productionContext();
+  const ossosDisplay = createDisplayData(calculateCalendarState(0), context);
+  const lacrimasTimestamp = SEASON_LENGTH_DAYS
+    * FICTIONAL_SECONDS_PER_DAY
+    * REAL_MS_PER_FICTIONAL_SECOND;
+  const lacrimasDisplay = createDisplayData(calculateCalendarState(lacrimasTimestamp), context);
+  const ossosTitle = `${ossosDisplay.calendar.formattedYear} · ${ossosDisplay.season.name}`;
+  const lacrimasTitle = `${lacrimasDisplay.calendar.formattedYear} · ${lacrimasDisplay.season.name}`;
+
+  assert.equal(ossosTitle, 'Annus Solis I · Ossos');
+  assert.match(lacrimasTitle, / · Lacrimas$/);
+});
+
+test('Calendario title changes at the live Ossos-to-Lacrimas boundary without changing year', async () => {
+  const context = await productionContext();
+  const boundaryTimestamp = SEASON_LENGTH_DAYS
+    * FICTIONAL_SECONDS_PER_DAY
+    * REAL_MS_PER_FICTIONAL_SECOND;
+  const beforeDisplay = createDisplayData(calculateCalendarState(boundaryTimestamp - 1), context);
+  const boundaryDisplay = createDisplayData(calculateCalendarState(boundaryTimestamp), context);
+  const beforeTitle = `${beforeDisplay.calendar.formattedYear} · ${beforeDisplay.season.name}`;
+  const boundaryTitle = `${boundaryDisplay.calendar.formattedYear} · ${boundaryDisplay.season.name}`;
+
+  assert.equal(beforeDisplay.calendar.formattedYear, boundaryDisplay.calendar.formattedYear);
+  assert.match(beforeTitle, / · Ossos$/);
+  assert.match(boundaryTitle, / · Lacrimas$/);
 });
 
 test('Calendario rendering path omits removed numeric progress indicators', async () => {
