@@ -114,6 +114,94 @@ test('all three tides fill one 31-hour lunar day at lunar-hour boundaries', () =
   assert.equal(atHour(31).day, 2);
 });
 
+test('first-tide progress starts at zero, advances by lunar seconds, and remains below one', () => {
+  const firstTideDurationSeconds = 17 * rules.LUNAR_SECONDS_PER_HOUR;
+  const epoch = calculateCalendarState(0);
+  assert.equal(epoch.lunar.tide.id, 'tide-01');
+  assert.deepEqual(epoch.progress.tide, { fraction: 0, percentage: 0 });
+
+  const oneSecond = calculateCalendarState(rules.REAL_MS_PER_LUNAR_SECOND);
+  assert.equal(oneSecond.progress.tide.fraction, 1 / firstTideDurationSeconds);
+  assert.equal(oneSecond.progress.tide.percentage, (1 / firstTideDurationSeconds) * 100);
+
+  const finalSecond = calculateCalendarState(
+    (firstTideDurationSeconds * rules.REAL_MS_PER_LUNAR_SECOND) - 1
+  );
+  assert.equal(finalSecond.lunar.tide.id, 'tide-01');
+  assert.equal(finalSecond.progress.tide.fraction, (firstTideDurationSeconds - 1) / firstTideDurationSeconds);
+  assert.ok(finalSecond.progress.tide.fraction < 1);
+  assert.equal(finalSecond.outcome.outcomeTypeId, 'outcome-tier-03');
+});
+
+test('tide progress and Outcome rarity reset at every tide boundary', () => {
+  const firstTideDurationSeconds = 17 * rules.LUNAR_SECONDS_PER_HOUR;
+  const secondTideDurationSeconds = 13 * rules.LUNAR_SECONDS_PER_HOUR;
+  const boundaries = [
+    [firstTideDurationSeconds, 'tide-02'],
+    [firstTideDurationSeconds + secondTideDurationSeconds, 'tide-03'],
+    [rules.LUNAR_SECONDS_PER_DAY, 'tide-01']
+  ];
+  for (const [elapsedLunarSeconds, expectedTideId] of boundaries) {
+    const state = calculateCalendarState(lunarTimestamp(elapsedLunarSeconds));
+    assert.equal(state.lunar.tide.id, expectedTideId);
+    assert.deepEqual(state.progress.tide, { fraction: 0, percentage: 0 });
+    assert.equal(state.outcome.outcomeTypeId, 'outcome-tier-01');
+    assert.equal(state.outcome.attemptsUntilRare, 100);
+    assert.equal(state.outcome.tideProgressFraction, 0);
+    assert.equal(state.outcome.tideProgressPercentage, 0);
+  }
+});
+
+test('each tide length has independent start, midpoint, final-second, and reset progress', () => {
+  const tidePeriods = [
+    { id: 'tide-01', start: 0, duration: 17 * rules.LUNAR_SECONDS_PER_HOUR, nextId: 'tide-02' },
+    { id: 'tide-02', start: 17 * rules.LUNAR_SECONDS_PER_HOUR, duration: 13 * rules.LUNAR_SECONDS_PER_HOUR, nextId: 'tide-03' },
+    { id: 'tide-03', start: 30 * rules.LUNAR_SECONDS_PER_HOUR, duration: rules.LUNAR_SECONDS_PER_HOUR, nextId: 'tide-01' }
+  ];
+  for (const { id, start, duration, nextId } of tidePeriods) {
+    const atStart = calculateCalendarState(lunarTimestamp(start));
+    assert.equal(atStart.lunar.tide.id, id);
+    assert.equal(atStart.progress.tide.fraction, 0);
+
+    const midpointSecond = Math.floor(duration / 2);
+    const atMidpoint = calculateCalendarState(lunarTimestamp(start + midpointSecond));
+    assert.equal(atMidpoint.lunar.tide.id, id);
+    assert.equal(atMidpoint.progress.tide.fraction, midpointSecond / duration);
+    assert.ok(Math.abs(atMidpoint.progress.tide.fraction - 0.5) <= 1 / duration);
+
+    const atFinalSecond = calculateCalendarState(lunarTimestamp(start + duration - 1));
+    assert.equal(atFinalSecond.lunar.tide.id, id);
+    assert.equal(atFinalSecond.progress.tide.fraction, (duration - 1) / duration);
+    assert.ok(atFinalSecond.progress.tide.fraction < 1);
+    assert.equal(atFinalSecond.outcome.outcomeTypeId, 'outcome-tier-03');
+
+    const atNextTide = calculateCalendarState(lunarTimestamp(start + duration));
+    assert.equal(atNextTide.lunar.tide.id, nextId);
+    assert.equal(atNextTide.progress.tide.fraction, 0);
+    assert.equal(atNextTide.outcome.outcomeTypeId, 'outcome-tier-01');
+    assert.equal(atNextTide.outcome.attemptsUntilRare, 100);
+  }
+});
+
+test('Outcome rarity is driven by tide progress while calendar-hour progress stays independent', () => {
+  const firstTideDurationSeconds = 17 * rules.LUNAR_SECONDS_PER_HOUR;
+  const firstRareLunarSecond = Math.floor(firstTideDurationSeconds * 0.99) + 1;
+  const timestamp = firstRareLunarSecond * rules.REAL_MS_PER_LUNAR_SECOND;
+  const state = calculateCalendarState(timestamp);
+  const expectedCalendarSeconds = Math.floor(timestamp / rules.REAL_MS_PER_FICTIONAL_SECOND);
+  const expectedHourFraction = (expectedCalendarSeconds % rules.FICTIONAL_SECONDS_PER_HOUR)
+    / rules.FICTIONAL_SECONDS_PER_HOUR;
+
+  assert.ok(state.progress.tide.fraction > 0.99);
+  assert.ok(state.progress.hour.fraction <= 0.85);
+  assert.equal(state.progress.hour.fraction, expectedHourFraction);
+  assert.equal(state.progress.hour.percentage, expectedHourFraction * 100);
+  assert.equal(state.outcome.outcomeTypeId, 'outcome-tier-03');
+  assert.equal(state.outcome.attemptsUntilRare, 0);
+  assert.equal(state.outcome.tideProgressFraction, state.progress.tide.fraction);
+  assert.equal(state.outcome.tideProgressPercentage, state.progress.tide.percentage);
+});
+
 test('raw lunar time publishes its exact independent unit metadata', () => {
   assert.deepEqual(calculateCalendarState(0).lunar.time, {
     hour: 0,

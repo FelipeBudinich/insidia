@@ -93,6 +93,36 @@ test('Destino preserves its title removal and begins with the selected body', as
   assert.match(script, /createOutcomeRenderer\(root, context, 'page-02'\)/);
 });
 
+test('Destino uses the current tide progress contract and composes its dedicated renderer', async () => {
+  const [html, script, renderers] = await Promise.all([
+    readPublic('destino.html'), readPublic('destino-page.js'), readPublic('renderers.js')
+  ]);
+  const start = html.indexOf('<section class="progress-section"');
+  const progressSection = html.slice(start, html.indexOf('</section>', start) + '</section>'.length);
+  assert.ok(start >= 0);
+  for (const expected of [
+    'id="tide-progress"', 'id="tide-progress-value"', 'for="tide-progress"',
+    'data-message-key="label.currentTideProgress"'
+  ]) assert.ok(progressSection.includes(expected), expected);
+  for (const removed of ['id="hour-progress"', 'id="hour-progress-value"', 'data-message-key="label.currentHour"']) {
+    assert.ok(!progressSection.includes(removed), removed);
+  }
+
+  assert.match(script, /import \{[^}]*createTideProgressRenderer[^}]*\} from '\.\/renderers\.js';/);
+  assert.match(script, /const renderProgress = createTideProgressRenderer\(root\);/);
+  assert.match(script, /renderProgress\(state\)/);
+  assert.doesNotMatch(script, /createHourProgressRenderer/);
+
+  const tideRendererStart = renderers.indexOf('export function createTideProgressRenderer');
+  const tideRendererEnd = renderers.indexOf('export function createSeasonRenderer', tideRendererStart);
+  const tideRenderer = renderers.slice(tideRendererStart, tideRendererEnd);
+  assert.ok(tideRendererStart >= 0);
+  assert.match(tideRenderer, /state\.progress\.tide\.percentage/);
+  assert.match(tideRenderer, /state\.progress\.tide\.fraction/);
+  assert.doesNotMatch(tideRenderer, /state\.progress\.hour/);
+  assert.doesNotMatch(renderers, /createHourProgressRenderer/);
+});
+
 test('Tempore preserves its header removal and begins visibly with Time', async () => {
   const [html, script] = await Promise.all([readPublic('tempore.html'), readPublic('tempore-page.js')]);
   assert.doesNotMatch(html, /class="page-header"|class="page-kicker"/);
@@ -101,22 +131,31 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.equal(main.indexOf('<section'), main.indexOf('<section class="time-section"'));
   for (const preserved of [
     'id="fictional-time"', 'id="lunar-time"', 'data-season-name', 'data-season-progress',
-    'id="lunar-day-progress"', 'id="day-progress"', 'id="hour-progress"'
+    'id="lunar-day-progress"', 'id="day-progress"', 'id="hour-progress"',
+    'id="hour-progress-value"', 'data-message-key="label.currentHour"'
   ]) assert.ok(html.includes(preserved), preserved);
   assert.match(script, /bootstrapPage\('page-03', createTemporePageRenderer\)/);
   assert.match(script, /import \{[^}]*createSeasonRenderer[^}]*\} from '\.\/renderers\.js';/);
   assert.match(script, /const renderSeason = createSeasonRenderer\(root, context\);/);
   assert.match(script, /renderSeason\(state\)/);
+
+  const renderers = await readPublic('renderers.js');
+  const weatherStart = renderers.indexOf('export function createWeatherProgressRenderer');
+  const weatherEnd = renderers.indexOf('export function formatAttemptsUntilRare', weatherStart);
+  const weatherRenderer = renderers.slice(weatherStart, weatherEnd);
+  assert.match(weatherRenderer, /\['hour', '#hour-progress', '#hour-progress-value'\]/);
+  assert.match(weatherRenderer, /state\.progress\[row\.key\]\.percentage/);
+  assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each renamed page has one localized v8.11 footer version', async () => {
+test('each renamed page has one localized v8.12 footer version', async () => {
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.11/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.12/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -154,10 +193,10 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   for (const preserved of ['.section-label', '.group-label', '.lunar-metadata', '.lunar-time', '.lunar-name']) assert.ok(css.includes(preserved), preserved);
 });
 
-test('JSON serialization is schema v15 with calendar time intact', async () => {
+test('JSON serialization is schema v16 with calendar time intact', async () => {
   const [presentation, mechanics] = await Promise.all([readPublic('presentation.js'), readPublic('core/mechanics.js')]);
   assert.match(presentation, /export function createCalendarJson/);
-  assert.match(presentation, /calendarVersion: 'v15'/);
+  assert.match(presentation, /calendarVersion: 'v16'/);
   assert.match(presentation, /time: formatClock\(state\.calendar\.time\)/);
   assert.match(mechanics, /time: \{ hour, minute, second \}/);
 });

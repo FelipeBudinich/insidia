@@ -60,12 +60,12 @@ export function createOutcomeRenderer(root, context, pageId) {
   };
 }
 
-export function createHourProgressRenderer(root) {
-  const progress = requireElement(root, '#hour-progress');
-  const value = requireElement(root, '#hour-progress-value');
+export function createTideProgressRenderer(root) {
+  const progress = requireElement(root, '#tide-progress');
+  const value = requireElement(root, '#tide-progress-value');
   return (state) => {
-    progress.value = state.progress.hour.percentage;
-    value.textContent = formatPercentage(state.progress.hour.fraction);
+    progress.value = state.progress.tide.percentage;
+    value.textContent = formatPercentage(state.progress.tide.fraction);
   };
 }
 

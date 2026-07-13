@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.11 is a live fictional calendar with independent calendar and lunar clocks, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v8.12 is a live fictional calendar with independent calendar and lunar clocks, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
@@ -38,7 +38,7 @@ public/config/nomenclature.json
 
 The browser always loads it from the fixed same-origin URL `/config/nomenclature.json`. Editing this file and redeploying is sufficient to rename the application/world, the month-reign system, weekdays, Inter Regna, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. JavaScript and HTML changes are not required.
 
-The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.11 configuration includes:
+The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.12 configuration includes:
 
 - Calendar year name: Annus Solis
 - Lunar cycle name: Cyclus Lunae
@@ -57,7 +57,7 @@ Weekday, month-ruler, and reign-ordinal entities use exactly `{ id, name }`; the
 
 Calendario renders visible years and period days with uppercase Roman numerals. Its two-line date header is `Annus Solis {romanYear}` followed by `{weekdayName} · {romanDay} {periodName}`. A ruler's first month in a year is named `Regno de {ruler}`; later months use `{ordinal} Regno de {ruler}`. `Prime` remains structured nomenclature but is deliberately omitted from the first visible reign name. Inter Regnum names continue to resolve directly from nomenclature. English and Spanish show the same in-universe date.
 
-The lunar Calendario card mirrors the date card's two-line hierarchy. Its title is the configured lunar-cycle name plus Roman cycle number, and its subtitle is the configured current phase name. For lunar cycle 1234, it displays `Cyclus Lunae MCCXXXIV` above `Morditura`. Both lines come from presentation-ready nomenclature data and remain identical in English and Spanish. The combined `Morditura • Cyclus Lunae MCCXXXIV` summary remains available in the display and Calendar JSON v15 APIs, while lunar day and cycle-length values remain in raw state.
+The lunar Calendario card mirrors the date card's two-line hierarchy. Its title is the configured lunar-cycle name plus Roman cycle number, and its subtitle is the configured current phase name. For lunar cycle 1234, it displays `Cyclus Lunae MCCXXXIV` above `Morditura`. Both lines come from presentation-ready nomenclature data and remain identical in English and Spanish. The combined `Morditura • Cyclus Lunae MCCXXXIV` summary remains available in the display and Calendar JSON v16 APIs, while lunar day and cycle-length values remain in raw state.
 
 Calendario, Destino, and Tempore are in-game page proper nouns stored in the same file under stable page IDs. Locale changes never translate them. Their routes are fixed application infrastructure and are not generated from the configured names.
 
@@ -79,6 +79,8 @@ Changing locale translates Outcome types and generic UI prose without changing c
 - A lunar hour lasts 3,988,577 real milliseconds and is distinct from the 61-minute calendar hour
 - 31 lunar hours = 1 lunar day; 13 lunar days = 1 lunar cycle
 - Each lunar day is divided into tides lasting 17, 13, and 1 lunar hours, which together fill all 31 lunar hours
+- Outcome rarity is based on continuous progress through the active tide. Common lasts through 85%, Uncommon lasts above 85% through 99%, and Rare begins above 99%.
+- Tide progress, Outcome rarity, and Attempts until Rare reset at every tide boundary. All three differently sized tides use the same percentage thresholds.
 - 7 days = 1 week
 - 11 × 29-day months, ten 3-day Inter Regna, and one 4-day final Inter Regnum = 353 days
 - Eight rulers rotate across calendar months without resetting at year boundaries. Pigritia governs its first regular opportunity, declines its next, returns for the following one, and continues alternating that way indefinitely. The exact repeating 15-month effective sequence is Orgolio, Rabia, Gula, Invidia, Avaritia, Vanitate, Luxuria, Pigritia, Orgolio, Rabia, Gula, Invidia, Avaritia, Vanitate, Luxuria. The next block begins with the single Orgolio reign that replaces Pigritia's skipped regular opportunity, followed immediately by Rabia.
@@ -86,7 +88,7 @@ Changing locale translates Outcome types and generic UI prose without changing c
 - Two continuous 179-day seasons = a 358-day seasonal cycle
 - Six deterministic circular orbits and three ranked three-body pulls
 
-The epoch is `1970-01-01T00:00:00.000Z`. The calendar and lunar clocks share this epoch, but they do not share a second duration or an hour duration. Calendar and lunar elapsed seconds are both derived directly and retroactively from elapsed real milliseconds; lunar time uses 1009-millisecond lunar seconds, and neither counter is converted from the other. Mechanical modules own stable IDs, durations, ordering, orbital periods, tie-breaking, thresholds, calculations, and relationships. They never contain configured proper nouns, localized text, symbols, or formatted display values. Month state keeps the skipped opportunity, regular ruler, and effective ruler separate; v8.11 uses `source: "base_rotation"`, so the regular ruler is also effective. A future conspiracy will change only the targeted month's effective ruler, never the underlying rotation, its next opportunity, or Pigritia's regular skip alternation. Pigritia skips only a regular opportunity: a conspiracy-forced Pigritia reign remains effective and is never removed by that skip rule. Yearly reign counts will be recomputed from effective rulers, including earlier overrides in the same year.
+The epoch is `1970-01-01T00:00:00.000Z`. The calendar and lunar clocks share this epoch, but they do not share a second duration or an hour duration. Calendar and lunar elapsed seconds are both derived directly and retroactively from elapsed real milliseconds; lunar time uses 1009-millisecond lunar seconds, and neither counter is converted from the other. Mechanical modules own stable IDs, durations, ordering, orbital periods, tie-breaking, thresholds, calculations, and relationships. They never contain configured proper nouns, localized text, symbols, or formatted display values. Month state keeps the skipped opportunity, regular ruler, and effective ruler separate; v8.12 uses `source: "base_rotation"`, so the regular ruler is also effective. A future conspiracy will change only the targeted month's effective ruler, never the underlying rotation, its next opportunity, or Pigritia's regular skip alternation. Pigritia skips only a regular opportunity: a conspiracy-forced Pigritia reign remains effective and is never removed by that skip rule. Yearly reign counts will be recomputed from effective rulers, including earlier overrides in the same year.
 
 Raw calendar state retains numeric `year`, `weekOfYear`, `dayOfYear`, `dayOfWeek`, and period-day values. Raw state exposes independent `totalSeconds` and `totalLunarSeconds` counters. Lunar state retains cycle, day, cycle length, phase ID, and self-describing 1009/59/67/31 time metadata. Roman conversion and in-universe names exist only in the presentation layer.
 
@@ -106,23 +108,23 @@ The project has no framework, build system, database, backend time API, WebSocke
 ## Page layouts
 
 - Calendar presents three cards in order: the calendar date, the lunar cycle and phase, then season details and progress. The date card retains exactly two visible lines: configured year name plus Roman year, then weekday plus Roman period day and configured period name. The lunar card retains the cycle name and Roman cycle number as its title and the current phase as its subtitle. The season card is shared with Tempore and includes the current season, day within the season, seasonal-cycle position, next season, and season progress. Week number, day-of-year progress, fictional clock, and JSON controls remain absent.
-- Outcome begins directly with the selected celestial object and retains its classification, tide, Pull, orbit, and progress data without a visible Outcome card title.
+- Outcome begins directly with the selected celestial object and retains its classification, tide, Pull, and orbit data without a visible Outcome card title. Its bottom progress card displays progress through the current tide; the selected body's orbital-progress line remains separate in the top Outcome area.
 - Weather begins directly with the Time card, including both fictional and lunar clocks, then shows Season and Progress. It has no separate page-header card.
 
-Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.11 version in its footer.
+Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.12 version in its footer.
 
-## JSON schema v15
+## JSON schema v16
 
 The public `createCalendarJson()` serialization API remains available even though no page exposes visible JSON or clipboard controls. Its top-level fields are:
 
-- `calendarVersion: "v15"`
+- `calendarVersion: "v16"`
 - `nomenclature`: schema version and application display name, with no requested/resolved selection
 - `locale`: requested/resolved IDs, language tag, and locale schema version
 - `source`: Unix milliseconds and ISO UTC
 - `state`: raw canonical IDs and numeric mechanics without names or symbols
 - `display`: configured names, symbols, localized text, and formatted values
 
-The v15 raw state contains both elapsed-second counters and the lunar clock's 1009/59/67/31 unit metadata. The display calendar replaces static month nomenclature with a generated month object containing the formatted reign name and structured opportunity, regular, and effective ruler entities, source, skip flag, yearly reign number, and ordinal entity. The raw month period exposes the same mechanics using neutral IDs only. Inter Regna contain no month rulership and the display month is `null`. Lunar display retains `cycleName`, `formattedCycle`, and `formattedSummary` alongside phase, tide, time, and tide-time fields. The schema contains no universe-selection metadata.
+The v16 raw state contains both elapsed-second counters and the lunar clock's 1009/59/67/31 unit metadata. Raw and display progress include continuous `tide` progress, while calendar-hour `hour` progress remains available for Tempore. The display calendar replaces static month nomenclature with a generated month object containing the formatted reign name and structured opportunity, regular, and effective ruler entities, source, skip flag, yearly reign number, and ordinal entity. The raw month period exposes the same mechanics using neutral IDs only. Inter Regna contain no month rulership and the display month is `null`. Lunar display retains `cycleName`, `formattedCycle`, and `formattedSummary` alongside phase, tide, time, and tide-time fields. The schema contains no universe-selection metadata.
 
 ## Routes and server
 
@@ -130,10 +132,10 @@ The v15 raw state contains both elapsed-second counters and the lunar clock's 10
 |---|---|
 | `/` | Redirect to `/calendario.html`, preserving only a non-empty locale |
 | `/calendario.html` | Calendar-date, lunar-cycle, and season view; no visible clock or JSON |
-| `/destino.html` | Outcome selection, tides, pulls, orbits, and hour progress |
+| `/destino.html` | Outcome selection, tides, tide progress, Pulls, and orbits |
 | `/tempore.html` | Fictional times, season, and selected progress |
 | `/config/nomenclature.json` | The one read-only nomenclature configuration |
-| `/health` | `{"ok":true,"version":"v8.11"}` |
+| `/health` | `{"ok":true,"version":"v8.12"}` |
 
 Static `.html`, `.css`, `.js`, and `.json` responses—including locale and nomenclature configuration—use explicit MIME types and `Cache-Control: no-cache`. They also include deterministic weak ETags and Last-Modified validators, so repeat requests can revalidate with a bodyless `304 Not Modified` response instead of retransferring unchanged files. Other static formats retain a short revalidating cache policy. Dynamic, redirect, and error responses remain `no-store` and do not participate in static revalidation.
 
@@ -155,7 +157,7 @@ The former English page paths and modules are intentionally unsupported. They ha
 2. Add its ID and fixed same-origin path to the `LOCALE_FILES` registry in `public/locale-loader.js`.
 3. Add or update loader, validation, and presentation tests, then run `npm test`.
 
-The nomenclature file uses schema version 6, including the month-reign and lunar-cycle names. Locale files use schema version 5 for the dynamic month-reign and lunar-summary template contracts. The Calendar JSON API uses schema v15.
+The nomenclature file uses schema version 6, including the month-reign and lunar-cycle names. Locale files use schema version 6, including the current-tide progress label. The Calendar JSON API uses schema v16.
 
 ## Project structure
 

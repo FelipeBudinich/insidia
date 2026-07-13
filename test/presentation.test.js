@@ -17,7 +17,13 @@ import { validateNomenclature } from '../public/nomenclature-loader.js';
 import { createPresentationContext } from '../public/nomenclature.js';
 import { PAGE_DEFINITIONS, PAGE_IDS } from '../public/page-definitions.js';
 import { createCalendarJson, createDisplayData, formatFictionalYear, formatLunarSummary, formatMonthReignName } from '../public/presentation.js';
-import { createSeasonRenderer, formatAttemptsUntilRare } from '../public/renderers.js';
+import {
+  createOutcomeRenderer,
+  createSeasonRenderer,
+  createTideProgressRenderer,
+  createWeatherProgressRenderer,
+  formatAttemptsUntilRare
+} from '../public/renderers.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = async (...parts) => JSON.parse(await readFile(path.join(root, ...parts), 'utf8'));
@@ -81,6 +87,17 @@ function createSeasonRendererRoot() {
   return {
     elements,
     querySelector(selector) { return elements.get(selector) ?? null; }
+  };
+}
+
+function createRendererRoot(selectors) {
+  const elements = new Map(selectors.map((selector) => [selector, {
+    textContent: '', value: 0, hidden: false
+  }]));
+  return {
+    elements,
+    querySelector(selector) { return elements.get(selector) ?? null; },
+    querySelectorAll() { return []; }
   };
 }
 
@@ -325,9 +342,9 @@ test('representative lunar state produces one exact locale-invariant Roman summa
 
   const englishJson = createCalendarJson(state, representativeLunarTimestamp, englishContext);
   const spanishJson = createCalendarJson(state, representativeLunarTimestamp, spanishContext);
-  assert.equal(englishJson.calendarVersion, 'v15');
+  assert.equal(englishJson.calendarVersion, 'v16');
   assert.deepEqual(englishJson.nomenclature, { schemaVersion: 6, applicationDisplayName: 'Insidia' });
-  assert.equal(englishJson.locale.schemaVersion, 5);
+  assert.equal(englishJson.locale.schemaVersion, 6);
   assert.deepEqual(englishJson.state, spanishJson.state);
   assert.equal(englishJson.display.lunar.formattedSummary, 'Morditura • Cyclus Lunae MCCXXXIV');
   assert.equal(spanishJson.display.lunar.formattedSummary, englishJson.display.lunar.formattedSummary);
@@ -427,6 +444,47 @@ test('Attempts text uses the localized outcome-tier-03 name', async () => {
   assert.equal(formatAttemptsUntilRare(outcome, await context('es')), 'Intentos hasta Raro: 100');
 });
 
+test('Destino tide renderer uses tide progress while Tempore keeps calendar-hour progress', () => {
+  const tideRoot = createRendererRoot(['#tide-progress', '#tide-progress-value']);
+  const weatherRoot = createRendererRoot([
+    '#lunar-day-progress', '#lunar-day-progress-value',
+    '#day-progress', '#day-progress-value',
+    '#hour-progress', '#hour-progress-value'
+  ]);
+  const state = {
+    progress: {
+      tide: { fraction: 0.875, percentage: 87.5 },
+      lunarPhase: { fraction: 0.125, percentage: 12.5 },
+      day: { fraction: 0.25, percentage: 25 },
+      hour: { fraction: 0.375, percentage: 37.5 }
+    }
+  };
+
+  createTideProgressRenderer(tideRoot)(state);
+  assert.equal(tideRoot.elements.get('#tide-progress').value, 87.5);
+  assert.equal(tideRoot.elements.get('#tide-progress-value').textContent, '87.500000%');
+
+  createWeatherProgressRenderer(weatherRoot)(state);
+  assert.equal(weatherRoot.elements.get('#hour-progress').value, 37.5);
+  assert.equal(weatherRoot.elements.get('#hour-progress-value').textContent, '37.500000%');
+  assert.notEqual(weatherRoot.elements.get('#hour-progress').value, state.progress.tide.percentage);
+});
+
+test('Outcome renderer keeps selected-body orbital progress separate from tide progress', async () => {
+  const root = createRendererRoot([
+    '#outcome-body', '#outcome-type', '#outcome-attempts', '#outcome-progress',
+    '#outcome-source', '#outcome-rule', '#outcome-tiebreak'
+  ]);
+  const outcome = structuredClone(calculateCalendarState(0).outcome);
+  outcome.bodyState.progressFraction = 0.123456;
+  outcome.tideProgressFraction = 0.999999;
+  outcome.tideProgressPercentage = 99.9999;
+
+  createOutcomeRenderer(root, await context('en'), 'page-02')(outcome);
+  assert.equal(root.elements.get('#outcome-progress').textContent, 'Orbital progress: 12.345600%');
+  assert.ok(!root.elements.get('#outcome-progress').textContent.includes('99.999900%'));
+});
+
 test('Destino classification uses nomenclature while Outcome types use locale', async () => {
   const english = await context('en');
   const spanish = await context('es');
@@ -434,11 +492,11 @@ test('Destino classification uses nomenclature while Outcome types use locale', 
   assert.equal(spanish.format('outcome.type', { pageName: spanish.getPage('page-02').name, name: spanish.getOutcomeType('outcome-tier-01').name }), 'Destino: Común');
 });
 
-test('JSON v15 exposes independent lunar state while raw state remains neutral', async () => {
+test('JSON v16 exposes tide and hour progress while raw state remains neutral', async () => {
   const raw = calculateCalendarState(0);
   const english = createCalendarJson(raw, 0, await context('en'));
   const spanish = createCalendarJson(raw, 0, await context('es'));
-  assert.equal(english.calendarVersion, 'v15');
+  assert.equal(english.calendarVersion, 'v16');
   assert.equal(english.state.totalSeconds, 0);
   assert.equal(english.state.totalLunarSeconds, 0);
   assert.deepEqual(english.state.lunar.time, {
@@ -454,8 +512,17 @@ test('JSON v15 exposes independent lunar state while raw state remains neutral',
   assert.deepEqual(english.nomenclature, { schemaVersion: 6, applicationDisplayName: 'Insidia' });
   assert.equal(Object.hasOwn(english.nomenclature, 'requestedId'), false);
   assert.equal(Object.hasOwn(english.nomenclature, 'resolvedId'), false);
-  assert.deepEqual(english.locale, { requestedId: 'en', resolvedId: 'en', languageTag: 'en', schemaVersion: 5 });
+  assert.deepEqual(english.locale, { requestedId: 'en', resolvedId: 'en', languageTag: 'en', schemaVersion: 6 });
   assert.deepEqual(english.state, spanish.state);
+  assert.deepEqual(english.state.progress.tide, { fraction: 0, percentage: 0 });
+  assert.deepEqual(english.state.progress.hour, { fraction: 0, percentage: 0 });
+  assert.equal(english.display.progress.tide, '0.000000%');
+  assert.equal(english.display.progress.hour, '0.000000%');
+  for (const [key, progress] of Object.entries(english.state.progress)) {
+    assert.deepEqual(Object.keys(progress).sort(), ['fraction', 'percentage'], key);
+    assert.equal(typeof progress.fraction, 'number', key);
+    assert.equal(typeof progress.percentage, 'number', key);
+  }
   for (const key of ['year','weekOfYear','dayOfYear','dayOfWeek','weekdayId']) assert.ok(Object.hasOwn(english.state.calendar, key), key);
   assert.equal(english.state.calendar.period.day, 1);
   assert.equal(english.state.calendar.weekdayId, 'weekday-01');
@@ -520,20 +587,20 @@ test('navigation applies only resolved locale and fixed application metadata', a
   assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore']);
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.11');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.11');
+  assert.equal(versionElements[0].textContent, 'v8.12');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.12');
   applyCommonDocumentPresentation(documentRoot, 'page-01', await context('en'));
   assert.equal(meta.content, 'Live fictional date, lunar state, and season state for Insidia.');
-  assert.equal(versionElements[0]['aria-label'], 'Application version 8.11');
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.12');
 });
 
-test('static HTML remains neutral and uses v8.11 page IDs and application placeholders', async () => {
+test('static HTML remains neutral and uses v8.12 page IDs and application placeholders', async () => {
   const properNouns = ['Insidia','Calendario','Destino','Tempore','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.11/);
+    assert.match(html, /data-version>v8\.12/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);

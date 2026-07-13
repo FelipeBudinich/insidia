@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "id": "es",
   "languageTag": "es",
   "outcomeTypes": {
@@ -31,6 +31,7 @@
     "label.currentLunarDay": "Día lunar actual",
     "label.currentDay": "Día actual",
     "label.currentHour": "Hora actual",
+    "label.currentTideProgress": "Progreso de la marea actual",
     "label.attemptsUntilRare": "Intentos",
     "label.orbitalProgress": "Progreso orbital",
     "label.circularSpan": "Arco circular",
@@ -52,7 +53,7 @@
   "templates": {
     "document.title": "{pageName} · {applicationName}",
     "document.page-01Description": "Fecha ficticia, estado lunar y estado estacional en vivo para {applicationName}.",
-    "document.page-02Description": "Resultado seleccionado, mareas, fuerzas y órbitas celestes en vivo para {applicationName}.",
+    "document.page-02Description": "Resultado seleccionado, mareas, progreso de la marea, fuerzas y órbitas celestes en vivo para {applicationName}.",
     "document.page-03Description": "Tiempos ficticios, estación y progreso en vivo para {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Progreso orbital de {bodyName}",

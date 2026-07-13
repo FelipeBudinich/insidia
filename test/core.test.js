@@ -38,6 +38,12 @@ test('epoch is the first day of the first calendar slot at 00:00:00', () => {
     }
   });
   assert.equal(state.calendar.year, 1);
+  assert.equal(state.lunar.tide.id, 'tide-01');
+  assert.deepEqual(state.progress.tide, { fraction: 0, percentage: 0 });
+  assert.equal(state.outcome.outcomeTypeId, 'outcome-tier-01');
+  assert.equal(state.outcome.attemptsUntilRare, 100);
+  assert.equal(state.outcome.tideProgressFraction, 0);
+  assert.equal(state.outcome.tideProgressPercentage, 0);
 });
 
 for (const [label, milliseconds, expected] of [
@@ -190,11 +196,34 @@ test('the exact mechanical constants remain stable', () => {
   assert.equal(rules.REIGN_ORDINAL_IDS.length, 11);
 });
 
-test('Outcome thresholds and neutral IDs remain unchanged', () => {
+test('Outcome thresholds use tide progress and retain their exact neutral IDs', () => {
   assert.equal(calculateOutcomeType(0.85).id, 'outcome-tier-01');
   assert.equal(calculateOutcomeType(0.850001).id, 'outcome-tier-02');
   assert.equal(calculateOutcomeType(0.99).id, 'outcome-tier-02');
   assert.equal(calculateOutcomeType(0.990001).id, 'outcome-tier-03');
+
+  const outcomeType = calculateOutcomeType(0.5);
+  assert.deepEqual(outcomeType, {
+    id: 'outcome-tier-01',
+    tideProgressFraction: 0.5,
+    tideProgressPercentage: 50,
+    attemptsUntilRare: 50
+  });
+  assert.equal(Object.hasOwn(outcomeType, 'hourProgressFraction'), false);
+  assert.equal(Object.hasOwn(outcomeType, 'hourProgressPercentage'), false);
+});
+
+test('Attempts until Rare are derived from tide progress at every required edge', () => {
+  for (const [tideProgressFraction, attemptsUntilRare] of [
+    [0, 100], [0.5, 50], [0.85, 15], [0.851, 14],
+    [0.98, 2], [0.982, 1], [0.99, 1], [0.990001, 0]
+  ]) {
+    assert.equal(calculateOutcomeType(tideProgressFraction).attemptsUntilRare, attemptsUntilRare, tideProgressFraction);
+  }
+  assert.throws(() => calculateOutcomeType('0.5'), /tideProgressFraction must be a number/);
+  for (const value of [NaN, Infinity, -0.001, 1]) {
+    assert.throws(() => calculateOutcomeType(value), /tideProgressFraction/);
+  }
 });
 
 test('raw Outcome state contains neutral IDs and no localized names', () => {

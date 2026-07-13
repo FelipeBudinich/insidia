@@ -249,23 +249,23 @@ export function calculateOrbitalState(totalCalendarSeconds, totalLunarSeconds) {
   return { bodies, pulls: calculateOrbitalPulls(bodies) };
 }
 
-export function calculateOutcomeType(hourProgressFraction) {
-  assertProgressFraction(hourProgressFraction, 'hourProgressFraction');
-  const hourProgressPercentage = hourProgressFraction * 100;
+export function calculateOutcomeType(tideProgressFraction) {
+  assertProgressFraction(tideProgressFraction, 'tideProgressFraction');
+  const tideProgressPercentage = tideProgressFraction * 100;
   const rule = OUTCOME_TYPE_RULES.find(
-    (candidate) => candidate.maximumPercentage === null || hourProgressPercentage <= candidate.maximumPercentage
+    (candidate) => candidate.maximumPercentage === null || tideProgressPercentage <= candidate.maximumPercentage
   );
   return {
     id: rule.id,
-    hourProgressFraction,
-    hourProgressPercentage,
-    attemptsUntilRare: hourProgressPercentage > 99
+    tideProgressFraction,
+    tideProgressPercentage,
+    attemptsUntilRare: tideProgressPercentage > 99
       ? 0
-      : Math.max(0, Math.floor(99 - hourProgressPercentage) + 1)
+      : Math.max(0, Math.floor(99 - tideProgressPercentage) + 1)
   };
 }
 
-export function calculateOutcomeState(tide, orbitalState, hourProgressFraction) {
+export function calculateOutcomeState(tide, orbitalState, tideProgressFraction) {
   const rule = OUTCOME_TIDE_RULES[tide?.id];
   if (!rule) throw new RangeError(`Unsupported tide id: ${tide?.id}`);
   const pull = orbitalState?.pulls?.[rule.pullId];
@@ -286,7 +286,7 @@ export function calculateOutcomeState(tide, orbitalState, hourProgressFraction) 
     .filter((body) => Math.abs(body.progressFraction - targetProgress) <= ORBITAL_SPAN_TIE_EPSILON)
     .sort((first, second) => first.tieBreakPriorityRank - second.tieBreakPriorityRank || first.id.localeCompare(second.id));
   const selected = tiedBodies[0];
-  const outcomeType = calculateOutcomeType(hourProgressFraction);
+  const outcomeType = calculateOutcomeType(tideProgressFraction);
   return {
     tideId: tide.id,
     sourcePullId: rule.pullId,
@@ -294,6 +294,8 @@ export function calculateOutcomeState(tide, orbitalState, hourProgressFraction) 
     bodyId: selected.id,
     bodyState: { ...selected, orbitalPeriod: { ...selected.orbitalPeriod } },
     outcomeTypeId: outcomeType.id,
+    tideProgressFraction: outcomeType.tideProgressFraction,
+    tideProgressPercentage: outcomeType.tideProgressPercentage,
     attemptsUntilRare: outcomeType.attemptsUntilRare,
     tieBreak: { applied: tiedBodies.length > 1, method: 'fixed_priority', tiedBodyCount: tiedBodies.length }
   };
@@ -311,13 +313,20 @@ export function calculateProgressState(totalCalendarSeconds, totalLunarSeconds, 
   const totalElapsedDays = Math.floor(totalCalendarSeconds / FICTIONAL_SECONDS_PER_DAY);
   const zeroBasedDayOfYear = totalElapsedDays % DAYS_PER_YEAR;
   const secondsIntoLunarDay = totalLunarSeconds % LUNAR_SECONDS_PER_DAY;
+  const secondsIntoTide = (
+    lunar.tide.timeInPeriod.hour * LUNAR_SECONDS_PER_HOUR
+  ) + (
+    lunar.tide.timeInPeriod.minute * LUNAR_SECONDS_PER_MINUTE
+  ) + lunar.tide.timeInPeriod.second;
+  const tideDurationSeconds = lunar.tide.durationHours * LUNAR_SECONDS_PER_HOUR;
   return {
     lunarCycle: progressValue((((lunar.day - 1) * LUNAR_SECONDS_PER_DAY) + secondsIntoLunarDay) / LUNAR_SECONDS_PER_CYCLE),
     lunarPhase: progressValue(secondsIntoLunarDay / LUNAR_SECONDS_PER_DAY),
     season: progressValue((((season.day - 1) * FICTIONAL_SECONDS_PER_DAY) + secondsIntoDay) / (season.lengthDays * FICTIONAL_SECONDS_PER_DAY)),
     year: progressValue(((zeroBasedDayOfYear * FICTIONAL_SECONDS_PER_DAY) + secondsIntoDay) / (DAYS_PER_YEAR * FICTIONAL_SECONDS_PER_DAY)),
     day: progressValue(secondsIntoDay / FICTIONAL_SECONDS_PER_DAY),
-    hour: progressValue(secondsIntoHour / FICTIONAL_SECONDS_PER_HOUR)
+    hour: progressValue(secondsIntoHour / FICTIONAL_SECONDS_PER_HOUR),
+    tide: progressValue(secondsIntoTide / tideDurationSeconds)
   };
 }
 
@@ -411,7 +420,7 @@ export function calculateCalendarState(realUnixMilliseconds) {
   const lunar = calculateLunarState(totalLunarSeconds);
   const orbits = calculateOrbitalState(totalSeconds, totalLunarSeconds);
   const progress = calculateProgressState(totalSeconds, totalLunarSeconds, season, lunar);
-  const outcome = calculateOutcomeState(lunar.tide, orbits, progress.hour.fraction);
+  const outcome = calculateOutcomeState(lunar.tide, orbits, progress.tide.fraction);
   return {
     totalSeconds,
     totalLunarSeconds,

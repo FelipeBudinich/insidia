@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "id": "en",
   "languageTag": "en",
   "outcomeTypes": {
@@ -31,6 +31,7 @@
     "label.currentLunarDay": "Current Lunar Day",
     "label.currentDay": "Current Day",
     "label.currentHour": "Current Hour",
+    "label.currentTideProgress": "Current Tide Progress",
     "label.attemptsUntilRare": "Attempts",
     "label.orbitalProgress": "Orbital progress",
     "label.circularSpan": "Circular span",
@@ -52,7 +53,7 @@
   "templates": {
     "document.title": "{pageName} · {applicationName}",
     "document.page-01Description": "Live fictional date, lunar state, and season state for {applicationName}.",
-    "document.page-02Description": "Live selected outcome, tides, pulls, and celestial orbits for {applicationName}.",
+    "document.page-02Description": "Live selected outcome, tides, tide progress, pulls, and celestial orbits for {applicationName}.",
     "document.page-03Description": "Live fictional times, season, and progress for {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Orbital progress for {bodyName}",

@@ -367,8 +367,22 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
   assert.deepEqual(Object.values(english.outcomeTypes).map(({ name }) => name), ['Common', 'Uncommon', 'Rare']);
   assert.deepEqual(Object.values(spanish.outcomeTypes).map(({ name }) => name), ['Común', 'Poco común', 'Raro']);
-  assert.equal(english.schemaVersion, 5);
-  assert.equal(spanish.schemaVersion, 5);
+  assert.equal(english.schemaVersion, 6);
+  assert.equal(spanish.schemaVersion, 6);
+  assert.equal(english.messages['label.currentTideProgress'], 'Current Tide Progress');
+  assert.equal(spanish.messages['label.currentTideProgress'], 'Progreso de la marea actual');
+  assert.equal(english.messages['label.currentHour'], 'Current Hour');
+  assert.equal(spanish.messages['label.currentHour'], 'Hora actual');
+  assert.equal(
+    english.templates['document.page-02Description'],
+    'Live selected outcome, tides, tide progress, pulls, and celestial orbits for {applicationName}.'
+  );
+  assert.equal(
+    spanish.templates['document.page-02Description'],
+    'Resultado seleccionado, mareas, progreso de la marea, fuerzas y órbitas celestes en vivo para {applicationName}.'
+  );
+  assert.equal(MESSAGE_KEYS.includes('label.currentTideProgress'), true);
+  assert.equal(MESSAGE_KEYS.includes('label.currentHour'), true);
   const calendarTemplates = {
     'calendar.formattedYear': '{yearName} {yearRoman}',
     'calendar.firstMonthReign': '{reignName} {rulerName}',

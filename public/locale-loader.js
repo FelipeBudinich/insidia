@@ -2,7 +2,7 @@ export const MESSAGE_KEYS = Object.freeze([
   'nav.aria',
   'section.time', 'section.season', 'section.tide', 'section.pulls', 'section.orbits', 'section.progress', 'section.json',
   'label.year', 'label.month', 'label.week', 'label.day', 'label.hour', 'label.cycle', 'label.orbit', 'label.seasonalDay', 'label.next', 'label.progress',
-  'label.currentFictionalTime', 'label.currentLunarTime', 'label.currentLunarDay', 'label.currentDay', 'label.currentHour',
+  'label.currentFictionalTime', 'label.currentLunarTime', 'label.currentLunarDay', 'label.currentDay', 'label.currentHour', 'label.currentTideProgress',
   'label.attemptsUntilRare', 'label.orbitalProgress', 'label.circularSpan', 'label.alignment', 'label.epoch', 'label.copyJson',
   'status.copied', 'status.copyFailure', 'status.tieBreakApplied',
   'selection.selection-rule-01', 'selection.selection-rule-02', 'selection.selection-rule-03',
@@ -66,7 +66,7 @@ function validateOutcomeTypes(outcomeTypes) {
 
 export function validateLocale(locale) {
   if (!locale || typeof locale !== 'object' || Array.isArray(locale)) throw new TypeError('locale must be an object');
-  if (locale.schemaVersion !== 5) throw new Error('locale schemaVersion must be 5');
+  if (locale.schemaVersion !== 6) throw new Error('locale schemaVersion must be 6');
   assertNonEmpty(locale.id, 'locale.id');
   assertNonEmpty(locale.languageTag, 'locale.languageTag');
   validateOutcomeTypes(locale.outcomeTypes);
