@@ -114,7 +114,9 @@ test('successful static files include MIME, caching, validators, and security he
       ['/identitate.html', 'text/html; charset=utf-8'],
       ['/inventario.html', 'text/html; charset=utf-8'],
       ['/subordinatos.html', 'text/html; charset=utf-8'],
-      ['/mappa.html', 'text/html; charset=utf-8'],
+      ['/locus.html', 'text/html; charset=utf-8'],
+      ['/rutas.html', 'text/html; charset=utf-8'],
+      ['/explorar.html', 'text/html; charset=utf-8'],
       ['/observationes.html', 'text/html; charset=utf-8'],
       ['/decisiones.html', 'text/html; charset=utf-8'],
       ['/calendario-page.js', 'text/javascript; charset=utf-8'],
@@ -123,7 +125,9 @@ test('successful static files include MIME, caching, validators, and security he
       ['/identitate-page.js', 'text/javascript; charset=utf-8'],
       ['/inventario-page.js', 'text/javascript; charset=utf-8'],
       ['/subordinatos-page.js', 'text/javascript; charset=utf-8'],
-      ['/mappa-page.js', 'text/javascript; charset=utf-8'],
+      ['/locus-page.js', 'text/javascript; charset=utf-8'],
+      ['/rutas-page.js', 'text/javascript; charset=utf-8'],
+      ['/explorar-page.js', 'text/javascript; charset=utf-8'],
       ['/observationes-page.js', 'text/javascript; charset=utf-8'],
       ['/decisiones-page.js', 'text/javascript; charset=utf-8'],
       ['/styles.css', 'text/css; charset=utf-8'],
@@ -250,6 +254,7 @@ test('former HTML routes and page modules are ordinary generic 404s for GET and 
     '/almanac.html','/almanac-page.js',
     '/personage.html','/pensamentos.html','/commandamento.html',
     '/personage-page.js','/pensamentos-page.js','/commandamento-page.js',
+    '/mappa.html','/mappa-page.js','/location.html',
     '/investigationes.html','/ordines.html'
   ];
   try {

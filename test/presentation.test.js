@@ -144,9 +144,10 @@ function renamedNomenclature(value) {
   renamed.pages.find(({ id }) => id === 'page-02').name = 'Fatum';
   renamed.navigationGroups[0].name = 'Renamed Almanac';
   renamed.navigationGroups[1].name = 'Renamed Personage';
+  renamed.navigationGroups[2].name = 'Renamed Location';
   renamed.pageSections.find(({ id }) => id === 'page-section-01').name = 'Renamed Section';
   renamed.outcomeTypes.find(({ id }) => id === 'outcome-tier-01').name = 'Renamed Outcome';
-  renamed.mappa.currentLocation.name = 'Renamed Location';
+  renamed.location.currentLocation.name = 'Renamed Place';
   renamed.seasons.find(({ id }) => id === 'season-01').name = 'Dry';
   renamed.seasons.find(({ id }) => id === 'season-02').name = 'Rainy';
   renamed.celestialBodies.find(({ id }) => id === 'body-01').name = 'Swift';
@@ -167,18 +168,21 @@ test('production nomenclature reproduces every intended proper noun group', asyn
     { id: 'page-04', name: 'Identitate' },
     { id: 'page-05', name: 'Inventario' },
     { id: 'page-06', name: 'Subordinatos' },
-    { id: 'page-07', name: 'Mappa' },
-    { id: 'page-08', name: 'Observationes' },
-    { id: 'page-09', name: 'Decisiones' }
+    { id: 'page-07', name: 'Locus' },
+    { id: 'page-08', name: 'Rutas' },
+    { id: 'page-09', name: 'Explorar' },
+    { id: 'page-10', name: 'Observationes' },
+    { id: 'page-11', name: 'Decisiones' }
   ]);
   assert.deepEqual(value.navigationGroups, [
     { id: 'navigation-group-01', name: 'Almanac' },
-    { id: 'navigation-group-02', name: 'Personage' }
+    { id: 'navigation-group-02', name: 'Personage' },
+    { id: 'navigation-group-03', name: 'Location' }
   ]);
   assert.deepEqual(value.pageSections.map(({ name }) => name), [
     'Titulo', 'Nomine', 'Epitheto', 'Equipamento', 'Memorias', 'Campiones', 'Miniones', 'Deposito'
   ]);
-  for (const removed of ['Personage', 'Pensamentos', 'Commandamento']) {
+  for (const removed of ['Personage', 'Pensamentos', 'Commandamento', 'Mappa']) {
     assert.equal(value.pages.some(({ name }) => name === removed), false, removed);
   }
   for (const removed of ['Inventario', 'Observationes', 'Decisiones', 'Investigationes', 'Ordines']) {
@@ -189,7 +193,8 @@ test('production nomenclature reproduces every intended proper noun group', asyn
     { id: 'outcome-tier-02', name: 'Infrequens' },
     { id: 'outcome-tier-03', name: 'Rarum' }
   ]);
-  assert.deepEqual(value.mappa.currentLocation, { id: 'location-01', name: 'Santiago' });
+  assert.deepEqual(value.location.currentLocation, { id: 'location-01', name: 'Santiago' });
+  assert.equal(Object.hasOwn(value, 'mappa'), false);
   assert.equal(Object.hasOwn(value.calendar, 'months'), false);
   assert.equal(value.calendar.monthReign.name, 'Regno de');
   assert.deepEqual(value.calendar.monthReign.rulers, MONTH_RULERS);
@@ -385,6 +390,7 @@ test('presentation context exposes cloned, deeply frozen nomenclature entities',
   const namedDay = presentationContext.getNamedDay('named-day-01');
   const navigationGroup = presentationContext.getNavigationGroup('navigation-group-01');
   const personageGroup = presentationContext.getNavigationGroup('navigation-group-02');
+  const locationGroup = presentationContext.getNavigationGroup('navigation-group-03');
   const pageSection = presentationContext.getPageSection('page-section-01');
   const outcomeType = presentationContext.getOutcomeType('outcome-tier-01');
   const currentLocation = presentationContext.currentLocation;
@@ -395,12 +401,14 @@ test('presentation context exposes cloned, deeply frozen nomenclature entities',
   assert.notEqual(personageGroup, source.navigationGroups[1]);
   assert.notEqual(pageSection, source.pageSections[0]);
   assert.notEqual(outcomeType, source.outcomeTypes[0]);
-  assert.notEqual(currentLocation, source.mappa.currentLocation);
+  assert.notEqual(locationGroup, source.navigationGroups[2]);
+  assert.notEqual(currentLocation, source.location.currentLocation);
   assert.equal(Object.isFrozen(ruler), true);
   assert.equal(Object.isFrozen(ordinal), true);
   assert.equal(Object.isFrozen(namedDay), true);
   assert.equal(Object.isFrozen(navigationGroup), true);
   assert.equal(Object.isFrozen(personageGroup), true);
+  assert.equal(Object.isFrozen(locationGroup), true);
   assert.equal(Object.isFrozen(pageSection), true);
   assert.equal(Object.isFrozen(outcomeType), true);
   assert.equal(Object.isFrozen(currentLocation), true);
@@ -409,6 +417,7 @@ test('presentation context exposes cloned, deeply frozen nomenclature entities',
   assert.throws(() => { namedDay.name = 'Changed'; }, TypeError);
   assert.throws(() => { navigationGroup.name = 'Changed'; }, TypeError);
   assert.throws(() => { personageGroup.name = 'Changed'; }, TypeError);
+  assert.throws(() => { locationGroup.name = 'Changed'; }, TypeError);
   assert.throws(() => { pageSection.name = 'Changed'; }, TypeError);
   assert.throws(() => { outcomeType.name = 'Changed'; }, TypeError);
   assert.throws(() => { currentLocation.name = 'Changed'; }, TypeError);
@@ -417,6 +426,7 @@ test('presentation context exposes cloned, deeply frozen nomenclature entities',
   assert.equal(presentationContext.getNamedDay('named-day-01').name, 'Kalendis');
   assert.deepEqual(presentationContext.getNavigationGroup('navigation-group-01'), { id: 'navigation-group-01', name: 'Almanac' });
   assert.deepEqual(presentationContext.getNavigationGroup('navigation-group-02'), { id: 'navigation-group-02', name: 'Personage' });
+  assert.deepEqual(presentationContext.getNavigationGroup('navigation-group-03'), { id: 'navigation-group-03', name: 'Location' });
   assert.equal(presentationContext.getPageSection('page-section-01').name, 'Titulo');
   assert.equal(presentationContext.getOutcomeType('outcome-tier-01').name, 'Commune');
   assert.equal(presentationContext.currentLocation.name, 'Santiago');
@@ -550,14 +560,19 @@ test('representative lunar state produces one exact locale-invariant Roman summa
 });
 
 test('stable page IDs map to fixed non-configurable routes', () => {
-  assert.deepEqual(PAGE_IDS, ['page-01','page-02','page-03','page-04','page-05','page-06','page-07','page-08','page-09']);
-  assert.deepEqual(NAVIGATION_GROUP_IDS, ['navigation-group-01', 'navigation-group-02']);
+  assert.equal(Object.isFrozen(PAGE_DEFINITIONS), true);
+  assert.equal(Object.isFrozen(PAGE_IDS), true);
+  assert.equal(Object.isFrozen(NAVIGATION_GROUP_IDS), true);
+  assert.equal(Object.isFrozen(PAGE_SECTION_IDS), true);
+  assert.deepEqual(PAGE_IDS, ['page-01','page-02','page-03','page-04','page-05','page-06','page-07','page-08','page-09','page-10','page-11']);
+  assert.deepEqual(NAVIGATION_GROUP_IDS, ['navigation-group-01', 'navigation-group-02', 'navigation-group-03']);
   assert.deepEqual(PAGE_SECTION_IDS, ['page-section-01','page-section-02','page-section-03','page-section-04','page-section-09','page-section-11','page-section-12','page-section-13']);
-  assert.deepEqual(PAGE_IDS.map((id) => PAGE_DEFINITIONS[id].route), ['/calendario.html','/destino.html','/tempore.html','/identitate.html','/inventario.html','/subordinatos.html','/mappa.html','/observationes.html','/decisiones.html']);
+  assert.deepEqual(PAGE_IDS.map((id) => PAGE_DEFINITIONS[id].route), ['/calendario.html','/destino.html','/tempore.html','/identitate.html','/inventario.html','/subordinatos.html','/locus.html','/rutas.html','/explorar.html','/observationes.html','/decisiones.html']);
   assert.deepEqual(PAGE_IDS.map((id) => PAGE_DEFINITIONS[id].descriptionTemplateKey), [
     'document.page-01Description','document.page-02Description','document.page-03Description',
     'document.page-04Description','document.page-05Description','document.page-06Description',
-    'document.page-07Description','document.page-08Description','document.page-09Description'
+    'document.page-07Description','document.page-08Description','document.page-09Description',
+    'document.page-10Description','document.page-11Description'
   ]);
 });
 
@@ -839,8 +854,8 @@ test('navigation applies resolved labels, category state, submenus, and fixed ap
   }
 
   const links = PAGE_IDS.map((pageId) => makeElement({ pageId }));
-  const mappaCategory = links.find(({ dataset }) => dataset.pageId === 'page-07');
-  mappaCategory.dataset.navigationCategoryPages = 'page-07 page-08 page-09';
+  const explorarCategory = links.find(({ dataset }) => dataset.pageId === 'page-09');
+  explorarCategory.dataset.navigationCategoryPages = 'page-09 page-10 page-11';
   const personageCategory = makeElement({
     navigationGroupId: 'navigation-group-02',
     navigationTargetPageId: 'page-04',
@@ -851,12 +866,18 @@ test('navigation applies resolved labels, category state, submenus, and fixed ap
     navigationTargetPageId: 'page-01',
     navigationCategoryPages: 'page-01 page-02 page-03'
   });
-  const categories = [personageCategory, almanacCategory, mappaCategory];
+  const locationCategory = makeElement({
+    navigationGroupId: 'navigation-group-03',
+    navigationTargetPageId: 'page-07',
+    navigationCategoryPages: 'page-07 page-08 page-09 page-10 page-11'
+  });
+  const categories = [personageCategory, almanacCategory, locationCategory, explorarCategory];
   for (const category of categories) category.attributes['data-active-section'] = 'true';
   const personageSubmenu = makeElement({ navigationSubmenuPages: 'page-04 page-05 page-06' });
   const almanacSubmenu = makeElement({ navigationSubmenuPages: 'page-01 page-02 page-03' });
-  const mappaSubmenu = makeElement({ navigationSubmenuPages: 'page-07 page-08 page-09' });
-  const submenus = [personageSubmenu, almanacSubmenu, mappaSubmenu];
+  const locationSubmenu = makeElement({ navigationSubmenuPages: 'page-07 page-08 page-09 page-10 page-11' });
+  const explorarSubmenu = makeElement({ navigationSubmenuPages: 'page-09 page-10 page-11' });
+  const submenus = [personageSubmenu, almanacSubmenu, locationSubmenu, explorarSubmenu];
   const applicationElements = [{ textContent: '' }];
   const pageNameElements = [{ textContent: '' }];
   const pageSectionElements = [{ dataset: { pageSectionId: 'page-section-01' }, textContent: '' }];
@@ -869,7 +890,7 @@ test('navigation applies resolved labels, category state, submenus, and fixed ap
     querySelector(selector) { return selector === 'meta[name="description"]' ? meta : selector === '.primary-nav' ? nav : null; },
     querySelectorAll(selector) {
       if (selector === '[data-page-id]') return links;
-      if (selector === '[data-navigation-group-id]') return [personageCategory, almanacCategory];
+      if (selector === '[data-navigation-group-id]') return [personageCategory, almanacCategory, locationCategory];
       if (selector === '[data-navigation-category-pages]') return categories;
       if (selector === '[data-navigation-submenu-pages]') return submenus;
       if (selector === '[data-page-name]') return pageNameElements;
@@ -882,25 +903,27 @@ test('navigation applies resolved labels, category state, submenus, and fixed ap
   };
   const englishContext = await context('en');
   const spanishContext = await context('es');
-  function applyAndAssert(pageId, presentationContext, activeCategory, visibleSubmenu) {
+  function applyAndAssert(pageId, presentationContext, activeCategories, visibleSubmenus) {
     applyCommonDocumentPresentation(documentRoot, pageId, presentationContext);
     for (const category of categories) {
-      assert.equal(category.attributes['data-active-section'], category === activeCategory ? 'true' : undefined, `${pageId}: category`);
+      assert.equal(category.attributes['data-active-section'], activeCategories.includes(category) ? 'true' : undefined, `${pageId}: category`);
     }
     for (const submenu of submenus) {
-      assert.equal(submenu.hidden, submenu !== visibleSubmenu, `${pageId}: submenu`);
+      assert.equal(submenu.hidden, !visibleSubmenus.includes(submenu), `${pageId}: submenu`);
     }
   }
 
-  applyAndAssert('page-01', spanishContext, almanacCategory, almanacSubmenu);
+  applyAndAssert('page-01', spanishContext, [almanacCategory], [almanacSubmenu]);
   assert.equal(documentRoot.title, 'Calendario · Insidia');
   assert.equal(meta.content, 'Fecha ficticia, estado lunar y estado estacional en vivo para Insidia.');
-  assert.deepEqual(links.map(({ attributes }) => attributes.href), ['/calendario.html?locale=es','/destino.html?locale=es','/tempore.html?locale=es','/identitate.html?locale=es','/inventario.html?locale=es','/subordinatos.html?locale=es','/mappa.html?locale=es','/observationes.html?locale=es','/decisiones.html?locale=es']);
-  assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore','Identitate','Inventario','Subordinatos','Mappa','Observationes','Decisiones']);
+  assert.deepEqual(links.map(({ attributes }) => attributes.href), ['/calendario.html?locale=es','/destino.html?locale=es','/tempore.html?locale=es','/identitate.html?locale=es','/inventario.html?locale=es','/subordinatos.html?locale=es','/locus.html?locale=es','/rutas.html?locale=es','/explorar.html?locale=es','/observationes.html?locale=es','/decisiones.html?locale=es']);
+  assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore','Identitate','Inventario','Subordinatos','Locus','Rutas','Explorar','Observationes','Decisiones']);
   assert.equal(personageCategory.textContent, 'Personage');
   assert.equal(personageCategory.attributes.href, '/identitate.html?locale=es');
   assert.equal(almanacCategory.textContent, 'Almanac');
   assert.equal(almanacCategory.attributes.href, '/calendario.html?locale=es');
+  assert.equal(locationCategory.textContent, 'Location');
+  assert.equal(locationCategory.attributes.href, '/locus.html?locale=es');
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(pageSectionElements[0].textContent, 'Titulo');
   assert.equal(currentLocationElements[0].textContent, 'Santiago');
@@ -908,7 +931,7 @@ test('navigation applies resolved labels, category state, submenus, and fixed ap
   assert.equal(versionElements[0].textContent, 'v8.19');
   assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.19');
 
-  applyAndAssert('page-04', englishContext, personageCategory, personageSubmenu);
+  applyAndAssert('page-04', englishContext, [personageCategory], [personageSubmenu]);
   assert.equal(documentRoot.title, 'Identitate · Insidia');
   assert.equal(meta.content, 'Character title, name, epithet, and memories for Insidia.');
   assert.equal(versionElements[0]['aria-label'], 'Application version 8.19');
@@ -917,16 +940,20 @@ test('navigation applies resolved labels, category state, submenus, and fixed ap
   assert.equal(almanacCategory.textContent, 'Almanac');
   assert.equal(almanacCategory.attributes.href, '/calendario.html?locale=en');
 
-  applyAndAssert('page-05', englishContext, personageCategory, personageSubmenu);
+  applyAndAssert('page-05', englishContext, [personageCategory], [personageSubmenu]);
   assert.equal(meta.content, 'Character equipment and storage for Insidia.');
-  applyAndAssert('page-06', spanishContext, personageCategory, personageSubmenu);
+  applyAndAssert('page-06', spanishContext, [personageCategory], [personageSubmenu]);
   assert.equal(meta.content, 'Campeones y esbirros bajo el mando del personaje para Insidia.');
-  applyAndAssert('page-07', spanishContext, mappaCategory, mappaSubmenu);
-  assert.equal(documentRoot.title, 'Mappa · Insidia');
-  applyAndAssert('page-08', englishContext, mappaCategory, mappaSubmenu);
-  assert.equal(meta.content, 'Observations associated with the current map for Insidia.');
-  applyAndAssert('page-09', spanishContext, mappaCategory, mappaSubmenu);
-  assert.equal(meta.content, 'Decisiones asociadas al mapa actual para Insidia.');
+  applyAndAssert('page-07', spanishContext, [locationCategory], [locationSubmenu]);
+  assert.equal(documentRoot.title, 'Locus · Insidia');
+  applyAndAssert('page-08', englishContext, [locationCategory], [locationSubmenu]);
+  assert.equal(meta.content, 'Routes from the current location for Insidia.');
+  applyAndAssert('page-09', spanishContext, [locationCategory, explorarCategory], [locationSubmenu, explorarSubmenu]);
+  assert.equal(meta.content, 'Opciones de exploración para Insidia.');
+  applyAndAssert('page-10', englishContext, [locationCategory, explorarCategory], [locationSubmenu, explorarSubmenu]);
+  assert.equal(meta.content, 'Observations gathered through exploration for Insidia.');
+  applyAndAssert('page-11', spanishContext, [locationCategory, explorarCategory], [locationSubmenu, explorarSubmenu]);
+  assert.equal(meta.content, 'Decisiones disponibles durante la exploración para Insidia.');
 
   for (const groupId of NAVIGATION_GROUP_IDS) {
     assert.deepEqual(englishContext.getNavigationGroup(groupId), spanishContext.getNavigationGroup(groupId));
@@ -934,8 +961,8 @@ test('navigation applies resolved labels, category state, submenus, and fixed ap
 });
 
 test('static HTML remains neutral and uses v8.19 page IDs and application placeholders', async () => {
-  const properNouns = ['Insidia','Almanac','Calendario','Destino','Tempore','Personage','Mappa','Identitate','Inventario','Subordinatos','Observationes','Decisiones','Titulo','Nomine','Epitheto','Memorias','Equipamento','Deposito','Campiones','Miniones','Santiago','Commune','Infrequens','Rarum','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),...NAMED_DAYS.map(({ name }) => name),...INTERREGNOS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
-  for (const file of ['calendario.html','destino.html','tempore.html','identitate.html','inventario.html','subordinatos.html','mappa.html','observationes.html','decisiones.html']) {
+  const properNouns = ['Insidia','Almanac','Calendario','Destino','Tempore','Personage','Location','Locus','Rutas','Explorar','Identitate','Inventario','Subordinatos','Observationes','Decisiones','Titulo','Nomine','Epitheto','Memorias','Equipamento','Deposito','Campiones','Miniones','Santiago','Commune','Infrequens','Rarum','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),...NAMED_DAYS.map(({ name }) => name),...INTERREGNOS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
+  for (const file of ['calendario.html','destino.html','tempore.html','identitate.html','inventario.html','subordinatos.html','locus.html','rutas.html','explorar.html','observationes.html','decisiones.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
@@ -947,7 +974,7 @@ test('static HTML remains neutral and uses v8.19 page IDs and application placeh
 });
 
 test('production JavaScript has no runtime universe selection, cookies, or localStorage', async () => {
-  const files = ['app-bootstrap.js','presentation-context-loader.js','nomenclature.js','presentation.js','calendario-page.js','destino-page.js','tempore-page.js','identitate-page.js','inventario-page.js','subordinatos-page.js','mappa-page.js','observationes-page.js','decisiones-page.js','renderers.js'];
+  const files = ['app-bootstrap.js','presentation-context-loader.js','nomenclature.js','presentation.js','calendario-page.js','destino-page.js','tempore-page.js','identitate-page.js','inventario-page.js','subordinatos-page.js','locus-page.js','rutas-page.js','explorar-page.js','observationes-page.js','decisiones-page.js','renderers.js'];
   const source = (await Promise.all(files.map((file) => readFile(path.join(root, 'public', file), 'utf8')))).join('\n');
   assert.doesNotMatch(source, /searchParams\.get\(['"]universe|requestedUniverseId|resolvedUniverseId|defaultUniverseId|loadUniverse|universe=/);
   assert.doesNotMatch(source, /localStorage|document\.cookie|cookieStore/);

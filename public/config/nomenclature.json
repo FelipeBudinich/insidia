@@ -10,13 +10,16 @@
     { "id": "page-04", "name": "Identitate" },
     { "id": "page-05", "name": "Inventario" },
     { "id": "page-06", "name": "Subordinatos" },
-    { "id": "page-07", "name": "Mappa" },
-    { "id": "page-08", "name": "Observationes" },
-    { "id": "page-09", "name": "Decisiones" }
+    { "id": "page-07", "name": "Locus" },
+    { "id": "page-08", "name": "Rutas" },
+    { "id": "page-09", "name": "Explorar" },
+    { "id": "page-10", "name": "Observationes" },
+    { "id": "page-11", "name": "Decisiones" }
   ],
   "navigationGroups": [
     { "id": "navigation-group-01", "name": "Almanac" },
-    { "id": "navigation-group-02", "name": "Personage" }
+    { "id": "navigation-group-02", "name": "Personage" },
+    { "id": "navigation-group-03", "name": "Location" }
   ],
   "pageSections": [
     { "id": "page-section-01", "name": "Titulo" },
@@ -33,7 +36,7 @@
     { "id": "outcome-tier-02", "name": "Infrequens" },
     { "id": "outcome-tier-03", "name": "Rarum" }
   ],
-  "mappa": {
+  "location": {
     "currentLocation": { "id": "location-01", "name": "Santiago" }
   },
   "calendar": {

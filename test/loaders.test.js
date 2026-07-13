@@ -80,10 +80,15 @@ test('production nomenclature validates complete neutral ID coverage', async () 
   assert.equal(value.calendar.yearName, 'Annus Solis');
   assert.deepEqual(Object.keys(value.calendar).sort(), ['interRegna', 'monthReign', 'namedDays', 'weekdays', 'yearName']);
   assert.equal(Object.hasOwn(value.calendar, 'months'), false);
-  assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03', 'page-04', 'page-05', 'page-06', 'page-07', 'page-08', 'page-09']);
+  assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03', 'page-04', 'page-05', 'page-06', 'page-07', 'page-08', 'page-09', 'page-10', 'page-11']);
+  assert.deepEqual(value.pages.map(({ name }) => name), [
+    'Calendario', 'Destino', 'Tempore', 'Identitate', 'Inventario', 'Subordinatos',
+    'Locus', 'Rutas', 'Explorar', 'Observationes', 'Decisiones'
+  ]);
   assert.deepEqual(value.navigationGroups, [
     { id: 'navigation-group-01', name: 'Almanac' },
-    { id: 'navigation-group-02', name: 'Personage' }
+    { id: 'navigation-group-02', name: 'Personage' },
+    { id: 'navigation-group-03', name: 'Location' }
   ]);
   assert.deepEqual(value.pageSections.map(({ id }) => id), [
     'page-section-01', 'page-section-02', 'page-section-03', 'page-section-04',
@@ -94,7 +99,8 @@ test('production nomenclature validates complete neutral ID coverage', async () 
     { id: 'outcome-tier-02', name: 'Infrequens' },
     { id: 'outcome-tier-03', name: 'Rarum' }
   ]);
-  assert.deepEqual(value.mappa, { currentLocation: { id: 'location-01', name: 'Santiago' } });
+  assert.deepEqual(value.location, { currentLocation: { id: 'location-01', name: 'Santiago' } });
+  assert.equal(Object.hasOwn(value, 'mappa'), false);
   assert.equal(value.calendar.weekdays.length, 7);
   assert.equal(value.calendar.namedDays.length, 5);
   assert.equal(value.calendar.interRegna.length, 11);
@@ -268,7 +274,8 @@ test('navigation-group nomenclature requires exact canonical name-only entities'
   const valid = await readJson(nomenclaturePath);
   assert.deepEqual(validateNomenclature(valid).navigationGroups, [
     { id: 'navigation-group-01', name: 'Almanac' },
-    { id: 'navigation-group-02', name: 'Personage' }
+    { id: 'navigation-group-02', name: 'Personage' },
+    { id: 'navigation-group-03', name: 'Location' }
   ]);
   const missingCollection = structuredClone(valid); delete missingCollection.navigationGroups;
   const missingEntity = structuredClone(valid); missingEntity.navigationGroups.pop();
@@ -295,7 +302,8 @@ test('page sections, Outcome types, and current location are exact nomenclature'
     assert.equal(value.pageSections.some(({ name }) => name === removed), false, removed);
   }
   assert.deepEqual(value.outcomeTypes.map(({ name }) => name), ['Commune', 'Infrequens', 'Rarum']);
-  assert.deepEqual(value.mappa.currentLocation, { id: 'location-01', name: 'Santiago' });
+  assert.deepEqual(value.location.currentLocation, { id: 'location-01', name: 'Santiago' });
+  assert.equal(Object.hasOwn(value, 'mappa'), false);
 
   const invalidValues = [];
   for (const key of ['pageSections', 'outcomeTypes']) {
@@ -305,11 +313,12 @@ test('page sections, Outcome types, and current location are exact nomenclature'
     const empty = structuredClone(valid); empty[key][0].name = ''; invalidValues.push(empty);
     const extra = structuredClone(valid); extra[key][0].mechanics = true; invalidValues.push(extra);
   }
-  const missingMappa = structuredClone(valid); delete missingMappa.mappa; invalidValues.push(missingMappa);
-  const extraMappa = structuredClone(valid); extraMappa.mappa.provider = 'external'; invalidValues.push(extraMappa);
-  const wrongLocation = structuredClone(valid); wrongLocation.mappa.currentLocation.id = 'location-02'; invalidValues.push(wrongLocation);
-  const emptyLocation = structuredClone(valid); emptyLocation.mappa.currentLocation.name = ''; invalidValues.push(emptyLocation);
-  const locationCoordinates = structuredClone(valid); locationCoordinates.mappa.currentLocation.coordinates = []; invalidValues.push(locationCoordinates);
+  const missingLocation = structuredClone(valid); delete missingLocation.location; invalidValues.push(missingLocation);
+  const extraLocation = structuredClone(valid); extraLocation.location.provider = 'external'; invalidValues.push(extraLocation);
+  const wrongLocation = structuredClone(valid); wrongLocation.location.currentLocation.id = 'location-02'; invalidValues.push(wrongLocation);
+  const emptyLocation = structuredClone(valid); emptyLocation.location.currentLocation.name = ''; invalidValues.push(emptyLocation);
+  const locationCoordinates = structuredClone(valid); locationCoordinates.location.currentLocation.coordinates = []; invalidValues.push(locationCoordinates);
+  const mappaCompatibility = structuredClone(valid); mappaCompatibility.mappa = structuredClone(valid.location); invalidValues.push(mappaCompatibility);
   for (const invalid of invalidValues) assert.throws(() => validateNomenclature(invalid));
 });
 
@@ -456,7 +465,7 @@ test('static bootstrap applies shared presentation without starting a recurring 
     dataset, attributes: {}, textContent: '',
     setAttribute(name, value) { this.attributes[name] = value; }
   });
-  const links = Array.from({ length: 9 }, (_, index) => makeElement({
+  const links = Array.from({ length: 11 }, (_, index) => makeElement({
     pageId: `page-${String(index + 1).padStart(2, '0')}`
   }));
   const pageName = makeElement();
@@ -496,8 +505,8 @@ test('static bootstrap applies shared presentation without starting a recurring 
   assert.equal(documentRoot.documentElement.lang, 'es');
   assert.equal(documentRoot.title, 'Identitate · Insidia');
   assert.equal(meta.attributes.content, 'Título, nombre, epíteto y memorias del personaje para Insidia.');
-  assert.equal(links[6].textContent, 'Mappa');
-  assert.equal(links[6].attributes.href, '/mappa.html?locale=es');
+  assert.equal(links[6].textContent, 'Locus');
+  assert.equal(links[6].attributes.href, '/locus.html?locale=es');
   assert.equal(pageName.textContent, 'Identitate');
   assert.equal(section.textContent, 'Titulo');
   assert.equal(message.textContent, 'Ubicación actual');
@@ -540,15 +549,19 @@ test('locale schema 9 contains only localized UI language and exact page descrip
       english.templates['document.page-06Description'],
       english.templates['document.page-07Description'],
       english.templates['document.page-08Description'],
-      english.templates['document.page-09Description']
+      english.templates['document.page-09Description'],
+      english.templates['document.page-10Description'],
+      english.templates['document.page-11Description']
     ],
     [
       'Character title, name, epithet, and memories for {applicationName}.',
       'Character equipment and storage for {applicationName}.',
       "Champions and minions under the character's command for {applicationName}.",
       'Current location for {applicationName}.',
-      'Observations associated with the current map for {applicationName}.',
-      'Decisions associated with the current map for {applicationName}.'
+      'Routes from the current location for {applicationName}.',
+      'Exploration options for {applicationName}.',
+      'Observations gathered through exploration for {applicationName}.',
+      'Decisions available through exploration for {applicationName}.'
     ]
   );
   assert.deepEqual(
@@ -558,15 +571,19 @@ test('locale schema 9 contains only localized UI language and exact page descrip
       spanish.templates['document.page-06Description'],
       spanish.templates['document.page-07Description'],
       spanish.templates['document.page-08Description'],
-      spanish.templates['document.page-09Description']
+      spanish.templates['document.page-09Description'],
+      spanish.templates['document.page-10Description'],
+      spanish.templates['document.page-11Description']
     ],
     [
       'Título, nombre, epíteto y memorias del personaje para {applicationName}.',
       'Equipo y depósito del personaje para {applicationName}.',
       'Campeones y esbirros bajo el mando del personaje para {applicationName}.',
       'Ubicación actual para {applicationName}.',
-      'Observaciones asociadas al mapa actual para {applicationName}.',
-      'Decisiones asociadas al mapa actual para {applicationName}.'
+      'Rutas desde la ubicación actual para {applicationName}.',
+      'Opciones de exploración para {applicationName}.',
+      'Observaciones reunidas durante la exploración para {applicationName}.',
+      'Decisiones disponibles durante la exploración para {applicationName}.'
     ]
   );
   const calendarTemplates = {

@@ -1,3 +1,3 @@
 import { bootstrapStaticPage } from './app-bootstrap.js';
 
-bootstrapStaticPage('page-10');
+bootstrapStaticPage('page-08');

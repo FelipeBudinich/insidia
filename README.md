@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.19 is a browser-calculated fictional calendar and world-state interface. It has three live pages and six configuration-driven static pages, one fixed in-game nomenclature configuration, and localized generic UI language. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time calculations.
+Insidia v8.19 is a browser-calculated fictional calendar and world-state interface. It has three live pages and eight configuration-driven static pages, one fixed in-game nomenclature configuration, and localized generic UI language. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time calculations.
 
 ## Run locally
 
@@ -16,17 +16,35 @@ Open [http://localhost:3000](http://localhost:3000). Set `PORT` to override port
 
 ## Pages and navigation
 
-The page registry contains exactly nine stable IDs, fixed routes, and nomenclature-owned names. Every page uses the same two-level sticky navigation and preserves only the resolved `locale` query value in its links.
+The page registry contains exactly eleven stable IDs, fixed routes, and nomenclature-owned names. Every page uses the same sticky navigation structure and preserves only the resolved `locale` query value in its links.
 
-The top category row is always Personage, Almanac, Mappa. Personage is configured as `navigation-group-02` and opens Identitate at `/identitate.html`; Almanac is `navigation-group-01` and opens Calendario at `/calendario.html`; Mappa remains the `page-07` current-location page at `/mappa.html`.
+The top category row is always Personage, Almanac, Location, in that order. Each top item is a navigation group rather than a page: Personage is `navigation-group-02` and opens Identitate; Almanac is `navigation-group-01` and opens Calendario; Location is `navigation-group-03` and opens Locus.
 
-Only the active category's submenu appears:
+Only the active category's secondary row appears. Explorar is both an actual page and a nested navigation category, so its tertiary row also appears while Explorar, Observationes, or Decisiones is current:
 
 - Personage pages (`page-04` through `page-06`): Identitate, Inventario, Subordinatos
 - Almanac pages (`page-01` through `page-03`): Calendario, Destino, Tempore
-- Mappa pages (`page-07` through `page-09`): Observationes and Decisiones appear beneath the top-level Mappa page
+- Location pages (`page-07` through `page-11`): Locus, Rutas, Explorar
+- Explorar pages (`page-09` through `page-11`): Observationes, Decisiones in the tertiary row
 
-The actual page link alone receives `aria-current="page"`. The active top category receives `data-active-section="true"`, so the Personage and Almanac groups can show context without falsely claiming to be pages. Mappa is both an actual page and the parent category for its two children.
+The actual page link alone receives `aria-current="page"`. Active top groups and the Explorar category receive `data-active-section="true"` for context without falsely claiming a group is the current page. Explorar has no separate navigation-group entity.
+
+```text
+Personage
+├── Identitate
+├── Inventario
+└── Subordinatos
+Almanac
+├── Calendario
+├── Destino
+└── Tempore
+Location
+├── Locus
+├── Rutas
+└── Explorar
+    ├── Observationes
+    └── Decisiones
+```
 
 | ID | Name | Route | Behavior |
 |---|---|---|---|
@@ -36,23 +54,25 @@ The actual page link alone receives `aria-current="page"`. The active top catego
 | `page-04` | Identitate | `/identitate.html` | Static identity and memories shell |
 | `page-05` | Inventario | `/inventario.html` | Static equipment and storage shell |
 | `page-06` | Subordinatos | `/subordinatos.html` | Static champions and minions shell |
-| `page-07` | Mappa | `/mappa.html` | Static configured current location |
-| `page-08` | Observationes | `/observationes.html` | Static map-observations shell |
-| `page-09` | Decisiones | `/decisiones.html` | Static map-decisions shell |
+| `page-07` | Locus | `/locus.html` | Static configured current location |
+| `page-08` | Rutas | `/rutas.html` | Empty configuration-driven page shell |
+| `page-09` | Explorar | `/explorar.html` | Empty configuration-driven page shell and nested category |
+| `page-10` | Observationes | `/observationes.html` | Empty configuration-driven exploration shell |
+| `page-11` | Decisiones | `/decisiones.html` | Empty configuration-driven exploration shell |
 
 The static section shells are intentionally empty apart from their configured headings:
 
 - Identitate: Titulo, Nomine, Epitheto, Memorias
 - Inventario: Equipamento, Deposito
 - Subordinatos: Campiones, Miniones
-- Mappa: the current configured location, Santiago
-- Observationes and Decisiones: one configuration-driven page-name card each
+- Locus: the current configured location, Santiago
+- Rutas, Explorar, Observationes, and Decisiones: one configuration-driven page-name card each
 
-Pensamentos, Commandamento, Investigationes, and Ordines were removed. Their old routes, along with the former Personage page route, have no redirects, aliases, or compatibility files and return ordinary static 404 responses.
+Mappa, Pensamentos, Commandamento, Investigationes, and Ordines were removed. `/mappa.html`, `/mappa-page.js`, `/location.html`, the former Personage route, and the other legacy routes have no redirects, aliases, or compatibility files and return ordinary static 404 responses.
 
-Mappa does not use browser geolocation, request location permission, display coordinates, or load a graphical map, iframe, external provider, or map tiles.
+Location pages do not use browser geolocation, request location permission, display coordinates, or load a graphical map, iframe, route provider, external map provider, or map tiles.
 
-The six static pages use `bootstrapStaticPage()`. They share locale/nomenclature loading, titles, descriptions, navigation, footer presentation, accessibility state, and configuration-error handling with the live pages, but do not start the live calendar scheduler or create a recurring timer.
+The eight static pages use `bootstrapStaticPage()`. They share locale/nomenclature loading, titles, descriptions, navigation, footer presentation, accessibility state, and configuration-error handling with the live pages, but do not start the live calendar scheduler or create a recurring timer.
 
 ## Locale selection
 
@@ -62,7 +82,8 @@ Locale is the only presentation option accepted through the query string:
 /calendario.html?locale=en
 /destino.html?locale=es
 /identitate.html?locale=es
-/mappa.html?locale=en
+/locus.html?locale=en
+/explorar.html?locale=es
 ```
 
 English is the default. English and Spanish paths are allowlisted in `public/locale-loader.js`. Unknown IDs resolve safely to English; a known malformed locale stops bootstrap visibly. Query values never become file paths. There is no runtime universe selector, alternate world configuration, cookie, local-storage setting, header, route, or configurable frontend path for changing in-game nomenclature.
@@ -76,10 +97,10 @@ The browser always loads the single production nomenclature file from the fixed 
 The active configured terms include:
 
 - Application: Insidia
-- Navigation groups: Almanac (`navigation-group-01`), Personage (`navigation-group-02`)
-- Pages: Calendario, Destino, Tempore, Identitate, Inventario, Subordinatos, Mappa, Observationes, Decisiones
+- Navigation groups: Almanac (`navigation-group-01`), Personage (`navigation-group-02`), Location (`navigation-group-03`)
+- Pages: Calendario, Destino, Tempore, Identitate, Inventario, Subordinatos, Locus, Rutas, Explorar, Observationes, Decisiones
 - Page sections: Titulo, Nomine, Epitheto, Equipamento, Memorias, Campiones, Miniones, Deposito
-- Current location: Santiago (`location-01`)
+- Location configuration: `location.currentLocation` is Santiago (`location-01`); no `mappa` compatibility object exists
 - Outcome types: Commune, Infrequens, Rarum
 - Calendar year: Annus Solis
 - Lunar cycle: Cyclus Lunae
@@ -161,7 +182,7 @@ All mechanics are deterministic browser-side calculations. Calendar and lunar el
 5. `public/nomenclature.js` builds the frozen presentation context.
 6. `public/app-bootstrap.js` applies common document presentation, then either starts live state or completes a static page.
 
-Every page uses the same two concurrent configuration requests. The navigation hierarchy introduces no page-specific configuration request.
+Every page uses the same two concurrent configuration requests. The navigation hierarchy introduces no location, route, map, or exploration request. Its three possible visible rows—the top groups, one secondary group, and the Explorar tertiary group—remain inside the same sticky site header.
 
 The project has no frontend framework, build system, runtime dependency, database, backend time API, WebSocket, authentication, external font, date library, server-side rendering, service worker, geolocation integration, or external map integration.
 
@@ -183,7 +204,7 @@ English and Spanish JSON snapshots have identical raw state and identical `displ
 | Route | Purpose |
 |---|---|
 | `/` | Redirect to `/calendario.html`, preserving only a non-empty locale |
-| Nine page routes | Static HTML described above |
+| Eleven page routes | Static HTML described above |
 | `/config/nomenclature.json` | Single read-only nomenclature configuration |
 | `/locales/en.json`, `/locales/es.json` | Allowlisted locale files |
 | `/health` | `{"ok":true,"version":"v8.19"}` |
@@ -218,8 +239,12 @@ public/
   inventario-page.js
   subordinatos.html
   subordinatos-page.js
-  mappa.html
-  mappa-page.js
+  locus.html
+  locus-page.js
+  rutas.html
+  rutas-page.js
+  explorar.html
+  explorar-page.js
   observationes.html
   observationes-page.js
   decisiones.html

@@ -16,7 +16,7 @@ import { NAVIGATION_GROUP_IDS, PAGE_IDS, PAGE_SECTION_IDS } from './page-definit
 export const NOMENCLATURE_PATH = '/config/nomenclature.json';
 
 const TOP_LEVEL_KEYS = Object.freeze([
-  'schemaVersion', 'application', 'pages', 'navigationGroups', 'pageSections', 'outcomeTypes', 'mappa',
+  'schemaVersion', 'application', 'pages', 'navigationGroups', 'pageSections', 'outcomeTypes', 'location',
   'calendar', 'seasons', 'lunarPhases', 'lunarCycle', 'tides', 'celestialBodies', 'pulls'
 ]);
 
@@ -83,12 +83,12 @@ export function validateNomenclature(nomenclature) {
   validateEntities(nomenclature.navigationGroups, NAVIGATION_GROUP_IDS, 'nomenclature.navigationGroups', ['id', 'name']);
   validateEntities(nomenclature.pageSections, PAGE_SECTION_IDS, 'nomenclature.pageSections', ['id', 'name']);
   validateEntities(nomenclature.outcomeTypes, OUTCOME_TYPE_RULES.map(({ id }) => id), 'nomenclature.outcomeTypes', ['id', 'name']);
-  assertExactKeys(nomenclature.mappa, ['currentLocation'], 'nomenclature.mappa');
-  assertExactKeys(nomenclature.mappa.currentLocation, ['id', 'name'], 'nomenclature.mappa.currentLocation');
-  if (nomenclature.mappa.currentLocation.id !== 'location-01') {
-    throw new Error('nomenclature.mappa.currentLocation.id must be location-01');
+  assertExactKeys(nomenclature.location, ['currentLocation'], 'nomenclature.location');
+  assertExactKeys(nomenclature.location.currentLocation, ['id', 'name'], 'nomenclature.location.currentLocation');
+  if (nomenclature.location.currentLocation.id !== 'location-01') {
+    throw new Error('nomenclature.location.currentLocation.id must be location-01');
   }
-  assertNonEmptyString(nomenclature.mappa.currentLocation.name, 'nomenclature.mappa.currentLocation.name');
+  assertNonEmptyString(nomenclature.location.currentLocation.name, 'nomenclature.location.currentLocation.name');
   assertExactKeys(nomenclature.calendar, ['yearName', 'monthReign', 'weekdays', 'namedDays', 'interRegna'], 'nomenclature.calendar');
   assertNonEmptyString(nomenclature.calendar.yearName, 'nomenclature.calendar.yearName');
   assertExactKeys(nomenclature.calendar.monthReign, ['name', 'rulers', 'ordinals'], 'nomenclature.calendar.monthReign');

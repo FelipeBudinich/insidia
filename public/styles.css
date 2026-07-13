@@ -39,13 +39,16 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
 }
-.secondary-nav {
+.secondary-nav,
+.tertiary-nav {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
   gap: 1px;
   border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
 }
-.secondary-nav[hidden] { display: none; }
+.secondary-nav[hidden],
+.tertiary-nav[hidden] { display: none; }
+.tertiary-nav { background: color-mix(in srgb, Canvas 90%, CanvasText 10%); }
 .primary-nav a {
   min-width: 0;
   padding: 0.65rem 0.45rem;
@@ -57,13 +60,19 @@ body {
   background: Canvas;
 }
 .navigation-category-link { font-weight: 750; }
+.navigation-subcategory-link { font-weight: 700; }
 .secondary-nav a {
   padding: 0.55rem 0.4rem;
   font-size: 0.8125rem;
 }
+.tertiary-nav a {
+  padding: 0.5rem 0.4rem;
+  font-size: 0.75rem;
+}
 .primary-nav a:hover { background: color-mix(in srgb, Canvas 85%, CanvasText 15%); }
 .primary-nav a[aria-current="page"],
-.navigation-category-link[data-active-section="true"] {
+.navigation-category-link[data-active-section="true"],
+.navigation-subcategory-link[data-active-section="true"] {
   background: color-mix(in srgb, Highlight 18%, Canvas);
   box-shadow: inset 0 -3px 0 Highlight;
   font-weight: 800;

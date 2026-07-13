@@ -31,18 +31,28 @@ export const PAGE_DEFINITIONS = Object.freeze({
   }),
   'page-07': Object.freeze({
     id: 'page-07',
-    route: '/mappa.html',
+    route: '/locus.html',
     descriptionTemplateKey: 'document.page-07Description'
   }),
   'page-08': Object.freeze({
     id: 'page-08',
-    route: '/observationes.html',
+    route: '/rutas.html',
     descriptionTemplateKey: 'document.page-08Description'
   }),
   'page-09': Object.freeze({
     id: 'page-09',
-    route: '/decisiones.html',
+    route: '/explorar.html',
     descriptionTemplateKey: 'document.page-09Description'
+  }),
+  'page-10': Object.freeze({
+    id: 'page-10',
+    route: '/observationes.html',
+    descriptionTemplateKey: 'document.page-10Description'
+  }),
+  'page-11': Object.freeze({
+    id: 'page-11',
+    route: '/decisiones.html',
+    descriptionTemplateKey: 'document.page-11Description'
   })
 });
 
@@ -50,7 +60,8 @@ export const PAGE_IDS = Object.freeze(Object.keys(PAGE_DEFINITIONS));
 
 export const NAVIGATION_GROUP_IDS = Object.freeze([
   'navigation-group-01',
-  'navigation-group-02'
+  'navigation-group-02',
+  'navigation-group-03'
 ]);
 
 export const PAGE_SECTION_IDS = Object.freeze([

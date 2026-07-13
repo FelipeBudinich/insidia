@@ -42,7 +42,7 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
     calendarYearName: nomenclature.calendar.yearName,
     monthReignName: nomenclature.calendar.monthReign.name,
     lunarCycleName: nomenclature.lunarCycle.name,
-    currentLocation: deepFreeze({ ...nomenclature.mappa.currentLocation }),
+    currentLocation: deepFreeze({ ...nomenclature.location.currentLocation }),
     nomenclatureSchemaVersion: nomenclatureResult.schemaVersion,
     localeSchemaVersion: localeResult.schemaVersion,
     languageTag: locale.languageTag,
