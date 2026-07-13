@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "id": "en",
   "languageTag": "en",
   "messages": {
@@ -51,10 +51,12 @@
     "document.page-01Description": "Live fictional date, lunar state, and season state for {applicationName}.",
     "document.page-02Description": "Live selected outcome, tides, tide progress, pulls, and celestial orbits for {applicationName}.",
     "document.page-03Description": "Live fictional times, season, and progress for {applicationName}.",
-    "document.page-04Description": "Player title, name, epithet, equipment, and inventory for {applicationName}.",
-    "document.page-05Description": "Observations, decisions, investigations, and memories for {applicationName}.",
-    "document.page-06Description": "Orders, champions, and minions for {applicationName}.",
+    "document.page-04Description": "Character title, name, epithet, and memories for {applicationName}.",
+    "document.page-05Description": "Character equipment and storage for {applicationName}.",
+    "document.page-06Description": "Champions and minions under the character's command for {applicationName}.",
     "document.page-07Description": "Current location for {applicationName}.",
+    "document.page-08Description": "Observations associated with the current map for {applicationName}.",
+    "document.page-09Description": "Decisions associated with the current map for {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Orbital progress for {bodyName}",
     "calendar.formattedYear": "{yearName} {yearRoman}",

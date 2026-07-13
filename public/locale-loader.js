@@ -12,6 +12,7 @@ export const MESSAGE_KEYS = Object.freeze([
 export const TEMPLATE_KEYS = Object.freeze([
   'document.title', 'document.page-01Description', 'document.page-02Description', 'document.page-03Description',
   'document.page-04Description', 'document.page-05Description', 'document.page-06Description', 'document.page-07Description',
+  'document.page-08Description', 'document.page-09Description',
   'accessibility.version', 'accessibility.orbitProgress',
   'calendar.formattedYear', 'calendar.firstMonthReign', 'calendar.repeatedMonthReign',
   'calendar.monthPeriod', 'calendar.interPeriod', 'calendar.formattedDate',
@@ -49,7 +50,7 @@ function assertExactObjectKeys(value, expected, label) {
 
 export function validateLocale(locale) {
   assertExactObjectKeys(locale, ['schemaVersion', 'id', 'languageTag', 'messages', 'templates'], 'locale');
-  if (locale.schemaVersion !== 8) throw new Error('locale schemaVersion must be 8');
+  if (locale.schemaVersion !== 9) throw new Error('locale schemaVersion must be 9');
   assertNonEmpty(locale.id, 'locale.id');
   assertNonEmpty(locale.languageTag, 'locale.languageTag');
   assertExactKeys(locale.messages, MESSAGE_KEYS, 'locale.messages');

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "application": {
     "displayName": "Insidia"
   },
@@ -7,27 +7,26 @@
     { "id": "page-01", "name": "Calendario" },
     { "id": "page-02", "name": "Destino" },
     { "id": "page-03", "name": "Tempore" },
-    { "id": "page-04", "name": "Personage" },
-    { "id": "page-05", "name": "Pensamentos" },
-    { "id": "page-06", "name": "Commandamento" },
-    { "id": "page-07", "name": "Mappa" }
+    { "id": "page-04", "name": "Identitate" },
+    { "id": "page-05", "name": "Inventario" },
+    { "id": "page-06", "name": "Subordinatos" },
+    { "id": "page-07", "name": "Mappa" },
+    { "id": "page-08", "name": "Observationes" },
+    { "id": "page-09", "name": "Decisiones" }
   ],
   "navigationGroups": [
-    { "id": "navigation-group-01", "name": "Almanac" }
+    { "id": "navigation-group-01", "name": "Almanac" },
+    { "id": "navigation-group-02", "name": "Personage" }
   ],
   "pageSections": [
     { "id": "page-section-01", "name": "Titulo" },
     { "id": "page-section-02", "name": "Nomine" },
     { "id": "page-section-03", "name": "Epitheto" },
     { "id": "page-section-04", "name": "Equipamento" },
-    { "id": "page-section-05", "name": "Inventario" },
-    { "id": "page-section-06", "name": "Observationes" },
-    { "id": "page-section-07", "name": "Decisiones" },
-    { "id": "page-section-08", "name": "Investigationes" },
     { "id": "page-section-09", "name": "Memorias" },
-    { "id": "page-section-10", "name": "Ordines" },
     { "id": "page-section-11", "name": "Campiones" },
-    { "id": "page-section-12", "name": "Miniones" }
+    { "id": "page-section-12", "name": "Miniones" },
+    { "id": "page-section-13", "name": "Deposito" }
   ],
   "outcomeTypes": [
     { "id": "outcome-tier-01", "name": "Commune" },

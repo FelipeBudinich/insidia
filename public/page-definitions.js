@@ -16,30 +16,41 @@ export const PAGE_DEFINITIONS = Object.freeze({
   }),
   'page-04': Object.freeze({
     id: 'page-04',
-    route: '/personage.html',
+    route: '/identitate.html',
     descriptionTemplateKey: 'document.page-04Description'
   }),
   'page-05': Object.freeze({
     id: 'page-05',
-    route: '/pensamentos.html',
+    route: '/inventario.html',
     descriptionTemplateKey: 'document.page-05Description'
   }),
   'page-06': Object.freeze({
     id: 'page-06',
-    route: '/commandamento.html',
+    route: '/subordinatos.html',
     descriptionTemplateKey: 'document.page-06Description'
   }),
   'page-07': Object.freeze({
     id: 'page-07',
     route: '/mappa.html',
     descriptionTemplateKey: 'document.page-07Description'
+  }),
+  'page-08': Object.freeze({
+    id: 'page-08',
+    route: '/observationes.html',
+    descriptionTemplateKey: 'document.page-08Description'
+  }),
+  'page-09': Object.freeze({
+    id: 'page-09',
+    route: '/decisiones.html',
+    descriptionTemplateKey: 'document.page-09Description'
   })
 });
 
 export const PAGE_IDS = Object.freeze(Object.keys(PAGE_DEFINITIONS));
 
 export const NAVIGATION_GROUP_IDS = Object.freeze([
-  'navigation-group-01'
+  'navigation-group-01',
+  'navigation-group-02'
 ]);
 
 export const PAGE_SECTION_IDS = Object.freeze([
@@ -47,14 +58,10 @@ export const PAGE_SECTION_IDS = Object.freeze([
   'page-section-02',
   'page-section-03',
   'page-section-04',
-  'page-section-05',
-  'page-section-06',
-  'page-section-07',
-  'page-section-08',
   'page-section-09',
-  'page-section-10',
   'page-section-11',
-  'page-section-12'
+  'page-section-12',
+  'page-section-13'
 ]);
 
 export function getPageDefinition(pageId) {

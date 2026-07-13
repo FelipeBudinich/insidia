@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "id": "es",
   "languageTag": "es",
   "messages": {
@@ -51,10 +51,12 @@
     "document.page-01Description": "Fecha ficticia, estado lunar y estado estacional en vivo para {applicationName}.",
     "document.page-02Description": "Resultado seleccionado, mareas, progreso de la marea, fuerzas y órbitas celestes en vivo para {applicationName}.",
     "document.page-03Description": "Tiempos ficticios, estación y progreso en vivo para {applicationName}.",
-    "document.page-04Description": "Título, nombre, epíteto, equipo e inventario del jugador para {applicationName}.",
-    "document.page-05Description": "Observaciones, decisiones, investigaciones y memorias para {applicationName}.",
-    "document.page-06Description": "Órdenes, campeones y esbirros para {applicationName}.",
+    "document.page-04Description": "Título, nombre, epíteto y memorias del personaje para {applicationName}.",
+    "document.page-05Description": "Equipo y depósito del personaje para {applicationName}.",
+    "document.page-06Description": "Campeones y esbirros bajo el mando del personaje para {applicationName}.",
     "document.page-07Description": "Ubicación actual para {applicationName}.",
+    "document.page-08Description": "Observaciones asociadas al mapa actual para {applicationName}.",
+    "document.page-09Description": "Decisiones asociadas al mapa actual para {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Progreso orbital de {bodyName}",
     "calendar.formattedYear": "{yearName} {yearRoman}",

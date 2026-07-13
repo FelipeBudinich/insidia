@@ -74,15 +74,21 @@ test('query parameters cannot change the nomenclature request', async () => {
 
 test('production nomenclature validates complete neutral ID coverage', async () => {
   const value = validateNomenclature(await readJson(nomenclaturePath));
-  assert.equal(value.schemaVersion, 9);
+  assert.equal(value.schemaVersion, 10);
   assert.deepEqual(value.lunarCycle, { name: 'Cyclus Lunae' });
   assert.deepEqual(Object.keys(value.lunarCycle), ['name']);
   assert.equal(value.calendar.yearName, 'Annus Solis');
   assert.deepEqual(Object.keys(value.calendar).sort(), ['interRegna', 'monthReign', 'namedDays', 'weekdays', 'yearName']);
   assert.equal(Object.hasOwn(value.calendar, 'months'), false);
-  assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03', 'page-04', 'page-05', 'page-06', 'page-07']);
-  assert.deepEqual(value.navigationGroups, [{ id: 'navigation-group-01', name: 'Almanac' }]);
-  assert.deepEqual(value.pageSections.map(({ id }) => id), Array.from({ length: 12 }, (_, index) => `page-section-${String(index + 1).padStart(2, '0')}`));
+  assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03', 'page-04', 'page-05', 'page-06', 'page-07', 'page-08', 'page-09']);
+  assert.deepEqual(value.navigationGroups, [
+    { id: 'navigation-group-01', name: 'Almanac' },
+    { id: 'navigation-group-02', name: 'Personage' }
+  ]);
+  assert.deepEqual(value.pageSections.map(({ id }) => id), [
+    'page-section-01', 'page-section-02', 'page-section-03', 'page-section-04',
+    'page-section-09', 'page-section-11', 'page-section-12', 'page-section-13'
+  ]);
   assert.deepEqual(value.outcomeTypes, [
     { id: 'outcome-tier-01', name: 'Commune' },
     { id: 'outcome-tier-02', name: 'Infrequens' },
@@ -258,21 +264,23 @@ test('nomenclature page names require exact IDs, valid names, and no route field
   }
 });
 
-test('navigation-group nomenclature requires its exact canonical name-only entity', async () => {
+test('navigation-group nomenclature requires exact canonical name-only entities', async () => {
   const valid = await readJson(nomenclaturePath);
   assert.deepEqual(validateNomenclature(valid).navigationGroups, [
-    { id: 'navigation-group-01', name: 'Almanac' }
+    { id: 'navigation-group-01', name: 'Almanac' },
+    { id: 'navigation-group-02', name: 'Personage' }
   ]);
   const missingCollection = structuredClone(valid); delete missingCollection.navigationGroups;
   const missingEntity = structuredClone(valid); missingEntity.navigationGroups.pop();
-  const duplicate = structuredClone(valid); duplicate.navigationGroups.push({ id: 'navigation-group-01', name: 'Duplicate' });
+  const duplicate = structuredClone(valid); duplicate.navigationGroups[1].id = 'navigation-group-01';
   const unknown = structuredClone(valid); unknown.navigationGroups[0].id = 'navigation-group-99';
+  const reordered = structuredClone(valid); reordered.navigationGroups.reverse();
   const empty = structuredClone(valid); empty.navigationGroups[0].name = '';
   const nonString = structuredClone(valid); nonString.navigationGroups[0].name = 1;
   const additional = structuredClone(valid); additional.navigationGroups[0].description = 'Group';
   const route = structuredClone(valid); route.navigationGroups[0].route = '/almanac.html';
   const children = structuredClone(valid); children.navigationGroups[0].pageIds = ['page-01'];
-  for (const invalid of [missingCollection, missingEntity, duplicate, unknown, empty, nonString, additional, route, children]) {
+  for (const invalid of [missingCollection, missingEntity, duplicate, unknown, reordered, empty, nonString, additional, route, children]) {
     assert.throws(() => validateNomenclature(invalid));
   }
 });
@@ -281,9 +289,11 @@ test('page sections, Outcome types, and current location are exact nomenclature'
   const valid = await readJson(nomenclaturePath);
   const value = validateNomenclature(valid);
   assert.deepEqual(value.pageSections.map(({ name }) => name), [
-    'Titulo', 'Nomine', 'Epitheto', 'Equipamento', 'Inventario', 'Observationes',
-    'Decisiones', 'Investigationes', 'Memorias', 'Ordines', 'Campiones', 'Miniones'
+    'Titulo', 'Nomine', 'Epitheto', 'Equipamento', 'Memorias', 'Campiones', 'Miniones', 'Deposito'
   ]);
+  for (const removed of ['Inventario', 'Observationes', 'Decisiones', 'Investigationes', 'Ordines']) {
+    assert.equal(value.pageSections.some(({ name }) => name === removed), false, removed);
+  }
   assert.deepEqual(value.outcomeTypes.map(({ name }) => name), ['Commune', 'Infrequens', 'Rarum']);
   assert.deepEqual(value.mappa.currentLocation, { id: 'location-01', name: 'Santiago' });
 
@@ -446,7 +456,7 @@ test('static bootstrap applies shared presentation without starting a recurring 
     dataset, attributes: {}, textContent: '',
     setAttribute(name, value) { this.attributes[name] = value; }
   });
-  const links = Array.from({ length: 7 }, (_, index) => makeElement({
+  const links = Array.from({ length: 9 }, (_, index) => makeElement({
     pageId: `page-${String(index + 1).padStart(2, '0')}`
   }));
   const pageName = makeElement();
@@ -477,31 +487,31 @@ test('static bootstrap applies shared presentation without starting a recurring 
   const timeoutMock = t.mock.method(globalThis, 'setTimeout', () => assert.fail('static bootstrap must not schedule a timer'));
   const result = await bootstrapStaticPage('page-04', {
     documentRoot,
-    locationLike: { href: 'http://app.test/personage.html?locale=es' },
+    locationLike: { href: 'http://app.test/identitate.html?locale=es' },
     fetchFn: localFetch()
   });
   assert.ok(result);
   assert.equal(timeoutMock.mock.callCount(), 0);
   assert.equal(documentRoot.documentElement.attributes['aria-busy'], 'false');
   assert.equal(documentRoot.documentElement.lang, 'es');
-  assert.equal(documentRoot.title, 'Personage · Insidia');
-  assert.equal(meta.attributes.content, 'Título, nombre, epíteto, equipo e inventario del jugador para Insidia.');
+  assert.equal(documentRoot.title, 'Identitate · Insidia');
+  assert.equal(meta.attributes.content, 'Título, nombre, epíteto y memorias del personaje para Insidia.');
   assert.equal(links[6].textContent, 'Mappa');
   assert.equal(links[6].attributes.href, '/mappa.html?locale=es');
-  assert.equal(pageName.textContent, 'Personage');
+  assert.equal(pageName.textContent, 'Identitate');
   assert.equal(section.textContent, 'Titulo');
   assert.equal(message.textContent, 'Ubicación actual');
   assert.equal(location.textContent, 'Santiago');
   assert.equal(application.textContent, 'Insidia');
-  assert.equal(version.textContent, 'v8.18');
+  assert.equal(version.textContent, 'v8.19');
   assert.match(epoch.textContent, /1970-01-01 00:00:00 UTC/);
 });
 
-test('locale schema 8 contains only localized UI language and exact page descriptions', async () => {
+test('locale schema 9 contains only localized UI language and exact page descriptions', async () => {
   const english = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'en.json')));
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
-  assert.equal(english.schemaVersion, 8);
-  assert.equal(spanish.schemaVersion, 8);
+  assert.equal(english.schemaVersion, 9);
+  assert.equal(spanish.schemaVersion, 9);
   assert.deepEqual(Object.keys(english).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
   assert.deepEqual(Object.keys(spanish).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
   assert.equal(Object.hasOwn(english, 'outcomeTypes'), false);
@@ -528,13 +538,17 @@ test('locale schema 8 contains only localized UI language and exact page descrip
       english.templates['document.page-04Description'],
       english.templates['document.page-05Description'],
       english.templates['document.page-06Description'],
-      english.templates['document.page-07Description']
+      english.templates['document.page-07Description'],
+      english.templates['document.page-08Description'],
+      english.templates['document.page-09Description']
     ],
     [
-      'Player title, name, epithet, equipment, and inventory for {applicationName}.',
-      'Observations, decisions, investigations, and memories for {applicationName}.',
-      'Orders, champions, and minions for {applicationName}.',
-      'Current location for {applicationName}.'
+      'Character title, name, epithet, and memories for {applicationName}.',
+      'Character equipment and storage for {applicationName}.',
+      "Champions and minions under the character's command for {applicationName}.",
+      'Current location for {applicationName}.',
+      'Observations associated with the current map for {applicationName}.',
+      'Decisions associated with the current map for {applicationName}.'
     ]
   );
   assert.deepEqual(
@@ -542,13 +556,17 @@ test('locale schema 8 contains only localized UI language and exact page descrip
       spanish.templates['document.page-04Description'],
       spanish.templates['document.page-05Description'],
       spanish.templates['document.page-06Description'],
-      spanish.templates['document.page-07Description']
+      spanish.templates['document.page-07Description'],
+      spanish.templates['document.page-08Description'],
+      spanish.templates['document.page-09Description']
     ],
     [
-      'Título, nombre, epíteto, equipo e inventario del jugador para {applicationName}.',
-      'Observaciones, decisiones, investigaciones y memorias para {applicationName}.',
-      'Órdenes, campeones y esbirros para {applicationName}.',
-      'Ubicación actual para {applicationName}.'
+      'Título, nombre, epíteto y memorias del personaje para {applicationName}.',
+      'Equipo y depósito del personaje para {applicationName}.',
+      'Campeones y esbirros bajo el mando del personaje para {applicationName}.',
+      'Ubicación actual para {applicationName}.',
+      'Observaciones asociadas al mapa actual para {applicationName}.',
+      'Decisiones asociadas al mapa actual para {applicationName}.'
     ]
   );
   const calendarTemplates = {
@@ -570,6 +588,9 @@ test('locale schema 8 contains only localized UI language and exact page descrip
     assert.doesNotMatch(JSON.stringify(locale), /Morditura|Cyclus Lunae/);
     assert.doesNotMatch(JSON.stringify(locale), /Kalendis|Nonis|Idibus|Liminis|Interregis|Primus Interregno/);
     assert.doesNotMatch(JSON.stringify(locale), /dayRoman/);
+    for (const name of ['Personage','Identitate','Inventario','Subordinatos','Observationes','Decisiones','Equipamento','Deposito','Campiones','Miniones']) {
+      assert.equal(Object.values(locale.messages).includes(name), false, name);
+    }
   }
   for (const key of ['section.lunar', 'label.phase', 'label.lunarDay']) assert.equal(MESSAGE_KEYS.includes(key), false, key);
   assert.equal(MESSAGE_KEYS.includes('label.cycle'), true);
