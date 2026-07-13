@@ -2,7 +2,24 @@
 <html lang="en" aria-busy="true">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Live selected outcome state."><title>…</title><link rel="stylesheet" href="/styles.css"></head>
 <body><div class="page-shell">
-  <nav class="primary-nav" aria-label="Navigation"><a data-page-id="page-01" href="/calendario.html"></a><a data-page-id="page-02" href="/destino.html" aria-current="page"></a><a data-page-id="page-03" href="/tempore.html"></a><a data-page-id="page-04" href="/personage.html"></a><a data-page-id="page-05" href="/pensamentos.html"></a><a data-page-id="page-06" href="/commandamento.html"></a><a data-page-id="page-07" href="/mappa.html"></a></nav>
+  <header class="site-header">
+    <nav class="primary-nav" aria-label="Navigation">
+      <div class="primary-nav-categories">
+        <a id="navigation-category-personage" class="navigation-category-link" data-page-id="page-04" data-navigation-category-pages="page-04 page-05 page-06" href="/personage.html"></a>
+        <a id="navigation-category-almanac" class="navigation-category-link" data-navigation-group-id="navigation-group-01" data-navigation-target-page-id="page-01" data-navigation-category-pages="page-01 page-02 page-03" href="/calendario.html"></a>
+        <a id="navigation-category-mappa" class="navigation-category-link" data-page-id="page-07" data-navigation-category-pages="page-07" href="/mappa.html"></a>
+      </div>
+      <div class="secondary-nav" role="group" aria-labelledby="navigation-category-personage" data-navigation-submenu-pages="page-04 page-05 page-06" hidden>
+        <a data-page-id="page-05" href="/pensamentos.html"></a>
+        <a data-page-id="page-06" href="/commandamento.html"></a>
+      </div>
+      <div class="secondary-nav" role="group" aria-labelledby="navigation-category-almanac" data-navigation-submenu-pages="page-01 page-02 page-03" hidden>
+        <a data-page-id="page-01" href="/calendario.html"></a>
+        <a data-page-id="page-02" href="/destino.html" aria-current="page"></a>
+        <a data-page-id="page-03" href="/tempore.html"></a>
+      </div>
+    </nav>
+  </header>
   <main class="container">
     <h1 id="page-heading" class="visually-hidden" data-page-name></h1>
     <section class="outcome-section" aria-labelledby="page-heading"><p id="outcome-body" class="outcome-body"></p><p id="outcome-type" class="outcome-type"></p><p id="outcome-attempts" class="outcome-attempts"></p><p id="outcome-source" class="outcome-source"></p><p id="outcome-progress" class="outcome-progress"></p><p id="outcome-rule" class="outcome-rule"></p><p id="outcome-tiebreak" class="outcome-tiebreak" hidden></p></section>
@@ -21,7 +38,7 @@
       <article class="orbital-body" data-body-id="body-06"><p class="orbital-name" data-orbital-name></p><p class="orbital-period" data-orbital-period></p><p class="orbital-metadata" data-orbital-metadata></p><div class="orbital-progress-row"><progress max="1" value="0"></progress><span class="orbital-percentage" data-orbital-percentage></span></div></article>
     </div></section>
     <section class="progress-section" aria-labelledby="progress-heading"><p id="progress-heading" class="section-label" data-message-key="section.progress"></p><div class="progress-item"><div class="progress-heading-row"><label for="tide-progress" data-message-key="label.currentTideProgress"></label><span id="tide-progress-value">0.000000%</span></div><progress id="tide-progress" max="100" value="0"></progress></div></section>
-    <footer><span data-application-name></span><span aria-hidden="true"> · </span><span data-epoch></span><span aria-hidden="true"> · </span><span class="version footer-version" data-version>v8.17</span></footer>
+    <footer><span data-application-name></span><span aria-hidden="true"> · </span><span data-epoch></span><span aria-hidden="true"> · </span><span class="version footer-version" data-version>v8.18</span></footer>
   </main>
 </div><script type="module" src="/destino-page.js"></script></body>
 </html>

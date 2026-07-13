@@ -74,13 +74,14 @@ test('query parameters cannot change the nomenclature request', async () => {
 
 test('production nomenclature validates complete neutral ID coverage', async () => {
   const value = validateNomenclature(await readJson(nomenclaturePath));
-  assert.equal(value.schemaVersion, 8);
+  assert.equal(value.schemaVersion, 9);
   assert.deepEqual(value.lunarCycle, { name: 'Cyclus Lunae' });
   assert.deepEqual(Object.keys(value.lunarCycle), ['name']);
   assert.equal(value.calendar.yearName, 'Annus Solis');
   assert.deepEqual(Object.keys(value.calendar).sort(), ['interRegna', 'monthReign', 'namedDays', 'weekdays', 'yearName']);
   assert.equal(Object.hasOwn(value.calendar, 'months'), false);
   assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03', 'page-04', 'page-05', 'page-06', 'page-07']);
+  assert.deepEqual(value.navigationGroups, [{ id: 'navigation-group-01', name: 'Almanac' }]);
   assert.deepEqual(value.pageSections.map(({ id }) => id), Array.from({ length: 12 }, (_, index) => `page-section-${String(index + 1).padStart(2, '0')}`));
   assert.deepEqual(value.outcomeTypes, [
     { id: 'outcome-tier-01', name: 'Commune' },
@@ -253,6 +254,25 @@ test('nomenclature page names require exact IDs, valid names, and no route field
   const nonString = structuredClone(valid); nonString.pages[0].name = 7;
   const route = structuredClone(valid); route.pages[0].route = '/other.html';
   for (const invalid of [missing, duplicate, unknown, empty, nonString, route]) {
+    assert.throws(() => validateNomenclature(invalid));
+  }
+});
+
+test('navigation-group nomenclature requires its exact canonical name-only entity', async () => {
+  const valid = await readJson(nomenclaturePath);
+  assert.deepEqual(validateNomenclature(valid).navigationGroups, [
+    { id: 'navigation-group-01', name: 'Almanac' }
+  ]);
+  const missingCollection = structuredClone(valid); delete missingCollection.navigationGroups;
+  const missingEntity = structuredClone(valid); missingEntity.navigationGroups.pop();
+  const duplicate = structuredClone(valid); duplicate.navigationGroups.push({ id: 'navigation-group-01', name: 'Duplicate' });
+  const unknown = structuredClone(valid); unknown.navigationGroups[0].id = 'navigation-group-99';
+  const empty = structuredClone(valid); empty.navigationGroups[0].name = '';
+  const nonString = structuredClone(valid); nonString.navigationGroups[0].name = 1;
+  const additional = structuredClone(valid); additional.navigationGroups[0].description = 'Group';
+  const route = structuredClone(valid); route.navigationGroups[0].route = '/almanac.html';
+  const children = structuredClone(valid); children.navigationGroups[0].pageIds = ['page-01'];
+  for (const invalid of [missingCollection, missingEntity, duplicate, unknown, empty, nonString, additional, route, children]) {
     assert.throws(() => validateNomenclature(invalid));
   }
 });
@@ -473,7 +493,7 @@ test('static bootstrap applies shared presentation without starting a recurring 
   assert.equal(message.textContent, 'Ubicación actual');
   assert.equal(location.textContent, 'Santiago');
   assert.equal(application.textContent, 'Insidia');
-  assert.equal(version.textContent, 'v8.17');
+  assert.equal(version.textContent, 'v8.18');
   assert.match(epoch.textContent, /1970-01-01 00:00:00 UTC/);
 });
 

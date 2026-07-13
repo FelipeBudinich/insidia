@@ -47,15 +47,15 @@ async function listSourceFiles(directory) {
   return nested.flat();
 }
 
-test('package and visible application versions are v8.17', async () => {
+test('package and visible application versions are v8.18', async () => {
   const [packageJson, packageLock, bootstrap] = await Promise.all([
     readFile(path.join(root, 'package.json'), 'utf8'),
     readFile(path.join(root, 'package-lock.json'), 'utf8'),
     readPublic('app-bootstrap.js')
   ]);
-  assert.equal(JSON.parse(packageJson).version, '8.17.0');
-  assert.equal(JSON.parse(packageLock).version, '8.17.0');
-  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.17'/);
+  assert.equal(JSON.parse(packageJson).version, '8.18.0');
+  assert.equal(JSON.parse(packageLock).version, '8.18.0');
+  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.18'/);
 });
 
 test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async () => {
@@ -192,14 +192,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each configured page has one localized v8.17 footer version', async () => {
+test('each configured page has one localized v8.18 footer version', async () => {
   for (const file of ['calendario.html','destino.html','tempore.html','personage.html','pensamentos.html','commandamento.html','mappa.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.17/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.18/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -224,6 +224,43 @@ test('new pages use neutral IDs, fixed routes, one active link, and renamed modu
     assert.match(html, new RegExp(`src="/${module}"`));
     assert.doesNotMatch(html, /data-page-link/);
   }
+});
+
+test('all pages use the exact neutral two-level navigation hierarchy', async () => {
+  const files = ['calendario.html','destino.html','tempore.html','personage.html','pensamentos.html','commandamento.html','mappa.html'];
+  for (const file of files) {
+    const html = await readPublic(file);
+    assert.equal((html.match(/<header class="site-header">/g) ?? []).length, 1, file);
+    assert.equal((html.match(/<nav class="primary-nav"/g) ?? []).length, 1, file);
+    assert.equal((html.match(/<div class="primary-nav-categories">/g) ?? []).length, 1, file);
+    assert.equal((html.match(/class="navigation-category-link"/g) ?? []).length, 3, file);
+    assert.equal((html.match(/<div class="secondary-nav"/g) ?? []).length, 2, file);
+    assert.equal((html.match(/data-page-id=/g) ?? []).length, 7, file);
+    assert.equal((html.match(/data-navigation-group-id=/g) ?? []).length, 1, file);
+    assert.equal((html.match(/data-navigation-target-page-id="page-01"/g) ?? []).length, 1, file);
+    assert.equal((html.match(/<a\b[^>]*>\s*<\/a>/g) ?? []).length, 8, file);
+
+    const categoryStart = html.indexOf('<div class="primary-nav-categories">');
+    const categories = html.slice(categoryStart, html.indexOf('</div>', categoryStart));
+    const categoryAnchors = [...categories.matchAll(/<a\b([^>]*)><\/a>/g)].map((match) => match[1]);
+    assert.equal(categoryAnchors.length, 3, file);
+    assert.match(categoryAnchors[0], /data-page-id="page-04"/);
+    assert.match(categoryAnchors[1], /data-navigation-group-id="navigation-group-01"/);
+    assert.match(categoryAnchors[2], /data-page-id="page-07"/);
+
+    const submenus = [...html.matchAll(/<div class="secondary-nav"([^>]*)>([\s\S]*?)<\/div>/g)];
+    const personage = submenus.find((match) => match[1].includes('navigation-category-personage'));
+    const almanac = submenus.find((match) => match[1].includes('navigation-category-almanac'));
+    assert.ok(personage, file);
+    assert.ok(almanac, file);
+    assert.match(personage[1], /data-navigation-submenu-pages="page-04 page-05 page-06"[^>]*hidden/);
+    assert.deepEqual([...personage[2].matchAll(/data-page-id="([^"]+)"/g)].map((match) => match[1]), ['page-05', 'page-06']);
+    assert.match(almanac[1], /data-navigation-submenu-pages="page-01 page-02 page-03"[^>]*hidden/);
+    assert.deepEqual([...almanac[2].matchAll(/data-page-id="([^"]+)"/g)].map((match) => match[1]), ['page-01', 'page-02', 'page-03']);
+    assert.doesNotMatch(html, /href="\/almanac\.html"|data-page-id="page-08"/);
+  }
+  await assert.rejects(readPublic('almanac.html'));
+  await assert.rejects(readPublic('almanac-page.js'));
 });
 
 test('static page shells contain only their exact neutral configured sections', async () => {
@@ -266,8 +303,25 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   assert.match(css, /\.date p\s*\{\s*margin:\s*0;/);
   assert.match(css, /\.year\s*\{[^}]*font-size:[^}]*font-weight:/);
   assert.match(css, /\.period\s*\{[^}]*margin-top:[^}]*font-size:/);
-  assert.match(css, /repeat\(auto-fit, minmax\(7rem, 1fr\)\)/);
-  assert.match(css, /gap:\s*1px/);
+  const body = css.match(/body\s*\{[^}]*\}/)?.[0] ?? '';
+  const pageShell = css.match(/\.page-shell\s*\{[^}]*\}/)?.[0] ?? '';
+  const siteHeader = css.match(/\.site-header\s*\{[^}]*\}/)?.[0] ?? '';
+  const primaryNav = css.match(/\.primary-nav\s*\{[^}]*\}/)?.[0] ?? '';
+  const categories = css.match(/\.primary-nav-categories\s*\{[^}]*\}/)?.[0] ?? '';
+  const secondary = css.match(/\.secondary-nav\s*\{[^}]*\}/)?.[0] ?? '';
+  assert.doesNotMatch(body, /display:\s*grid|place-items:\s*center/);
+  assert.match(body, /padding:\s*0 1\.25rem 1\.25rem/);
+  assert.match(pageShell, /margin-inline:\s*auto/);
+  assert.match(siteHeader, /position:\s*sticky/);
+  assert.match(siteHeader, /top:\s*0/);
+  assert.match(siteHeader, /z-index:\s*(?:[1-9]\d*)/);
+  assert.match(siteHeader, /background:\s*Canvas/);
+  assert.doesNotMatch(siteHeader, /position:\s*fixed/);
+  assert.doesNotMatch(primaryNav, /display:\s*grid|grid-template-columns|gap:|margin-bottom/);
+  assert.match(categories, /grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(secondary, /grid-template-columns:\s*repeat\(auto-fit, minmax\(7rem, 1fr\)\)/);
+  assert.match(css, /\.secondary-nav\[hidden\]\s*\{\s*display:\s*none/);
+  assert.match(css, /\.navigation-category-link\[data-active-section="true"\]/);
   assert.doesNotMatch(css, /\.primary-nav a \+ a/);
   for (const selector of ['.content-section', '.location-section', '.content-section-title', '.location-name']) {
     assert.ok(css.includes(selector), selector);

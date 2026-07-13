@@ -38,6 +38,10 @@ export const PAGE_DEFINITIONS = Object.freeze({
 
 export const PAGE_IDS = Object.freeze(Object.keys(PAGE_DEFINITIONS));
 
+export const NAVIGATION_GROUP_IDS = Object.freeze([
+  'navigation-group-01'
+]);
+
 export const PAGE_SECTION_IDS = Object.freeze([
   'page-section-01',
   'page-section-02',

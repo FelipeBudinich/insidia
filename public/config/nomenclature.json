@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "application": {
     "displayName": "Insidia"
   },
@@ -11,6 +11,9 @@
     { "id": "page-05", "name": "Pensamentos" },
     { "id": "page-06", "name": "Commandamento" },
     { "id": "page-07", "name": "Mappa" }
+  ],
+  "navigationGroups": [
+    { "id": "navigation-group-01", "name": "Almanac" }
   ],
   "pageSections": [
     { "id": "page-section-01", "name": "Titulo" },

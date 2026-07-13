@@ -21,6 +21,7 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
   const locale = localeResult.locale;
   const maps = {
     pages: mapItems(nomenclature.pages),
+    navigationGroups: mapItems(nomenclature.navigationGroups),
     pageSections: mapItems(nomenclature.pageSections),
     monthRulers: mapItems(nomenclature.calendar.monthReign.rulers),
     reignOrdinals: mapItems(nomenclature.calendar.monthReign.ordinals),
@@ -46,6 +47,7 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
     localeSchemaVersion: localeResult.schemaVersion,
     languageTag: locale.languageTag,
     getPage: (id) => requireMapped(maps.pages, id, 'page'),
+    getNavigationGroup: (id) => requireMapped(maps.navigationGroups, id, 'navigation group'),
     getPageSection: (id) => requireMapped(maps.pageSections, id, 'page section'),
     getMonthRuler: (id) => requireMapped(maps.monthRulers, id, 'month ruler'),
     getReignOrdinal: (id) => requireMapped(maps.reignOrdinals, id, 'reign ordinal'),

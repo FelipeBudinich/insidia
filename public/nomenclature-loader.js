@@ -11,12 +11,12 @@ import {
   TIDE_RULES,
   WEEKDAY_IDS
 } from './core/rules.js';
-import { PAGE_IDS, PAGE_SECTION_IDS } from './page-definitions.js';
+import { NAVIGATION_GROUP_IDS, PAGE_IDS, PAGE_SECTION_IDS } from './page-definitions.js';
 
 export const NOMENCLATURE_PATH = '/config/nomenclature.json';
 
 const TOP_LEVEL_KEYS = Object.freeze([
-  'schemaVersion', 'application', 'pages', 'pageSections', 'outcomeTypes', 'mappa',
+  'schemaVersion', 'application', 'pages', 'navigationGroups', 'pageSections', 'outcomeTypes', 'mappa',
   'calendar', 'seasons', 'lunarPhases', 'lunarCycle', 'tides', 'celestialBodies', 'pulls'
 ]);
 
@@ -76,10 +76,11 @@ function validateEntities(items, expectedIds, label, entityKeys) {
 
 export function validateNomenclature(nomenclature) {
   assertExactKeys(nomenclature, TOP_LEVEL_KEYS, 'nomenclature');
-  if (nomenclature.schemaVersion !== 8) throw new Error('nomenclature schemaVersion must be 8');
+  if (nomenclature.schemaVersion !== 9) throw new Error('nomenclature schemaVersion must be 9');
   assertExactKeys(nomenclature.application, ['displayName'], 'nomenclature.application');
   assertNonEmptyString(nomenclature.application.displayName, 'nomenclature.application.displayName');
   validateEntities(nomenclature.pages, PAGE_IDS, 'nomenclature.pages', ['id', 'name']);
+  validateEntities(nomenclature.navigationGroups, NAVIGATION_GROUP_IDS, 'nomenclature.navigationGroups', ['id', 'name']);
   validateEntities(nomenclature.pageSections, PAGE_SECTION_IDS, 'nomenclature.pageSections', ['id', 'name']);
   validateEntities(nomenclature.outcomeTypes, OUTCOME_TYPE_RULES.map(({ id }) => id), 'nomenclature.outcomeTypes', ['id', 'name']);
   assertExactKeys(nomenclature.mappa, ['currentLocation'], 'nomenclature.mappa');

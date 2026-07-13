@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.17 is a browser-calculated fictional calendar and world-state interface. It has three live pages and four configuration-driven static pages, one fixed in-game nomenclature configuration, and localized generic UI language. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time calculations.
+Insidia v8.18 is a browser-calculated fictional calendar and world-state interface. It has three live pages and four configuration-driven static pages, one fixed in-game nomenclature configuration, and localized generic UI language. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time calculations.
 
 ## Run locally
 
@@ -16,7 +16,17 @@ Open [http://localhost:3000](http://localhost:3000). Set `PORT` to override port
 
 ## Pages and navigation
 
-The page registry contains exactly seven stable IDs, fixed routes, and nomenclature-owned names. Every page renders all seven configured names in the same responsive navigation and preserves only the resolved `locale` query value in its links.
+The page registry contains exactly seven stable IDs, fixed routes, and nomenclature-owned names. Every page uses the same two-level sticky navigation and preserves only the resolved `locale` query value in its links.
+
+The top category row is always Personage, Almanac, Mappa. Personage opens `/personage.html`; Almanac is the configured `navigation-group-01` label and opens `/calendario.html`; Mappa opens `/mappa.html`. Almanac is navigation infrastructure, not an eighth page: there is no `/almanac.html`, page ID, redirect, or page module.
+
+Only the active category's submenu appears:
+
+- Personage pages (`page-04` through `page-06`): Pensamentos, Commandamento
+- Almanac pages (`page-01` through `page-03`): Calendario, Destino, Tempore
+- Mappa (`page-07`): no submenu
+
+The actual page link alone receives `aria-current="page"`. The active top category receives `data-active-section="true"`, so Almanac can show category context without falsely claiming to be the current page.
 
 | ID | Name | Route | Behavior |
 |---|---|---|---|
@@ -56,11 +66,12 @@ Locale schema 8 contains exactly `schemaVersion`, `id`, `languageTag`, `messages
 
 ## Fixed nomenclature
 
-The browser always loads the single production nomenclature file from the fixed same-origin URL `/config/nomenclature.json`. It uses schema 8. Editing and redeploying this file is sufficient to rename the application, pages, page sections, current location, outcome classifications, calendar names, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls.
+The browser always loads the single production nomenclature file from the fixed same-origin URL `/config/nomenclature.json`. It uses schema 9. Editing and redeploying this file is sufficient to rename the application, navigation groups, pages, page sections, current location, outcome classifications, calendar names, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls.
 
 The active configured terms include:
 
 - Application: Insidia
+- Navigation group: Almanac (`navigation-group-01`)
 - Pages: Calendario, Destino, Tempore, Personage, Pensamentos, Commandamento, Mappa
 - Page sections: Titulo, Nomine, Epitheto, Equipamento, Inventario, Observationes, Decisiones, Investigationes, Memorias, Ordines, Campiones, Miniones
 - Current location: Santiago (`location-01`)
@@ -78,9 +89,9 @@ The active configured terms include:
 - Orbital Pulls: Attraction dominante, Attraction minor, Attraction divergente
 - Celestial bodies: ☿ Mercurius, ♀ Venus, ♂ Mars, ♃ Jupiter, ♄ Saturnus, ☾ Luna
 
-These terms are fixed in-universe nomenclature and remain identical in English and Spanish. Validation requires every canonical ID in canonical order and exact entity shapes. It rejects missing, duplicate, unknown, reordered, empty, non-string, extra, localized, and mechanical fields. Routes remain fixed application infrastructure in `public/page-definitions.js`; they are never generated from configured names.
+These terms are fixed in-universe nomenclature and remain identical in English and Spanish. Validation requires every canonical ID in canonical order and exact entity shapes. It rejects missing, duplicate, unknown, reordered, empty, non-string, extra, localized, and mechanical fields. Page routes and navigation hierarchy remain fixed application infrastructure; visible page and navigation-group names come from nomenclature and never generate routes.
 
-The presentation context clones and deeply freezes configured entities. It exposes stable getters for pages, page sections, outcome types, calendar entities, seasons, lunar phases, tides, celestial bodies, and Pulls, plus the frozen current location.
+The presentation context clones and deeply freezes configured entities. It exposes stable getters for navigation groups, pages, page sections, outcome types, calendar entities, seasons, lunar phases, tides, celestial bodies, and Pulls, plus the frozen current location.
 
 ## Calendario presentation
 
@@ -102,7 +113,7 @@ For the representative state it reads `Cyclus Lunae MCCXXXIV · Morditura`. This
 
 ## Destino outcomes
 
-Outcome names are schema-8 nomenclature, not translations:
+Outcome names are schema-9 nomenclature, not translations:
 
 - `outcome-tier-01` → Commune
 - `outcome-tier-02` → Infrequens
@@ -139,13 +150,13 @@ All mechanics are deterministic browser-side calculations. Calendar and lunar el
 ## Architecture and request topology
 
 1. `public/core/` contains immutable numeric rules and presentation-neutral mechanics.
-2. `public/config/nomenclature.json` contains the single schema-8 in-game vocabulary.
+2. `public/config/nomenclature.json` contains the single schema-9 in-game vocabulary.
 3. `public/locales/` contains schema-8 generic UI messages and templates.
 4. `public/presentation-context-loader.js` starts exactly one locale request and one nomenclature request concurrently.
 5. `public/nomenclature.js` builds the frozen presentation context.
 6. `public/app-bootstrap.js` applies common document presentation, then either starts live state or completes a static page.
 
-Every page uses the same two concurrent configuration requests. The new pages introduce no page-specific configuration request.
+Every page uses the same two concurrent configuration requests. The navigation hierarchy introduces no page-specific configuration request.
 
 The project has no frontend framework, build system, runtime dependency, database, backend time API, WebSocket, authentication, external font, date library, server-side rendering, service worker, geolocation integration, or external map integration.
 
@@ -154,7 +165,7 @@ The project has no frontend framework, build system, runtime dependency, databas
 `createCalendarJson()` remains a public serialization API even though no page exposes a visible JSON or clipboard control. Its top-level fields are:
 
 - `calendarVersion: "v19"`
-- `nomenclature`: schema version 8 and application display name
+- `nomenclature`: schema version 9 and application display name
 - `locale`: requested/resolved IDs, language tag, and schema version 8
 - `source`: Unix milliseconds and ISO UTC
 - `state`: raw canonical IDs and numeric mechanics without configured names or symbols
@@ -170,13 +181,13 @@ English and Spanish JSON snapshots have identical raw state and identical `displ
 | Seven page routes | Static HTML described above |
 | `/config/nomenclature.json` | Single read-only nomenclature configuration |
 | `/locales/en.json`, `/locales/es.json` | Allowlisted locale files |
-| `/health` | `{"ok":true,"version":"v8.17"}` |
+| `/health` | `{"ok":true,"version":"v8.18"}` |
 
 The built-in-module Node server supports GET and HEAD, explicit MIME types, `Cache-Control: no-cache` for HTML/CSS/JavaScript/JSON, deterministic weak ETags, Last-Modified validation, bodyless 304 responses, CSP and related security headers, safe traversal/dotfile rejection, generic errors, canonical HTTPS redirects, and graceful shutdown. It has no special handlers for the four new pages.
 
 ## Editing configuration
 
-When editing nomenclature, retain schema 8, all canonical IDs, canonical ordering, and exact entity shapes. Keep translations, UI templates, routes, durations, orbital periods, thresholds, priorities, and other mechanics out of the file.
+When editing nomenclature, retain schema 9, all canonical IDs, canonical ordering, and exact entity shapes. Keep translations, UI templates, routes, submenu membership, durations, orbital periods, thresholds, priorities, and other mechanics out of the file.
 
 When adding a locale, translate every required message and template, retain the exact schema-8 top-level shape, add its fixed same-origin path to `LOCALE_FILES`, and do not duplicate nomenclature-owned names.
 

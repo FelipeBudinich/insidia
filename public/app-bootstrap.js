@@ -2,8 +2,15 @@ import { getPageDefinition } from './page-definitions.js';
 import { loadPresentationContext } from './presentation-context-loader.js';
 import { startLiveState } from './live-state.js';
 
-const APPLICATION_VERSION = '8.17';
+const APPLICATION_VERSION = '8.18';
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
+
+function parsePageIdList(value) {
+  return String(value ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+}
 
 export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
   documentRoot.documentElement.lang = context.languageTag;
@@ -30,6 +37,22 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
     link.textContent = targetPage.name;
     link.setAttribute('href', `${targetDefinition.route}?${query}`);
   }
+  for (const link of documentRoot.querySelectorAll('[data-navigation-group-id]')) {
+    const navigationGroup = context.getNavigationGroup(link.dataset.navigationGroupId);
+    const targetDefinition = getPageDefinition(link.dataset.navigationTargetPageId);
+    link.textContent = navigationGroup.name;
+    link.setAttribute('href', `${targetDefinition.route}?${query}`);
+  }
+  for (const element of documentRoot.querySelectorAll('[data-navigation-category-pages]')) {
+    if (parsePageIdList(element.dataset.navigationCategoryPages).includes(pageId)) {
+      element.setAttribute('data-active-section', 'true');
+    } else {
+      element.removeAttribute('data-active-section');
+    }
+  }
+  for (const element of documentRoot.querySelectorAll('[data-navigation-submenu-pages]')) {
+    element.hidden = !parsePageIdList(element.dataset.navigationSubmenuPages).includes(pageId);
+  }
   for (const element of documentRoot.querySelectorAll('[data-page-name]')) {
     element.textContent = page.name;
   }
@@ -46,7 +69,7 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
     element.textContent = context.applicationDisplayName;
   }
   for (const element of documentRoot.querySelectorAll('[data-version]')) {
-    element.textContent = 'v8.17';
+    element.textContent = 'v8.18';
     element.setAttribute('aria-label', context.format('accessibility.version', {
       label: context.message('accessibility.applicationVersion'),
       version: APPLICATION_VERSION
