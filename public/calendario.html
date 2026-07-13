@@ -2,7 +2,7 @@
 <html lang="en" aria-busy="true">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Live fictional date and lunar state."><title>…</title>
+  <meta name="description" content="Live fictional date, lunar state, and season state."><title>…</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body><div class="page-shell">
@@ -21,8 +21,35 @@
         <p id="lunar-phase-subtitle" class="period"></p>
       </div>
     </section>
+    <section class="season-section" aria-labelledby="season-heading">
+      <p
+        id="season-heading"
+        class="section-label"
+        data-message-key="section.season"
+      ></p>
+      <p class="season-name" data-season-name></p>
+      <p class="season-metadata" data-season-metadata></p>
+      <p
+        class="season-cycle-metadata"
+        data-season-cycle-metadata
+      ></p>
+      <p
+        class="season-cycle-metadata"
+        data-season-next
+      ></p>
+      <div class="weather-progress">
+        <div class="weather-progress-heading">
+          <span data-season-progress></span>
+        </div>
+        <progress
+          max="1"
+          value="0"
+          data-season-progress-bar
+        ></progress>
+      </div>
+    </section>
     <footer>
-      <span data-application-name></span><span aria-hidden="true"> · </span><span data-epoch></span><span aria-hidden="true"> · </span><span class="version footer-version" data-version>v8.10</span>
+      <span data-application-name></span><span aria-hidden="true"> · </span><span data-epoch></span><span aria-hidden="true"> · </span><span class="version footer-version" data-version>v8.11</span>
     </footer>
   </main>
 </div><script type="module" src="/calendario-page.js"></script></body>

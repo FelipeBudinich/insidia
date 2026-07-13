@@ -22,7 +22,7 @@ test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async
   assert.match(script, /bootstrapPage\('page-01', createCalendarioPageRenderer\)/);
 });
 
-test('Calendario preserves date and lunar structures in visible order', async () => {
+test('Calendario preserves date and lunar structures and adds season before the footer', async () => {
   const html = await readPublic('calendario.html');
   for (const id of ['fictional-year','fictional-period','fictional-date-accessible','lunar-cycle-title','lunar-phase-subtitle']) {
     assert.match(html, new RegExp(`id="${id}"`));
@@ -37,8 +37,32 @@ test('Calendario preserves date and lunar structures in visible order', async ()
   assert.match(card, /id="fictional-date-accessible" class="visually-hidden"/);
   const calendarIndex = html.indexOf('<section class="calendar-card"');
   const lunarIndex = html.indexOf('<section class="lunar-section"');
+  const seasonIndex = html.indexOf('<section class="season-section"');
   const footerIndex = html.indexOf('<footer>');
-  assert.ok(calendarIndex < lunarIndex && lunarIndex < footerIndex);
+  assert.ok(calendarIndex < lunarIndex && lunarIndex < seasonIndex && seasonIndex < footerIndex);
+});
+
+test('Calendario season card reuses the exact shared renderer markup contract once', async () => {
+  const html = await readPublic('calendario.html');
+  const start = html.indexOf('<section class="season-section"');
+  const section = html.slice(start, html.indexOf('</section>', start) + '</section>'.length);
+  assert.ok(start >= 0);
+  assert.match(section, /<section class="season-section" aria-labelledby="season-heading">/);
+  assert.match(section, /id="season-heading"/);
+  assert.match(section, /data-message-key="section\.season"/);
+  for (const attribute of [
+    'data-season-name',
+    'data-season-metadata',
+    'data-season-cycle-metadata',
+    'data-season-next',
+    'data-season-progress',
+    'data-season-progress-bar'
+  ]) {
+    assert.equal((html.match(new RegExp(`${attribute}(?=[\\s>])`, 'g')) ?? []).length, 1, attribute);
+    assert.match(section, new RegExp(`${attribute}(?=[\\s>])`));
+  }
+  assert.match(section, /<progress\s+max="1"\s+value="0"\s+data-season-progress-bar\s*><\/progress>/s);
+  assert.doesNotMatch(html, /data-calendar-season-name|id="calendario-season"|id="calendar-season-progress"/);
 });
 
 test('Calendario lunar card mirrors the two-line calendar title hierarchy', async () => {
@@ -80,16 +104,19 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
     'id="lunar-day-progress"', 'id="day-progress"', 'id="hour-progress"'
   ]) assert.ok(html.includes(preserved), preserved);
   assert.match(script, /bootstrapPage\('page-03', createTemporePageRenderer\)/);
+  assert.match(script, /import \{[^}]*createSeasonRenderer[^}]*\} from '\.\/renderers\.js';/);
+  assert.match(script, /const renderSeason = createSeasonRenderer\(root, context\);/);
+  assert.match(script, /renderSeason\(state\)/);
 });
 
-test('each renamed page has one localized v8.10 footer version', async () => {
+test('each renamed page has one localized v8.11 footer version', async () => {
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.10/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.11/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -149,6 +176,24 @@ test('Calendario renderer arranges presentation-ready lunar title and subtitle v
   assert.match(renderer, /lunarCycleTitle\.textContent = `\$\{display\.lunar\.cycleName\} \$\{display\.lunar\.formattedCycle\}`/);
   assert.match(renderer, /lunarPhaseSubtitle\.textContent = display\.lunar\.phase\.name/);
   assert.equal((renderer.match(/createDisplayData\(state, context\)/g) ?? []).length, 1);
+});
+
+test('Calendario composes the shared season renderer without duplicating season formatting', async () => {
+  const renderer = await readPublic('calendario-page.js');
+  assert.match(renderer, /import \{ createSeasonRenderer \} from '\.\/renderers\.js';/);
+  assert.match(renderer, /const renderSeason = createSeasonRenderer\(root, context\);/);
+  assert.equal((renderer.match(/createSeasonRenderer\(root, context\)/g) ?? []).length, 1);
+  assert.match(renderer, /return function renderCalendario\(state\) \{[\s\S]*renderSeason\(state\);[\s\S]*\};/);
+  for (const duplicated of [
+    "context.format('season.metadata'",
+    "context.format('season.cycle'",
+    "context.format('season.next'",
+    "context.format('season.progress'",
+    'context.getSeason(state.season.id)',
+    'data-season-progress-bar',
+    '.progress.season',
+    'fetch('
+  ]) assert.equal(renderer.includes(duplicated), false, duplicated);
 });
 
 test('Calendario rendering path omits removed numeric progress indicators', async () => {

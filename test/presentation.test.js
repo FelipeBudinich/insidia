@@ -17,7 +17,7 @@ import { validateNomenclature } from '../public/nomenclature-loader.js';
 import { createPresentationContext } from '../public/nomenclature.js';
 import { PAGE_DEFINITIONS, PAGE_IDS } from '../public/page-definitions.js';
 import { createCalendarJson, createDisplayData, formatFictionalYear, formatLunarSummary, formatMonthReignName } from '../public/presentation.js';
-import { formatAttemptsUntilRare } from '../public/renderers.js';
+import { createSeasonRenderer, formatAttemptsUntilRare } from '../public/renderers.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readJson = async (...parts) => JSON.parse(await readFile(path.join(root, ...parts), 'utf8'));
@@ -67,6 +67,21 @@ async function context(localeId = 'en', nomenclature, requestedLocaleId = locale
     nomenclatureResult: { schemaVersion: activeNomenclature.schemaVersion, nomenclature: activeNomenclature },
     localeResult: { requestedLocaleId, resolvedLocaleId: localeId, schemaVersion: locale.schemaVersion, locale }
   });
+}
+
+function createSeasonRendererRoot() {
+  const elements = new Map([
+    '[data-season-name]',
+    '[data-season-metadata]',
+    '[data-season-cycle-metadata]',
+    '[data-season-next]',
+    '[data-season-progress]',
+    '[data-season-progress-bar]'
+  ].map((selector) => [selector, { textContent: '', value: 0 }]));
+  return {
+    elements,
+    querySelector(selector) { return elements.get(selector) ?? null; }
+  };
 }
 
 function renamedNomenclature(value) {
@@ -242,6 +257,35 @@ test('Inter Regnum dates use weekday, Roman day, and configured period name', as
   assert.equal(display.calendar.month, null);
   assert.deepEqual(display.calendar.interRegnum, { id: 'interregnum-01', name: 'Inter Regnum 1 → 2' });
   assert.equal(display.calendar.periodLabel, 'Dies Martis · I Inter Regnum 1 → 2');
+});
+
+test('shared season renderer localizes generic text while preserving configured names and numeric state', async () => {
+  const englishState = calculateCalendarState(0);
+  const spanishState = calculateCalendarState(0);
+  const seasonBeforeRender = structuredClone(englishState.season);
+  const rendered = {};
+  for (const [localeId, state] of [['en', englishState], ['es', spanishState]]) {
+    const rootElement = createSeasonRendererRoot();
+    const renderSeason = createSeasonRenderer(rootElement, await context(localeId));
+    renderSeason(state);
+    rendered[localeId] = Object.fromEntries(
+      [...rootElement.elements].map(([selector, element]) => [selector, { ...element }])
+    );
+  }
+  assert.deepEqual(englishState.season, spanishState.season);
+  assert.deepEqual(englishState.season, seasonBeforeRender);
+  assert.equal(rendered.en['[data-season-name]'].textContent, 'Ossos');
+  assert.equal(rendered.es['[data-season-name]'].textContent, 'Ossos');
+  assert.equal(rendered.en['[data-season-metadata]'].textContent, 'Day 1 of 179 · Cycle 1');
+  assert.equal(rendered.es['[data-season-metadata]'].textContent, 'Día 1 de 179 · Ciclo 1');
+  assert.equal(rendered.en['[data-season-cycle-metadata]'].textContent, 'Seasonal Day 1 of 358');
+  assert.equal(rendered.es['[data-season-cycle-metadata]'].textContent, 'Día estacional 1 de 358');
+  assert.equal(rendered.en['[data-season-next]'].textContent, 'Next: Lacrimas');
+  assert.equal(rendered.es['[data-season-next]'].textContent, 'Siguiente: Lacrimas');
+  assert.equal(rendered.en['[data-season-progress]'].textContent, 'Progress: 0.000000%');
+  assert.equal(rendered.es['[data-season-progress]'].textContent, 'Progreso: 0.000000%');
+  assert.equal(rendered.en['[data-season-progress-bar]'].value, 0);
+  assert.equal(rendered.es['[data-season-progress-bar]'].value, 0);
 });
 
 test('representative lunar state produces one exact locale-invariant Roman summary', async () => {
@@ -471,23 +515,25 @@ test('navigation applies only resolved locale and fixed application metadata', a
   };
   applyCommonDocumentPresentation(documentRoot, 'page-01', await context('es'));
   assert.equal(documentRoot.title, 'Calendario · Insidia');
+  assert.equal(meta.content, 'Fecha ficticia, estado lunar y estado estacional en vivo para Insidia.');
   assert.deepEqual(links.map(({ attributes }) => attributes.href), ['/calendario.html?locale=es','/destino.html?locale=es','/tempore.html?locale=es']);
   assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore']);
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.10');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.10');
+  assert.equal(versionElements[0].textContent, 'v8.11');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.11');
   applyCommonDocumentPresentation(documentRoot, 'page-01', await context('en'));
-  assert.equal(versionElements[0]['aria-label'], 'Application version 8.10');
+  assert.equal(meta.content, 'Live fictional date, lunar state, and season state for Insidia.');
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.11');
 });
 
-test('static HTML remains neutral and uses v8.10 page IDs and application placeholders', async () => {
+test('static HTML remains neutral and uses v8.11 page IDs and application placeholders', async () => {
   const properNouns = ['Insidia','Calendario','Destino','Tempore','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.10/);
+    assert.match(html, /data-version>v8\.11/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);
