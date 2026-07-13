@@ -88,7 +88,6 @@ body {
 .lunar-time { margin: 0.25rem 0 0; line-height: 1.45; }
 .lunar-metadata { color: color-mix(in srgb, CanvasText 78%, Canvas); }
 .lunar-time { color: color-mix(in srgb, CanvasText 68%, Canvas); font-variant-numeric: tabular-nums; }
-.lunar-summary { margin-top: 0; }
 .time-grid { display: grid; gap: 1rem; }
 .time-item p { margin: 0; }
 .weather-clock { margin-top: 0.25rem !important; font-size: clamp(1.8rem, 10vw, 2.75rem); font-variant-numeric: tabular-nums; font-weight: 700; letter-spacing: -0.04em; white-space: nowrap; }

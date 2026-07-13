@@ -257,6 +257,12 @@ test('representative lunar state produces one exact locale-invariant Roman summa
   assert.equal(english.lunar.cycleName, 'Cyclus Lunae');
   assert.equal(english.lunar.formattedCycle, 'MCCXXXIV');
   assert.equal(english.lunar.formattedSummary, 'Morditura • Cyclus Lunae MCCXXXIV');
+  const englishCycleTitle = `${english.lunar.cycleName} ${english.lunar.formattedCycle}`;
+  const spanishCycleTitle = `${spanish.lunar.cycleName} ${spanish.lunar.formattedCycle}`;
+  assert.equal(englishCycleTitle, 'Cyclus Lunae MCCXXXIV');
+  assert.equal(spanishCycleTitle, englishCycleTitle);
+  assert.equal(english.lunar.phase.name, 'Morditura');
+  assert.equal(spanish.lunar.phase.name, english.lunar.phase.name);
   assert.equal(formatLunarSummary(state, englishContext), english.lunar.formattedSummary);
   assert.equal([...english.lunar.formattedSummary].filter((character) => character === '•').length, 1);
   assert.equal(english.lunar.formattedSummary.includes('·'), false);
@@ -457,19 +463,19 @@ test('navigation applies only resolved locale and fixed application metadata', a
   assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore']);
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.8');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.8');
+  assert.equal(versionElements[0].textContent, 'v8.9');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.9');
   applyCommonDocumentPresentation(documentRoot, 'page-01', await context('en'));
-  assert.equal(versionElements[0]['aria-label'], 'Application version 8.8');
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.9');
 });
 
-test('static HTML remains neutral and uses v8.8 page IDs and application placeholders', async () => {
+test('static HTML remains neutral and uses v8.9 page IDs and application placeholders', async () => {
   const properNouns = ['Insidia','Calendario','Destino','Tempore','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.8/);
+    assert.match(html, /data-version>v8\.9/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);

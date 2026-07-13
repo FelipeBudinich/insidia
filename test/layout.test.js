@@ -24,7 +24,7 @@ test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async
 
 test('Calendario preserves date and lunar structures in visible order', async () => {
   const html = await readPublic('calendario.html');
-  for (const id of ['fictional-year','fictional-period','fictional-date-accessible','lunar-summary']) {
+  for (const id of ['fictional-year','fictional-period','fictional-date-accessible','lunar-cycle-title','lunar-phase-subtitle']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.doesNotMatch(html, /fictional-metadata|class="metadata"/);
@@ -41,14 +41,18 @@ test('Calendario preserves date and lunar structures in visible order', async ()
   assert.ok(calendarIndex < lunarIndex && lunarIndex < footerIndex);
 });
 
-test('Calendario lunar card has exactly one self-labelled dynamic summary line', async () => {
+test('Calendario lunar card mirrors the two-line calendar title hierarchy', async () => {
   const html = await readPublic('calendario.html');
   const start = html.indexOf('<section class="lunar-section"');
   const section = html.slice(start, html.indexOf('</section>', start) + '</section>'.length);
-  assert.match(section, /<section class="lunar-section" aria-labelledby="lunar-summary">/);
-  assert.match(section, /<p id="lunar-summary" class="lunar-name lunar-summary"><\/p>/);
-  assert.equal((section.match(/<p\b/g) ?? []).length, 1);
-  assert.doesNotMatch(section, /lunar-heading|section\.lunar|label\.phase|lunar-phase|lunar-metadata|data-message-key/);
+  assert.match(section, /<section class="lunar-section" aria-labelledby="lunar-cycle-title">/);
+  assert.match(section, /<div class="date">\s*<p id="lunar-cycle-title" class="year"><\/p>\s*<p id="lunar-phase-subtitle" class="period"><\/p>\s*<\/div>/);
+  const paragraphs = [...section.matchAll(/<p\b[^>]*>/g)].map(([tag]) => tag);
+  assert.equal(paragraphs.length, 2);
+  assert.equal(paragraphs.filter((tag) => !tag.includes('visually-hidden')).length, 2);
+  assert.match(section, /id="lunar-cycle-title" class="year"/);
+  assert.match(section, /id="lunar-phase-subtitle" class="period"/);
+  assert.doesNotMatch(section, /lunar-summary|lunar-name|section\.lunar|label\.phase|lunar-metadata|data-message-key|•/);
   assert.doesNotMatch(html, /Lunar Cycle|Phase|Lunar Day|Ciclo lunar|Fase|Día lunar/);
 });
 
@@ -78,14 +82,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(script, /bootstrapPage\('page-03', createTemporePageRenderer\)/);
 });
 
-test('each renamed page has one localized v8.8 footer version', async () => {
+test('each renamed page has one localized v8.9 footer version', async () => {
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.8/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.9/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -116,7 +120,10 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   ]) assert.ok(!css.includes(selector), selector);
   assert.doesNotMatch(css, /(^|\n)button\s*\{|(^|\n)pre\s*\{|(^|\n)summary\s*\{/);
   assert.match(css, /\.footer-version\s*\{\s*white-space:\s*nowrap;/);
-  assert.match(css, /\.lunar-summary\s*\{\s*margin-top:\s*0;/);
+  assert.doesNotMatch(css, /\.lunar-summary\b/);
+  assert.match(css, /\.date p\s*\{\s*margin:\s*0;/);
+  assert.match(css, /\.year\s*\{[^}]*font-size:[^}]*font-weight:/);
+  assert.match(css, /\.period\s*\{[^}]*margin-top:[^}]*font-size:/);
   for (const preserved of ['.section-label', '.group-label', '.lunar-metadata', '.lunar-time', '.lunar-name']) assert.ok(css.includes(preserved), preserved);
 });
 
@@ -128,14 +135,20 @@ test('JSON serialization remains schema v14 with calendar time intact', async ()
   assert.match(mechanics, /time: \{ hour, minute, second \}/);
 });
 
-test('Calendario renderer consumes only the formatted lunar summary', async () => {
+test('Calendario renderer arranges presentation-ready lunar title and subtitle values', async () => {
   const renderer = await readPublic('calendario-page.js');
   for (const removed of [
-    '#lunar-phase', '#lunar-metadata', 'lunar.metadata', 'label.lunarDay',
-    'cycleLengthDays', 'state.lunar.day', 'formatRomanNumeral', 'display.lunar.phase.name'
+    '#lunar-summary', '#lunar-metadata', 'lunar.metadata', 'label.lunarDay',
+    'cycleLengthDays', 'state.lunar.day', 'state.lunar.cycle', 'state.lunar.phaseId',
+    'formatRomanNumeral', 'context.getLunarPhase', 'context.lunarCycleName',
+    'display.lunar.formattedSummary', '.split('
   ]) assert.ok(!renderer.includes(removed), removed);
-  assert.match(renderer, /lunarSummary\.textContent = display\.lunar\.formattedSummary/);
-  assert.match(renderer, /querySelector\('#lunar-summary'\)/);
+  assert.doesNotMatch(renderer, /querySelector\('#lunar-phase'\)/);
+  assert.match(renderer, /querySelector\('#lunar-cycle-title'\)/);
+  assert.match(renderer, /querySelector\('#lunar-phase-subtitle'\)/);
+  assert.match(renderer, /lunarCycleTitle\.textContent = `\$\{display\.lunar\.cycleName\} \$\{display\.lunar\.formattedCycle\}`/);
+  assert.match(renderer, /lunarPhaseSubtitle\.textContent = display\.lunar\.phase\.name/);
+  assert.equal((renderer.match(/createDisplayData\(state, context\)/g) ?? []).length, 1);
 });
 
 test('Calendario rendering path omits removed numeric progress indicators', async () => {

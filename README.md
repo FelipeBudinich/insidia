@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.8 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
+Insidia v8.9 is a live fictional calendar with one universal mechanical model, one active in-game nomenclature configuration, and localized generic UI language. All calculations run in the browser from `Date.now()`; the Node.js server only serves static files, redirects `/`, and exposes `/health`.
 
 ## Run locally
 
@@ -38,7 +38,7 @@ public/config/nomenclature.json
 
 The browser always loads it from the fixed same-origin URL `/config/nomenclature.json`. Editing this file and redeploying is sufficient to rename the application/world, the month-reign system, weekdays, Inter Regna, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. JavaScript and HTML changes are not required.
 
-The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.8 configuration includes:
+The configured terms are fixed in-universe proper nouns, not English or Spanish translations. The active v8.9 configuration includes:
 
 - Calendar year name: Annus Solis
 - Lunar cycle name: Cyclus Lunae
@@ -57,7 +57,7 @@ Weekday, month-ruler, and reign-ordinal entities use exactly `{ id, name }`; the
 
 Calendario renders visible years and period days with uppercase Roman numerals. Its two-line date header is `Annus Solis {romanYear}` followed by `{weekdayName} · {romanDay} {periodName}`. A ruler's first month in a year is named `Regno de {ruler}`; later months use `{ordinal} Regno de {ruler}`. `Prime` remains structured nomenclature but is deliberately omitted from the first visible reign name. Inter Regnum names continue to resolve directly from nomenclature. English and Spanish show the same in-universe date.
 
-The bottom Calendario card contains one in-universe lunar summary line: `{phaseName} • {cycleName} {RomanCycle}`. For lunar cycle 1234, it reads `Morditura • Cyclus Lunae MCCXXXIV`. Both names come from nomenclature, not locale data, and English and Spanish display the same summary. Lunar day and cycle-length values remain in raw state but are no longer shown in this card.
+The bottom Calendario card mirrors the top card's two-line hierarchy. Its title is the configured lunar-cycle name plus Roman cycle number, and its subtitle is the configured current phase name. For lunar cycle 1234, it displays `Cyclus Lunae MCCXXXIV` above `Morditura`. Both lines come from presentation-ready nomenclature data and remain identical in English and Spanish. The combined `Morditura • Cyclus Lunae MCCXXXIV` summary remains available in the display and Calendar JSON v14 APIs, while lunar day and cycle-length values remain in raw state.
 
 Calendario, Destino, and Tempore are in-game page proper nouns stored in the same file under stable page IDs. Locale changes never translate them. Their routes are fixed application infrastructure and are not generated from the configured names.
 
@@ -83,7 +83,7 @@ Changing locale translates Outcome types and generic UI prose without changing c
 - Tides last 17, 13, and 1 lunar hours
 - Six deterministic circular orbits and three ranked three-body pulls
 
-The epoch is `1970-01-01T00:00:00.000Z`. Mechanical modules own stable IDs, durations, ordering, orbital periods, tie-breaking, thresholds, calculations, and relationships. They never contain configured proper nouns, localized text, symbols, or formatted display values. Month state keeps the skipped opportunity, regular ruler, and effective ruler separate; v8.8 uses `source: "base_rotation"`, so the regular ruler is also effective. A future conspiracy will change only the targeted month's effective ruler, never the underlying rotation, its next opportunity, or Pigritia's regular skip alternation. Pigritia skips only a regular opportunity: a conspiracy-forced Pigritia reign remains effective and is never removed by that skip rule. Yearly reign counts will be recomputed from effective rulers, including earlier overrides in the same year.
+The epoch is `1970-01-01T00:00:00.000Z`. Mechanical modules own stable IDs, durations, ordering, orbital periods, tie-breaking, thresholds, calculations, and relationships. They never contain configured proper nouns, localized text, symbols, or formatted display values. Month state keeps the skipped opportunity, regular ruler, and effective ruler separate; v8.9 uses `source: "base_rotation"`, so the regular ruler is also effective. A future conspiracy will change only the targeted month's effective ruler, never the underlying rotation, its next opportunity, or Pigritia's regular skip alternation. Pigritia skips only a regular opportunity: a conspiracy-forced Pigritia reign remains effective and is never removed by that skip rule. Yearly reign counts will be recomputed from effective rulers, including earlier overrides in the same year.
 
 Raw calendar state retains numeric `year`, `weekOfYear`, `dayOfYear`, `dayOfWeek`, and period-day values. Raw lunar state likewise retains cycle, day, cycle length, and phase ID. Roman conversion and in-universe names exist only in the presentation layer.
 
@@ -102,11 +102,11 @@ The project has no framework, build system, database, backend time API, WebSocke
 
 ## Page layouts
 
-- Calendar begins with exactly two visible date lines: the configured year name plus Roman year, then weekday plus Roman period day and configured period name. Week number and day-of-year progress are no longer displayed. One self-labelled lunar summary line follows in the bottom card; there is no separate lunar heading, phase label, lunar-day metadata, visible page-card title, fictional clock, or JSON control.
+- Calendar begins with exactly two visible date lines: the configured year name plus Roman year, then weekday plus Roman period day and configured period name. Week number and day-of-year progress are no longer displayed. The bottom card mirrors that hierarchy with the lunar-cycle name and Roman cycle number as its title, then the current phase name as its subtitle. There is no extra section label, lunar-day metadata, fictional clock, or JSON control.
 - Outcome begins directly with the selected celestial object and retains its classification, tide, Pull, orbit, and progress data without a visible Outcome card title.
 - Weather begins directly with the Time card, including both fictional and lunar clocks, then shows Season and Progress. It has no separate page-header card.
 
-Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.8 version in its footer.
+Every page preserves a visually hidden configured page heading for document structure and displays the application name, localized epoch, and v8.9 version in its footer.
 
 ## JSON schema v14
 
@@ -126,11 +126,11 @@ The v14 display calendar replaces static month nomenclature with a generated mon
 | Route | Purpose |
 |---|---|
 | `/` | Redirect to `/calendario.html`, preserving only a non-empty locale |
-| `/calendario.html` | Calendar date and lunar-cycle information; no visible clock, JSON, or card title |
+| `/calendario.html` | Two-card calendar-date and lunar-cycle hierarchy; no visible clock or JSON |
 | `/destino.html` | Outcome selection, tides, pulls, orbits, and hour progress |
 | `/tempore.html` | Fictional times, season, and selected progress |
 | `/config/nomenclature.json` | The one read-only nomenclature configuration |
-| `/health` | `{"ok":true,"version":"v8.8"}` |
+| `/health` | `{"ok":true,"version":"v8.9"}` |
 
 Static `.html`, `.css`, `.js`, and `.json` responses—including locale and nomenclature configuration—use explicit MIME types and `Cache-Control: no-cache`. They also include deterministic weak ETags and Last-Modified validators, so repeat requests can revalidate with a bodyless `304 Not Modified` response instead of retransferring unchanged files. Other static formats retain a short revalidating cache policy. Dynamic, redirect, and error responses remain `no-store` and do not participate in static revalidation.
 
