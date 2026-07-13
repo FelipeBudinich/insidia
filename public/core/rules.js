@@ -38,22 +38,19 @@ export const REIGN_ORDINAL_IDS = Object.freeze(
   Array.from({ length: MONTHS_PER_YEAR }, (_, index) => `reign-ordinal-${String(index + 1).padStart(2, '0')}`)
 );
 export const ALTERNATING_SKIP_RULER_ID = 'ruler-08';
-export const MONTH_RULER_SUPERCYCLE_IDS = Object.freeze([
-  'ruler-01',
-  'ruler-02',
-  'ruler-03',
-  'ruler-04',
-  'ruler-05',
-  'ruler-06',
-  'ruler-07',
-  'ruler-08',
-  'ruler-01',
-  'ruler-02',
-  'ruler-03',
-  'ruler-04',
-  'ruler-05',
-  'ruler-06',
-  'ruler-07'
+export const MONTH_RULER_DECISION_HOUR = FICTIONAL_HOURS_PER_DAY - 1;
+export const SEASON_MONTH_RULER_ROTATIONS = Object.freeze({
+  'season-01': Object.freeze(['ruler-08', 'ruler-06', 'ruler-07', 'ruler-01']),
+  'season-02': Object.freeze(['ruler-02', 'ruler-03', 'ruler-04', 'ruler-05'])
+});
+export const ALTERNATING_SKIP_ORBITAL_THRESHOLD = 0.95;
+export const ALTERNATING_SKIP_REPLACEMENT_RULES = Object.freeze([
+  Object.freeze({ bodyId: 'body-03', rulerId: 'ruler-02' }),
+  Object.freeze({ bodyId: 'body-01', rulerId: 'ruler-05' }),
+  Object.freeze({ bodyId: 'body-04', rulerId: 'ruler-03' }),
+  Object.freeze({ bodyId: 'body-02', rulerId: 'ruler-04' }),
+  Object.freeze({ bodyId: 'body-05', rulerId: 'ruler-01' }),
+  Object.freeze({ bodyId: 'body-06', rulerId: 'ruler-06' })
 ]);
 export const WEEKDAY_IDS = Object.freeze(Array.from({ length: 7 }, (_, index) => `weekday-${String(index + 1).padStart(2, '0')}`));
 export const INTER_REGNUM_IDS = Object.freeze(Array.from({ length: 11 }, (_, index) => `interregnum-${String(index + 1).padStart(2, '0')}`));

@@ -3,8 +3,7 @@ import test from 'node:test';
 import {
   calculateCalendarState,
   calculateMonthRulershipState,
-  calculateOutcomeType,
-  calculateRegularMonthRulership
+  calculateOutcomeType
 } from '../public/core/mechanics.js';
 import { formatRomanNumeral } from '../public/core/formatting.js';
 import * as rules from '../public/core/rules.js';
@@ -33,8 +32,14 @@ test('epoch is the first day of the first calendar slot at 00:00:00', () => {
   assert.deepEqual(state.calendar.period, {
     type: 'month', monthId: 'month-01', monthIndex: 1, day: 1, length: 29,
     rulership: {
-      opportunityRulerId: 'ruler-01', regularRulerId: 'ruler-01', effectiveRulerId: 'ruler-01',
-      source: 'base_rotation', skippedRegularTurn: false, reignNumber: 1, ordinalId: 'reign-ordinal-01'
+      opportunityRulerId: 'ruler-08', regularRulerId: 'ruler-08', effectiveRulerId: 'ruler-08',
+      rotationSeasonId: 'season-01', source: 'epoch_default', skippedRegularTurn: false,
+      alternatingSkipOpportunityNumber: 1, reignNumber: 1, ordinalId: 'reign-ordinal-01',
+      decision: {
+        type: 'epoch_default', realUnixMilliseconds: 0, calendarDayIndex: 0, calendarHour: 0,
+        totalCalendarSeconds: 0, totalLunarSeconds: 0, bodyProgress: [], qualifyingBodyIds: []
+      },
+      replacement: { applied: false, method: null, selectedBodyId: null, fallbackReason: null }
     }
   });
   assert.equal(state.calendar.year, 1);
@@ -91,74 +96,16 @@ test('weekday is continuous at month, Interregno, and year boundaries', () => {
   }
 });
 
-test('regular month rulership follows the exact first 23 effective rulers', () => {
-  const expected = [
-    'ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-08',
-    'ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-01',
-    'ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-08'
-  ];
-  assert.deepEqual(expected.map((_id, index) => calculateRegularMonthRulership(index).regularRulerId), expected);
-});
-
-test('the alternating ruler skip consumes the replacement position exactly once', () => {
-  assert.deepEqual(calculateMonthRulershipState(1, 4), {
-    opportunityRulerId: 'ruler-08', regularRulerId: 'ruler-01', effectiveRulerId: 'ruler-01',
-    source: 'base_rotation', skippedRegularTurn: true, reignNumber: 1, ordinalId: 'reign-ordinal-01'
-  });
-  const seventeenth = calculateMonthRulershipState(1, 5);
-  assert.equal(seventeenth.opportunityRulerId, 'ruler-02');
-  assert.equal(seventeenth.regularRulerId, 'ruler-02');
-  assert.equal(seventeenth.skippedRegularTurn, false);
-  const twentyThird = calculateMonthRulershipState(2, 0);
-  assert.equal(twentyThird.opportunityRulerId, 'ruler-08');
-  assert.equal(twentyThird.regularRulerId, 'ruler-08');
-  assert.equal(twentyThird.skippedRegularTurn, false);
-});
-
-test('the alternating ruler governs and skips every other regular opportunity', () => {
-  for (const [absoluteMonthIndex, regularRulerId, skippedRegularTurn] of [
-    [7, 'ruler-08', false],
-    [15, 'ruler-01', true],
-    [22, 'ruler-08', false],
-    [30, 'ruler-01', true],
-    [37, 'ruler-08', false],
-    [45, 'ruler-01', true]
-  ]) {
-    assert.deepEqual(calculateRegularMonthRulership(absoluteMonthIndex), {
-      opportunityRulerId: 'ruler-08',
-      regularRulerId,
-      skippedRegularTurn
-    });
-  }
-});
-
-test('month rotation continues across years while reign counts reset yearly', () => {
-  const yearOneMonthEleven = calculateMonthRulershipState(0, 10);
-  const yearTwoMonthOne = calculateMonthRulershipState(1, 0);
-  assert.equal(yearOneMonthEleven.effectiveRulerId, 'ruler-03');
-  assert.equal(yearOneMonthEleven.reignNumber, 2);
-  assert.equal(yearTwoMonthOne.effectiveRulerId, 'ruler-04');
-  assert.equal(yearTwoMonthOne.reignNumber, 1);
-  assert.equal(yearTwoMonthOne.ordinalId, 'reign-ordinal-01');
-  assert.equal(calculateMonthRulershipState(0, 0).reignNumber, 1);
-  assert.equal(calculateMonthRulershipState(0, 8).reignNumber, 2);
-  assert.equal(calculateMonthRulershipState(0, 9).reignNumber, 2);
-});
-
 test('Interregnos neither contain rulership nor advance the regular rotation', () => {
   const monthOne = calculateCalendarState(atDay(28)).calendar.period;
   const interRegnum = calculateCalendarState(atDay(29)).calendar.period;
   const monthTwo = calculateCalendarState(atDay(32)).calendar.period;
-  assert.equal(monthOne.rulership.effectiveRulerId, 'ruler-01');
+  assert.equal(monthOne.rulership.effectiveRulerId, 'ruler-08');
   assert.equal(Object.hasOwn(interRegnum, 'rulership'), false);
-  assert.equal(monthTwo.rulership.effectiveRulerId, 'ruler-02');
+  assert.equal(monthTwo.rulership.effectiveRulerId, 'ruler-06');
 });
 
 test('month-rulership inputs are validated', () => {
-  for (const value of [-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
-    assert.throws(() => calculateRegularMonthRulership(value), RangeError);
-  }
-  assert.throws(() => calculateRegularMonthRulership('1'), TypeError);
   for (const args of [[-1, 0], [0, -1], [0, 11], [0, 1.5], [NaN, 0], [Infinity, 0], [Number.MAX_SAFE_INTEGER, 0]]) {
     assert.throws(() => calculateMonthRulershipState(...args), RangeError);
   }
@@ -188,11 +135,25 @@ test('the exact mechanical constants remain stable', () => {
   assert.equal(rules.LUNAR_PHASE_RULES.length, 13);
   assert.deepEqual(rules.MONTH_RULER_IDS, ['ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-08']);
   assert.equal(rules.ALTERNATING_SKIP_RULER_ID, 'ruler-08');
-  assert.deepEqual(rules.MONTH_RULER_SUPERCYCLE_IDS, [
-    'ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07','ruler-08',
-    'ruler-01','ruler-02','ruler-03','ruler-04','ruler-05','ruler-06','ruler-07'
+  assert.equal(Object.hasOwn(rules, 'MONTH_RULER_SUPERCYCLE_IDS'), false);
+  assert.equal(rules.MONTH_RULER_DECISION_HOUR, 22);
+  assert.equal(rules.ALTERNATING_SKIP_ORBITAL_THRESHOLD, 0.95);
+  assert.deepEqual(rules.SEASON_MONTH_RULER_ROTATIONS, {
+    'season-01': ['ruler-08','ruler-06','ruler-07','ruler-01'],
+    'season-02': ['ruler-02','ruler-03','ruler-04','ruler-05']
+  });
+  assert.equal(Object.isFrozen(rules.SEASON_MONTH_RULER_ROTATIONS), true);
+  assert.equal(Object.isFrozen(rules.SEASON_MONTH_RULER_ROTATIONS['season-01']), true);
+  assert.equal(Object.isFrozen(rules.SEASON_MONTH_RULER_ROTATIONS['season-02']), true);
+  assert.deepEqual(rules.ALTERNATING_SKIP_REPLACEMENT_RULES, [
+    { bodyId: 'body-03', rulerId: 'ruler-02' },
+    { bodyId: 'body-01', rulerId: 'ruler-05' },
+    { bodyId: 'body-04', rulerId: 'ruler-03' },
+    { bodyId: 'body-02', rulerId: 'ruler-04' },
+    { bodyId: 'body-05', rulerId: 'ruler-01' },
+    { bodyId: 'body-06', rulerId: 'ruler-06' }
   ]);
-  assert.equal(Object.isFrozen(rules.MONTH_RULER_SUPERCYCLE_IDS), true);
+  assert.equal(rules.ALTERNATING_SKIP_REPLACEMENT_RULES.every(Object.isFrozen), true);
   assert.equal(rules.REIGN_ORDINAL_IDS.length, 11);
 });
 

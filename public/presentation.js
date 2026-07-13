@@ -45,10 +45,36 @@ function displayMonth(period, context) {
       opportunityRuler: context.getMonthRuler(rulership.opportunityRulerId),
       regularRuler: context.getMonthRuler(rulership.regularRulerId),
       effectiveRuler: context.getMonthRuler(rulership.effectiveRulerId),
+      rotationSeason: context.getSeason(rulership.rotationSeasonId),
       source: rulership.source,
       skippedRegularTurn: rulership.skippedRegularTurn,
       reignNumber: rulership.reignNumber,
-      ordinal: context.getReignOrdinal(rulership.ordinalId)
+      ordinal: context.getReignOrdinal(rulership.ordinalId),
+      decision: {
+        type: rulership.decision.type,
+        realUnixMilliseconds: rulership.decision.realUnixMilliseconds,
+        isoUtc: new Date(rulership.decision.realUnixMilliseconds).toISOString(),
+        calendarDayIndex: rulership.decision.calendarDayIndex,
+        calendarHour: rulership.decision.calendarHour,
+        bodies: rulership.decision.bodyProgress.map(({ bodyId, progressFraction }) => ({
+          id: bodyId,
+          ...context.getCelestialBody(bodyId),
+          progressFraction,
+          formattedProgress: formatPercentage(progressFraction)
+        })),
+        qualifyingBodies: rulership.decision.qualifyingBodyIds.map((bodyId) => ({
+          id: bodyId,
+          ...context.getCelestialBody(bodyId)
+        }))
+      },
+      replacement: {
+        applied: rulership.replacement.applied,
+        method: rulership.replacement.method,
+        selectedBody: rulership.replacement.selectedBodyId
+          ? { id: rulership.replacement.selectedBodyId, ...context.getCelestialBody(rulership.replacement.selectedBodyId) }
+          : null,
+        fallbackReason: rulership.replacement.fallbackReason
+      }
     }
   };
 }
@@ -147,7 +173,7 @@ function copyRawState(state) {
 
 export function createCalendarJson(state, realUnixMilliseconds, context) {
   return {
-    calendarVersion: 'v16',
+    calendarVersion: 'v17',
     nomenclature: {
       schemaVersion: context.nomenclatureSchemaVersion,
       applicationDisplayName: context.applicationDisplayName

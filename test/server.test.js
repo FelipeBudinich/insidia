@@ -73,7 +73,7 @@ test('canonical HTTPS redirect takes precedence and preserves the original reque
   } finally { await stop(server); }
 });
 
-test('health reports v8.13 JSON for GET and HEAD', async () => {
+test('health reports v8.14 JSON for GET and HEAD', async () => {
   const server = await start();
   try {
     const get = await request(server, '/health');
@@ -81,7 +81,7 @@ test('health reports v8.13 JSON for GET and HEAD', async () => {
     assert.equal(get.status, 200);
     assert.equal(get.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(get.headers['cache-control'], 'no-store');
-    assert.equal(get.body, '{"ok":true,"version":"v8.13"}');
+    assert.equal(get.body, '{"ok":true,"version":"v8.14"}');
     assert.equal(head.status, 200);
     assert.equal(head.body, '');
     assertSecurityHeaders(get.headers);

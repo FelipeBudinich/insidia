@@ -1,5 +1,7 @@
 import {
   CALENDAR_EPOCH_UNIX_MS,
+  ALTERNATING_SKIP_ORBITAL_THRESHOLD,
+  ALTERNATING_SKIP_REPLACEMENT_RULES,
   ALTERNATING_SKIP_RULER_ID,
   CELESTIAL_BODY_RULES,
   DAYS_PER_MONTH,
@@ -21,7 +23,7 @@ import {
   LUNAR_SECONDS_PER_HOUR,
   LUNAR_SECONDS_PER_MINUTE,
   MONTH_IDS,
-  MONTH_RULER_SUPERCYCLE_IDS,
+  MONTH_RULER_DECISION_HOUR,
   MONTHS_PER_YEAR,
   ORBITAL_SPAN_TIE_EPSILON,
   OUTCOME_TIDE_RULES,
@@ -31,6 +33,7 @@ import {
   REAL_MS_PER_LUNAR_SECOND,
   REIGN_ORDINAL_IDS,
   SEASONAL_CYCLE_LENGTH_DAYS,
+  SEASON_MONTH_RULER_ROTATIONS,
   SEASON_RULES,
   TIDE_RULES,
   WEEKDAY_IDS
@@ -61,44 +64,17 @@ function assertProgressFraction(value, label = 'progressFraction') {
   }
 }
 
-export function calculateRegularMonthRulership(absoluteMonthIndex) {
+export function calculateAbsoluteMonthStartDay(absoluteMonthIndex) {
   assertNonNegativeSafeInteger(absoluteMonthIndex, 'absoluteMonthIndex');
-  const supercycleIndex = absoluteMonthIndex % MONTH_RULER_SUPERCYCLE_IDS.length;
-  const skippedRegularTurn = absoluteMonthIndex > 0 && supercycleIndex === 0;
-  const regularRulerId = MONTH_RULER_SUPERCYCLE_IDS[supercycleIndex];
-  return {
-    opportunityRulerId: skippedRegularTurn ? ALTERNATING_SKIP_RULER_ID : regularRulerId,
-    regularRulerId,
-    skippedRegularTurn
-  };
-}
-
-export function calculateMonthRulershipState(zeroBasedYear, zeroBasedMonthIndex) {
-  assertNonNegativeSafeInteger(zeroBasedYear, 'zeroBasedYear');
-  assertNonNegativeSafeInteger(zeroBasedMonthIndex, 'zeroBasedMonthIndex');
-  if (zeroBasedMonthIndex >= MONTHS_PER_YEAR) {
-    throw new RangeError(`zeroBasedMonthIndex must be between 0 and ${MONTHS_PER_YEAR - 1}`);
+  const zeroBasedYear = Math.floor(absoluteMonthIndex / MONTHS_PER_YEAR);
+  const zeroBasedMonthIndex = absoluteMonthIndex % MONTHS_PER_YEAR;
+  let startDay = zeroBasedYear * DAYS_PER_YEAR;
+  if (!Number.isSafeInteger(startDay)) throw new RangeError('absoluteMonthIndex produces an unsafe start day');
+  for (let index = 0; index < zeroBasedMonthIndex; index += 1) {
+    startDay += DAYS_PER_MONTH + INTER_REGNUM_LENGTHS[index];
   }
-  const firstAbsoluteMonthIndex = zeroBasedYear * MONTHS_PER_YEAR;
-  const absoluteMonthIndex = firstAbsoluteMonthIndex + zeroBasedMonthIndex;
-  if (!Number.isSafeInteger(absoluteMonthIndex)) {
-    throw new RangeError('absoluteMonthIndex must be a safe integer');
-  }
-  const regular = calculateRegularMonthRulership(absoluteMonthIndex);
-  const effectiveRulerId = regular.regularRulerId;
-  let reignNumber = 0;
-  for (let index = 0; index <= zeroBasedMonthIndex; index += 1) {
-    if (calculateRegularMonthRulership(firstAbsoluteMonthIndex + index).regularRulerId === effectiveRulerId) {
-      reignNumber += 1;
-    }
-  }
-  return {
-    ...regular,
-    effectiveRulerId,
-    source: 'base_rotation',
-    reignNumber,
-    ordinalId: REIGN_ORDINAL_IDS[reignNumber - 1]
-  };
+  if (!Number.isSafeInteger(startDay)) throw new RangeError('absoluteMonthIndex produces an unsafe start day');
+  return startDay;
 }
 
 export function calculateSeasonState(totalElapsedDays) {
@@ -221,10 +197,10 @@ export function calculateOrbitalPulls(bodyStates) {
   };
 }
 
-export function calculateOrbitalState(totalCalendarSeconds, totalLunarSeconds) {
+export function calculateCelestialBodyStates(totalCalendarSeconds, totalLunarSeconds) {
   assertNonNegativeSafeInteger(totalCalendarSeconds, 'totalCalendarSeconds');
   assertNonNegativeSafeInteger(totalLunarSeconds, 'totalLunarSeconds');
-  const bodies = CELESTIAL_BODY_RULES.map((rule) => {
+  return CELESTIAL_BODY_RULES.map((rule) => {
     const usesLunarTime = rule.orbitalPeriod.unit === 'lunar_day';
     const elapsedSeconds = usesLunarTime ? totalLunarSeconds : totalCalendarSeconds;
     const unitSeconds = usesLunarTime
@@ -246,7 +222,297 @@ export function calculateOrbitalState(totalCalendarSeconds, totalLunarSeconds) {
       progressPercentage: progressFraction * 100
     };
   });
+}
+
+export function calculateOrbitalState(totalCalendarSeconds, totalLunarSeconds) {
+  const bodies = calculateCelestialBodyStates(totalCalendarSeconds, totalLunarSeconds);
   return { bodies, pulls: calculateOrbitalPulls(bodies) };
+}
+
+function replacementBodyStatesById(bodyStates) {
+  if (!Array.isArray(bodyStates) || bodyStates.length !== CELESTIAL_BODY_RULES.length) {
+    throw new TypeError(`bodyStates must contain exactly ${CELESTIAL_BODY_RULES.length} body states`);
+  }
+  const bodyStatesById = new Map();
+  bodyStates.forEach((body, index) => {
+    if (!body || typeof body.id !== 'string') {
+      throw new TypeError(`bodyStates[${index}].id must be a string`);
+    }
+    if (bodyStatesById.has(body.id)) throw new RangeError(`Duplicate body state id: ${body.id}`);
+    assertProgressFraction(body.progressFraction, `bodyStates[${index}].progressFraction`);
+    bodyStatesById.set(body.id, body);
+  });
+  for (const rule of ALTERNATING_SKIP_REPLACEMENT_RULES) {
+    if (!bodyStatesById.has(rule.bodyId)) throw new RangeError(`Missing body state id: ${rule.bodyId}`);
+  }
+  return bodyStatesById;
+}
+
+function qualifyingReplacementRules(bodyStates) {
+  const bodyStatesById = replacementBodyStatesById(bodyStates);
+  return ALTERNATING_SKIP_REPLACEMENT_RULES.filter(
+    (rule) => bodyStatesById.get(rule.bodyId).progressFraction >= ALTERNATING_SKIP_ORBITAL_THRESHOLD
+  );
+}
+
+export function selectNextSeasonOneFallbackRuler(lastEffectiveSeasonOneRulerId) {
+  const rotation = SEASON_MONTH_RULER_ROTATIONS['season-01'];
+  const previousIndex = rotation.indexOf(lastEffectiveSeasonOneRulerId);
+  if (previousIndex === -1) {
+    throw new RangeError('lastEffectiveSeasonOneRulerId must belong to the season-01 rotation');
+  }
+  let nextIndex = (previousIndex + 1) % rotation.length;
+  if (rotation[nextIndex] === ALTERNATING_SKIP_RULER_ID) {
+    nextIndex = (nextIndex + 1) % rotation.length;
+  }
+  return rotation[nextIndex];
+}
+
+export function selectAlternatingSkipReplacement(bodyStates, lastEffectiveSeasonOneRulerId) {
+  const qualifyingRules = qualifyingReplacementRules(bodyStates);
+  const qualifyingBodyIds = qualifyingRules.map(({ bodyId }) => bodyId);
+  if (qualifyingRules.length === 1) {
+    return {
+      rulerId: qualifyingRules[0].rulerId,
+      method: 'single_qualifying_body',
+      selectedBodyId: qualifyingRules[0].bodyId,
+      qualifyingBodyIds,
+      fallbackReason: null
+    };
+  }
+  return {
+    rulerId: selectNextSeasonOneFallbackRuler(lastEffectiveSeasonOneRulerId),
+    method: 'season_rotation_fallback',
+    selectedBodyId: null,
+    qualifyingBodyIds,
+    fallbackReason: qualifyingRules.length === 0
+      ? 'no_qualifying_body'
+      : 'multiple_qualifying_bodies'
+  };
+}
+
+export function calculateMonthRulerDecisionSnapshot(absoluteMonthIndex) {
+  assertNonNegativeSafeInteger(absoluteMonthIndex, 'absoluteMonthIndex');
+  if (absoluteMonthIndex === 0) {
+    throw new RangeError('absoluteMonthIndex must be greater than zero for a decision snapshot');
+  }
+  const calendarDayIndex = calculateAbsoluteMonthStartDay(absoluteMonthIndex) - 1;
+  const totalCalendarSeconds = (
+    calendarDayIndex * FICTIONAL_SECONDS_PER_DAY
+  ) + (
+    MONTH_RULER_DECISION_HOUR * FICTIONAL_SECONDS_PER_HOUR
+  );
+  if (!Number.isSafeInteger(totalCalendarSeconds)) {
+    throw new RangeError('absoluteMonthIndex produces unsafe calendar seconds');
+  }
+  const realUnixMilliseconds = CALENDAR_EPOCH_UNIX_MS
+    + (totalCalendarSeconds * REAL_MS_PER_FICTIONAL_SECOND);
+  if (!Number.isSafeInteger(realUnixMilliseconds)) {
+    throw new RangeError('absoluteMonthIndex produces an unsafe decision timestamp');
+  }
+  const totalLunarSeconds = Math.floor(
+    (realUnixMilliseconds - CALENDAR_EPOCH_UNIX_MS) / REAL_MS_PER_LUNAR_SECOND
+  );
+  const seasonId = calculateSeasonState(calendarDayIndex).id;
+  const bodies = calculateCelestialBodyStates(totalCalendarSeconds, totalLunarSeconds);
+  const qualifyingBodyIds = qualifyingReplacementRules(bodies).map(({ bodyId }) => bodyId);
+  return {
+    type: 'interregno_final_hour',
+    realUnixMilliseconds,
+    calendarDayIndex,
+    calendarHour: MONTH_RULER_DECISION_HOUR,
+    totalCalendarSeconds,
+    totalLunarSeconds,
+    seasonId,
+    bodyProgress: bodies.map(({ id, progressFraction }) => ({ bodyId: id, progressFraction })),
+    qualifyingBodyIds
+  };
+}
+
+function createInitialMonthRulerMachineState() {
+  return {
+    nextRotationIndexBySeason: { 'season-01': 1, 'season-02': 0 },
+    alternatingSkipOpportunityCount: 1,
+    lastEffectiveSeasonOneRulerId: ALTERNATING_SKIP_RULER_ID
+  };
+}
+
+function copyAndValidateMachineState(machineState) {
+  if (!machineState || typeof machineState !== 'object' || Array.isArray(machineState)) {
+    throw new TypeError('machineState must be an object');
+  }
+  const nextRotationIndexBySeason = {};
+  for (const [seasonId, rotation] of Object.entries(SEASON_MONTH_RULER_ROTATIONS)) {
+    const index = machineState.nextRotationIndexBySeason?.[seasonId];
+    if (!Number.isInteger(index) || index < 0 || index >= rotation.length) {
+      throw new RangeError(`machineState cursor for ${seasonId} is invalid`);
+    }
+    nextRotationIndexBySeason[seasonId] = index;
+  }
+  assertNonNegativeSafeInteger(
+    machineState.alternatingSkipOpportunityCount,
+    'machineState.alternatingSkipOpportunityCount'
+  );
+  if (!SEASON_MONTH_RULER_ROTATIONS['season-01'].includes(machineState.lastEffectiveSeasonOneRulerId)) {
+    throw new RangeError('machineState.lastEffectiveSeasonOneRulerId must belong to the season-01 rotation');
+  }
+  return {
+    nextRotationIndexBySeason,
+    alternatingSkipOpportunityCount: machineState.alternatingSkipOpportunityCount,
+    lastEffectiveSeasonOneRulerId: machineState.lastEffectiveSeasonOneRulerId
+  };
+}
+
+function copyDecisionSnapshot(decisionSnapshot) {
+  if (!decisionSnapshot || typeof decisionSnapshot !== 'object' || Array.isArray(decisionSnapshot)) {
+    throw new TypeError('decisionSnapshot must be an object');
+  }
+  if (!Array.isArray(decisionSnapshot.bodyProgress)) {
+    throw new TypeError('decisionSnapshot.bodyProgress must be an array');
+  }
+  if (!Array.isArray(decisionSnapshot.qualifyingBodyIds)) {
+    throw new TypeError('decisionSnapshot.qualifyingBodyIds must be an array');
+  }
+  return {
+    type: decisionSnapshot.type,
+    realUnixMilliseconds: decisionSnapshot.realUnixMilliseconds,
+    calendarDayIndex: decisionSnapshot.calendarDayIndex,
+    calendarHour: decisionSnapshot.calendarHour,
+    totalCalendarSeconds: decisionSnapshot.totalCalendarSeconds,
+    totalLunarSeconds: decisionSnapshot.totalLunarSeconds,
+    bodyProgress: decisionSnapshot.bodyProgress.map(({ bodyId, progressFraction }) => ({ bodyId, progressFraction })),
+    qualifyingBodyIds: [...decisionSnapshot.qualifyingBodyIds]
+  };
+}
+
+export function resolveNextMonthRulership(machineState, decisionSnapshot) {
+  const nextMachineState = copyAndValidateMachineState(machineState);
+  const rotationSeasonId = decisionSnapshot?.seasonId;
+  const rotation = SEASON_MONTH_RULER_ROTATIONS[rotationSeasonId];
+  if (!rotation) throw new RangeError(`Unsupported decision season id: ${rotationSeasonId}`);
+  const rotationIndex = nextMachineState.nextRotationIndexBySeason[rotationSeasonId];
+  const opportunityRulerId = rotation[rotationIndex];
+  nextMachineState.nextRotationIndexBySeason[rotationSeasonId] = (rotationIndex + 1) % rotation.length;
+
+  let regularRulerId = opportunityRulerId;
+  let source = 'season_rotation';
+  let skippedRegularTurn = false;
+  let alternatingSkipOpportunityNumber = null;
+  let replacement = {
+    applied: false,
+    method: null,
+    selectedBodyId: null,
+    fallbackReason: null
+  };
+
+  if (opportunityRulerId === ALTERNATING_SKIP_RULER_ID) {
+    nextMachineState.alternatingSkipOpportunityCount += 1;
+    alternatingSkipOpportunityNumber = nextMachineState.alternatingSkipOpportunityCount;
+    skippedRegularTurn = alternatingSkipOpportunityNumber % 2 === 0;
+    if (skippedRegularTurn) {
+      const replacementResult = selectAlternatingSkipReplacement(
+        decisionSnapshot.bodyProgress.map(({ bodyId, progressFraction }) => ({ id: bodyId, progressFraction })),
+        nextMachineState.lastEffectiveSeasonOneRulerId
+      );
+      regularRulerId = replacementResult.rulerId;
+      source = replacementResult.method === 'single_qualifying_body'
+        ? 'alternating_skip_single_body'
+        : 'alternating_skip_fallback';
+      replacement = {
+        applied: true,
+        method: replacementResult.method,
+        selectedBodyId: replacementResult.selectedBodyId,
+        fallbackReason: replacementResult.fallbackReason
+      };
+    }
+  }
+
+  const effectiveRulerId = regularRulerId;
+  if (SEASON_MONTH_RULER_ROTATIONS['season-01'].includes(effectiveRulerId)) {
+    nextMachineState.lastEffectiveSeasonOneRulerId = effectiveRulerId;
+  }
+  return {
+    rulership: {
+      opportunityRulerId,
+      regularRulerId,
+      effectiveRulerId,
+      rotationSeasonId,
+      source,
+      skippedRegularTurn,
+      alternatingSkipOpportunityNumber,
+      decision: copyDecisionSnapshot(decisionSnapshot),
+      replacement
+    },
+    nextMachineState
+  };
+}
+
+function createEpochMonthRulership() {
+  return {
+    opportunityRulerId: ALTERNATING_SKIP_RULER_ID,
+    regularRulerId: ALTERNATING_SKIP_RULER_ID,
+    effectiveRulerId: ALTERNATING_SKIP_RULER_ID,
+    rotationSeasonId: 'season-01',
+    source: 'epoch_default',
+    skippedRegularTurn: false,
+    alternatingSkipOpportunityNumber: 1,
+    reignNumber: 1,
+    ordinalId: REIGN_ORDINAL_IDS[0],
+    decision: {
+      type: 'epoch_default',
+      realUnixMilliseconds: CALENDAR_EPOCH_UNIX_MS,
+      calendarDayIndex: 0,
+      calendarHour: 0,
+      totalCalendarSeconds: 0,
+      totalLunarSeconds: 0,
+      bodyProgress: [],
+      qualifyingBodyIds: []
+    },
+    replacement: {
+      applied: false,
+      method: null,
+      selectedBodyId: null,
+      fallbackReason: null
+    }
+  };
+}
+
+export function calculateMonthRulershipState(zeroBasedYear, zeroBasedMonthIndex) {
+  assertNonNegativeSafeInteger(zeroBasedYear, 'zeroBasedYear');
+  assertNonNegativeSafeInteger(zeroBasedMonthIndex, 'zeroBasedMonthIndex');
+  if (zeroBasedMonthIndex >= MONTHS_PER_YEAR) {
+    throw new RangeError(`zeroBasedMonthIndex must be between 0 and ${MONTHS_PER_YEAR - 1}`);
+  }
+  const absoluteMonthIndex = (zeroBasedYear * MONTHS_PER_YEAR) + zeroBasedMonthIndex;
+  if (!Number.isSafeInteger(absoluteMonthIndex)) {
+    throw new RangeError('absoluteMonthIndex must be a safe integer');
+  }
+
+  let machineState = createInitialMonthRulerMachineState();
+  let effectiveRulerCounts = new Map();
+  let targetRulership;
+  for (let index = 0; index <= absoluteMonthIndex; index += 1) {
+    if (index % MONTHS_PER_YEAR === 0) effectiveRulerCounts = new Map();
+    let rulership;
+    if (index === 0) {
+      rulership = createEpochMonthRulership();
+    } else {
+      const resolved = resolveNextMonthRulership(
+        machineState,
+        calculateMonthRulerDecisionSnapshot(index)
+      );
+      machineState = resolved.nextMachineState;
+      rulership = resolved.rulership;
+    }
+    const reignNumber = (effectiveRulerCounts.get(rulership.effectiveRulerId) ?? 0) + 1;
+    effectiveRulerCounts.set(rulership.effectiveRulerId, reignNumber);
+    targetRulership = {
+      ...rulership,
+      reignNumber,
+      ordinalId: REIGN_ORDINAL_IDS[reignNumber - 1]
+    };
+  }
+  return targetRulership;
 }
 
 export function calculateOutcomeType(tideProgressFraction) {

@@ -120,6 +120,8 @@ function renamedNomenclature(value) {
   renamed.calendar.yearName = 'Renamed Era';
   renamed.calendar.monthReign.name = 'Dominion of';
   renamed.calendar.monthReign.rulers.find(({ id }) => id === 'ruler-01').name = 'First Ruler';
+  renamed.calendar.monthReign.rulers.find(({ id }) => id === 'ruler-07').name = 'Seventh Ruler';
+  renamed.calendar.monthReign.rulers.find(({ id }) => id === 'ruler-08').name = 'Eighth Ruler';
   renamed.calendar.interRegna[0].name = 'Renamed Interregno';
   renamed.lunarCycle.name = 'Renamed Cycle';
   renamed.lunarPhases.find(({ id }) => id === 'phase-01').name = 'Renamed Phase';
@@ -207,19 +209,34 @@ test('representative year 62 date uses configured names and Roman numerals', asy
   assert.equal(state.calendar.weekdayId, 'weekday-07');
   assert.equal(display.calendar.formattedYear, 'Annus Solis LXII');
   assert.equal(formatFictionalYear(state, await context('en')), 'Annus Solis LXII');
-  assert.equal(state.calendar.period.rulership.effectiveRulerId, 'ruler-06');
+  assert.equal(state.calendar.period.rulership.effectiveRulerId, 'ruler-07');
   assert.equal(state.calendar.period.rulership.reignNumber, 1);
-  assert.equal(display.calendar.periodLabel, 'Dies Solis · XIX Regno de Vanitate');
-  assert.equal(display.formattedDate, 'Annus Solis LXII · Dies Solis · XIX Regno de Vanitate');
-  assert.deepEqual(display.calendar.month, {
-    id: 'month-03', index: 3, name: 'Regno de Vanitate',
-    rulership: {
-      opportunityRuler: { id: 'ruler-06', name: 'Vanitate' },
-      regularRuler: { id: 'ruler-06', name: 'Vanitate' },
-      effectiveRuler: { id: 'ruler-06', name: 'Vanitate' },
-      source: 'base_rotation', skippedRegularTurn: false, reignNumber: 1,
-      ordinal: { id: 'reign-ordinal-01', name: 'Prime' }
-    }
+  assert.equal(display.calendar.periodLabel, 'Dies Solis · XIX Regno de Luxuria');
+  assert.equal(display.formattedDate, 'Annus Solis LXII · Dies Solis · XIX Regno de Luxuria');
+  assert.equal(display.calendar.month.id, 'month-03');
+  assert.equal(display.calendar.month.index, 3);
+  assert.equal(display.calendar.month.name, 'Regno de Luxuria');
+  assert.deepEqual(display.calendar.month.rulership.opportunityRuler, { id: 'ruler-07', name: 'Luxuria' });
+  assert.deepEqual(display.calendar.month.rulership.regularRuler, { id: 'ruler-07', name: 'Luxuria' });
+  assert.deepEqual(display.calendar.month.rulership.effectiveRuler, { id: 'ruler-07', name: 'Luxuria' });
+  assert.deepEqual(display.calendar.month.rulership.rotationSeason, { id: 'season-01', name: 'Ossos' });
+  assert.equal(display.calendar.month.rulership.source, 'season_rotation');
+  assert.equal(display.calendar.month.rulership.skippedRegularTurn, false);
+  assert.equal(display.calendar.month.rulership.reignNumber, 1);
+  assert.deepEqual(display.calendar.month.rulership.ordinal, { id: 'reign-ordinal-01', name: 'Prime' });
+  assert.equal(display.calendar.month.rulership.decision.type, 'interregno_final_hour');
+  assert.equal(display.calendar.month.rulership.decision.calendarHour, 22);
+  assert.equal(display.calendar.month.rulership.decision.bodies.length, 6);
+  assert.deepEqual(display.calendar.month.rulership.decision.bodies[0], {
+    id: 'body-01', name: 'Mercurius', symbol: '☿',
+    progressFraction: state.calendar.period.rulership.decision.bodyProgress[0].progressFraction,
+    formattedProgress: '66.243282%'
+  });
+  assert.deepEqual(display.calendar.month.rulership.decision.qualifyingBodies, [
+    { id: 'body-04', name: 'Jupiter', symbol: '♃' }
+  ]);
+  assert.deepEqual(display.calendar.month.rulership.replacement, {
+    applied: false, method: null, selectedBody: null, fallbackReason: null
   });
   assert.deepEqual(Object.keys(display.calendar).sort(), [
     'formattedYear', 'interRegnum', 'month', 'periodLabel', 'time', 'weekday', 'yearName'
@@ -228,9 +245,21 @@ test('representative year 62 date uses configured names and Roman numerals', asy
 
   const renamed = structuredClone(await productionNomenclature());
   renamed.calendar.monthReign.name = 'Dominion of';
-  renamed.calendar.monthReign.rulers.find(({ id }) => id === 'ruler-06').name = 'Sixth Ruler';
+  renamed.calendar.monthReign.rulers.find(({ id }) => id === 'ruler-07').name = 'Seventh Ruler';
   const renamedDisplay = createDisplayData(state, await context('en', validateNomenclature(renamed)));
-  assert.equal(renamedDisplay.calendar.periodLabel, 'Dies Solis · XIX Dominion of Sixth Ruler');
+  assert.equal(renamedDisplay.calendar.periodLabel, 'Dies Solis · XIX Dominion of Seventh Ruler');
+
+  const rawBeforeMappedRename = structuredClone(state);
+  const fullyRenamedDisplay = createDisplayData(
+    state,
+    await context('en', renamedNomenclature(await productionNomenclature()))
+  );
+  assert.deepEqual(fullyRenamedDisplay.calendar.month.rulership.rotationSeason, {
+    id: 'season-01', name: 'Dry'
+  });
+  assert.equal(fullyRenamedDisplay.calendar.month.rulership.decision.bodies[0].name, 'Swift');
+  assert.equal(fullyRenamedDisplay.calendar.month.rulership.decision.bodies[0].symbol, '☿');
+  assert.deepEqual(state, rawBeforeMappedRename);
 });
 
 test('month reign formatting uses every ordinal but omits Prime for the first reign', async () => {
@@ -259,9 +288,9 @@ test('month reign formatting uses every ordinal but omits Prime for the first re
 test('yearly reign names reset without resetting the underlying rotation', async () => {
   const presentationContext = await context('en');
   for (const [year, month, expected] of [
-    [0, 0, 'Regno de Orgolio'], [0, 8, 'Secunde Regno de Orgolio'],
-    [0, 9, 'Secunde Regno de Rabia'], [0, 10, 'Secunde Regno de Gula'],
-    [1, 0, 'Regno de Invidia']
+    [0, 0, 'Regno de Pigritia'], [0, 4, 'Secunde Regno de Vanitate'],
+    [0, 5, 'Tertie Regno de Vanitate'], [0, 10, 'Secunde Regno de Rabia'],
+    [1, 0, 'Regno de Gula']
   ]) assert.equal(formatMonthReignName(calculateMonthRulershipState(year, month), presentationContext), expected);
 });
 
@@ -309,7 +338,7 @@ test('Interregno dates use weekday, Roman day, and configured period name in bot
     assert.deepEqual(display.calendar.interRegnum, { id: 'interregnum-01', name: 'Interregno 1 → 2' });
     assert.equal(display.calendar.periodLabel, 'Dies Martis · I Interregno 1 → 2');
   }
-  assert.equal(englishJson.calendarVersion, 'v16');
+  assert.equal(englishJson.calendarVersion, 'v17');
   assert.deepEqual(englishJson.state, spanishJson.state);
   assert.deepEqual(englishJson.state.calendar.period, rawPeriod);
   assert.deepEqual(englishJson.display.calendar.interRegnum, {
@@ -388,7 +417,7 @@ test('representative lunar state produces one exact locale-invariant Roman summa
 
   const englishJson = createCalendarJson(state, representativeLunarTimestamp, englishContext);
   const spanishJson = createCalendarJson(state, representativeLunarTimestamp, spanishContext);
-  assert.equal(englishJson.calendarVersion, 'v16');
+  assert.equal(englishJson.calendarVersion, 'v17');
   assert.deepEqual(englishJson.nomenclature, { schemaVersion: 6, applicationDisplayName: 'Insidia' });
   assert.equal(englishJson.locale.schemaVersion, 6);
   assert.deepEqual(englishJson.state, spanishJson.state);
@@ -425,8 +454,8 @@ test('in-memory nomenclature renaming changes display and never mechanics', asyn
   assert.equal(secondDisplay.orbits.bodies.find(({ id }) => id === 'body-06').name, 'Selene');
   assert.equal(firstDisplay.calendar.formattedYear, 'Annus Solis I');
   assert.equal(secondDisplay.calendar.formattedYear, 'Renamed Era I');
-  assert.equal(firstDisplay.calendar.month.name, 'Regno de Orgolio');
-  assert.equal(secondDisplay.calendar.month.name, 'Dominion of First Ruler');
+  assert.equal(firstDisplay.calendar.month.name, 'Regno de Pigritia');
+  assert.equal(secondDisplay.calendar.month.name, 'Dominion of Eighth Ruler');
   assert.equal(firstDisplay.lunar.formattedSummary, 'Renascimento • Cyclus Lunae I');
   assert.equal(secondDisplay.lunar.formattedSummary, 'Renamed Phase • Renamed Cycle I');
   assert.deepEqual(firstDisplay.outcomeType, secondDisplay.outcomeType);
@@ -479,8 +508,8 @@ test('Spanish changes generic language and Outcome types but not proper nouns or
   assert.equal(englishContext.getPage('page-02').name, 'Destino');
   assert.equal(spanishContext.getPage('page-02').name, 'Destino');
   assert.equal(english.calendar.formattedYear, 'Annus Solis I');
-  assert.equal(english.calendar.periodLabel, 'Dies Lunae · I Regno de Orgolio');
-  assert.equal(english.formattedDate, 'Annus Solis I · Dies Lunae · I Regno de Orgolio');
+  assert.equal(english.calendar.periodLabel, 'Dies Lunae · I Regno de Pigritia');
+  assert.equal(english.formattedDate, 'Annus Solis I · Dies Lunae · I Regno de Pigritia');
   assert.deepEqual(raw, calculateCalendarState(0));
 });
 
@@ -538,11 +567,11 @@ test('Destino classification uses nomenclature while Outcome types use locale', 
   assert.equal(spanish.format('outcome.type', { pageName: spanish.getPage('page-02').name, name: spanish.getOutcomeType('outcome-tier-01').name }), 'Destino: Común');
 });
 
-test('JSON v16 exposes tide and hour progress while raw state remains neutral', async () => {
+test('JSON v17 exposes ruler decisions plus tide and hour progress while raw state remains neutral', async () => {
   const raw = calculateCalendarState(0);
   const english = createCalendarJson(raw, 0, await context('en'));
   const spanish = createCalendarJson(raw, 0, await context('es'));
-  assert.equal(english.calendarVersion, 'v16');
+  assert.equal(english.calendarVersion, 'v17');
   assert.equal(english.state.totalSeconds, 0);
   assert.equal(english.state.totalLunarSeconds, 0);
   assert.deepEqual(english.state.lunar.time, {
@@ -577,10 +606,10 @@ test('JSON v16 exposes tide and hour progress while raw state remains neutral', 
   assert.doesNotMatch(JSON.stringify(english.state), /Annus Solis|Regno de|Orgolio|Rabia|Gula|Invidia|Avaritia|Vanitate|Luxuria|Pigritia|Prime|Secunde|Tertie|Quarte|Quinte|Sexte|Septime|Octave|None|Decime|Undecime|Interregno|"[IVXLCDM]+"/);
   assert.equal(english.display.calendar.yearName, 'Annus Solis');
   assert.equal(english.display.calendar.formattedYear, 'Annus Solis I');
-  assert.equal(english.display.calendar.periodLabel, 'Dies Lunae · I Regno de Orgolio');
-  assert.equal(english.display.calendar.month.name, 'Regno de Orgolio');
+  assert.equal(english.display.calendar.periodLabel, 'Dies Lunae · I Regno de Pigritia');
+  assert.equal(english.display.calendar.month.name, 'Regno de Pigritia');
   assert.deepEqual(english.display.calendar.month.rulership.ordinal, { id: 'reign-ordinal-01', name: 'Prime' });
-  for (const key of ['opportunityRulerId','regularRulerId','effectiveRulerId','source','skippedRegularTurn','reignNumber','ordinalId']) {
+  for (const key of ['rotationSeasonId','opportunityRulerId','regularRulerId','effectiveRulerId','source','skippedRegularTurn','alternatingSkipOpportunityNumber','decision','replacement','reignNumber','ordinalId']) {
     assert.ok(Object.hasOwn(english.state.calendar.period.rulership, key), key);
   }
   assert.deepEqual(english.display.calendar.month, spanish.display.calendar.month);
@@ -633,20 +662,20 @@ test('navigation applies only resolved locale and fixed application metadata', a
   assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore']);
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.13');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.13');
+  assert.equal(versionElements[0].textContent, 'v8.14');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.14');
   applyCommonDocumentPresentation(documentRoot, 'page-01', await context('en'));
   assert.equal(meta.content, 'Live fictional date, lunar state, and season state for Insidia.');
-  assert.equal(versionElements[0]['aria-label'], 'Application version 8.13');
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.14');
 });
 
-test('static HTML remains neutral and uses v8.13 page IDs and application placeholders', async () => {
+test('static HTML remains neutral and uses v8.14 page IDs and application placeholders', async () => {
   const properNouns = ['Insidia','Calendario','Destino','Tempore','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),...INTERREGNOS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.13/);
+    assert.match(html, /data-version>v8\.14/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);
