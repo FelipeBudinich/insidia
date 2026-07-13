@@ -54,6 +54,24 @@ export const ALTERNATING_SKIP_REPLACEMENT_RULES = Object.freeze([
 ]);
 export const WEEKDAY_IDS = Object.freeze(Array.from({ length: 7 }, (_, index) => `weekday-${String(index + 1).padStart(2, '0')}`));
 export const INTER_REGNUM_IDS = Object.freeze(Array.from({ length: 11 }, (_, index) => `interregnum-${String(index + 1).padStart(2, '0')}`));
+export const NAMED_DAY_IDS = Object.freeze([
+  'named-day-01',
+  'named-day-02',
+  'named-day-03',
+  'named-day-04',
+  'named-day-05'
+]);
+export const CALENDAR_NAMED_DAY_RULES = Object.freeze({
+  month: Object.freeze([
+    Object.freeze({ day: 1, namedDayId: 'named-day-01' }),
+    Object.freeze({ day: 7, namedDayId: 'named-day-02' }),
+    Object.freeze({ day: 15, namedDayId: 'named-day-03' }),
+    Object.freeze({ day: 23, namedDayId: 'named-day-04' })
+  ]),
+  inter_regnum: Object.freeze([
+    Object.freeze({ day: 1, namedDayId: 'named-day-05' })
+  ])
+});
 
 export const SEASON_RULES = Object.freeze([
   { id: 'season-01', durationDays: SEASON_LENGTH_DAYS },

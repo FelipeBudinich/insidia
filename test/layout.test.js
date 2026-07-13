@@ -182,14 +182,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each renamed page has one localized v8.15 footer version', async () => {
+test('each renamed page has one localized v8.16 footer version', async () => {
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.15/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.16/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -231,10 +231,10 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   ]) assert.ok(css.includes(preserved), preserved);
 });
 
-test('JSON serialization is schema v17 with calendar time intact', async () => {
+test('JSON serialization is schema v18 with calendar time intact', async () => {
   const [presentation, mechanics] = await Promise.all([readPublic('presentation.js'), readPublic('core/mechanics.js')]);
   assert.match(presentation, /export function createCalendarJson/);
-  assert.match(presentation, /calendarVersion: 'v17'/);
+  assert.match(presentation, /calendarVersion: 'v18'/);
   assert.match(presentation, /time: formatClock\(state\.calendar\.time\)/);
   assert.match(mechanics, /time: \{ hour, minute, second \}/);
 });
@@ -261,8 +261,13 @@ test('Interregno proper names are sourced only from nomenclature', async () => {
   ]) {
     assert.doesNotMatch(await readPublic(file), /Interregno/, file);
   }
-  const nomenclature = await readPublic('config/nomenclature.json');
-  assert.equal((nomenclature.match(/"name": "Interregno /g) ?? []).length, 11);
+  const nomenclature = JSON.parse(await readPublic('config/nomenclature.json'));
+  assert.deepEqual(nomenclature.calendar.interRegna.map(({ name }) => name), [
+    'Primus Interregno', 'Secundus Interregno', 'Tertius Interregno',
+    'Quartus Interregno', 'Quintus Interregno', 'Sextus Interregno',
+    'Septimus Interregno', 'Octavus Interregno', 'Nonus Interregno',
+    'Decimus Interregno', 'Undecimus Interregno'
+  ]);
 });
 
 test('Calendario renderer arranges presentation-ready lunar title and subtitle values', async () => {

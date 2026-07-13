@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  calculateAbsoluteMonthStartDay,
   calculateCalendarState,
   calculateMonthRulershipState,
-  calculateOutcomeType
+  calculateOutcomeType,
+  resolveNamedDayId
 } from '../public/core/mechanics.js';
 import { formatRomanNumeral } from '../public/core/formatting.js';
 import * as rules from '../public/core/rules.js';
@@ -30,7 +32,8 @@ test('epoch is the first day of the first calendar slot at 00:00:00', () => {
   assert.equal(state.totalSeconds, 0);
   assert.deepEqual(state.calendar.time, { hour: 0, minute: 0, second: 0 });
   assert.deepEqual(state.calendar.period, {
-    type: 'month', monthId: 'month-01', monthIndex: 1, day: 1, length: 29,
+    type: 'month', monthId: 'month-01', monthIndex: 1, day: 1,
+    namedDayId: 'named-day-01', length: 29,
     rulership: {
       opportunityRulerId: 'ruler-08', regularRulerId: 'ruler-08', effectiveRulerId: 'ruler-08',
       rotationSeasonId: 'season-01', source: 'epoch_default', skippedRegularTurn: false,
@@ -96,6 +99,72 @@ test('weekday is continuous at month, Interregno, and year boundaries', () => {
   }
 });
 
+test('named-day resolver uses exact neutral rules and validates its inputs', () => {
+  for (const [periodType, day, expected] of [
+    ['month', 1, 'named-day-01'],
+    ['month', 7, 'named-day-02'],
+    ['month', 15, 'named-day-03'],
+    ['month', 23, 'named-day-04'],
+    ['month', 19, null],
+    ['inter_regnum', 1, 'named-day-05'],
+    ['inter_regnum', 2, null]
+  ]) assert.equal(resolveNamedDayId(periodType, day), expected);
+
+  for (const periodType of [null, undefined, 1]) {
+    assert.throws(() => resolveNamedDayId(periodType, 1), TypeError);
+  }
+  for (const periodType of ['', 'interregno', 'other']) {
+    assert.throws(() => resolveNamedDayId(periodType, 1), RangeError);
+  }
+  assert.throws(() => resolveNamedDayId('month', '1'), TypeError);
+  for (const day of [0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => resolveNamedDayId('month', day), RangeError);
+  }
+});
+
+test('every month receives the four named days and ordinary days remain unnamed', () => {
+  const expectedNamedDays = new Map([
+    [1, 'named-day-01'],
+    [7, 'named-day-02'],
+    [15, 'named-day-03'],
+    [23, 'named-day-04']
+  ]);
+  for (let monthIndex = 0; monthIndex < rules.MONTHS_PER_YEAR; monthIndex += 1) {
+    const monthStartDay = calculateAbsoluteMonthStartDay(monthIndex);
+    for (const [day, namedDayId] of expectedNamedDays) {
+      const period = calculateCalendarState(atDay(monthStartDay + day - 1)).calendar.period;
+      assert.equal(period.monthId, rules.MONTH_IDS[monthIndex], `month ${monthIndex + 1}, day ${day}`);
+      assert.equal(period.day, day, `month ${monthIndex + 1}, day ${day}`);
+      assert.equal(period.namedDayId, namedDayId, `month ${monthIndex + 1}, day ${day}`);
+    }
+    assert.equal(
+      calculateCalendarState(atDay(monthStartDay + 18)).calendar.period.namedDayId,
+      null,
+      `month ${monthIndex + 1}, day 19`
+    );
+  }
+
+  const laterYearPeriod = calculateCalendarState(
+    atDay(calculateAbsoluteMonthStartDay(rules.MONTHS_PER_YEAR) + 14)
+  ).calendar.period;
+  assert.equal(laterYearPeriod.day, 15);
+  assert.equal(laterYearPeriod.namedDayId, 'named-day-03');
+});
+
+test('every Interregno receives Interregis only on day one', () => {
+  for (let index = 0; index < rules.MONTHS_PER_YEAR; index += 1) {
+    const interRegnumStartDay = calculateAbsoluteMonthStartDay(index) + rules.DAYS_PER_MONTH;
+    const length = rules.INTER_REGNUM_LENGTHS[index];
+    for (let day = 1; day <= length; day += 1) {
+      const period = calculateCalendarState(atDay(interRegnumStartDay + day - 1)).calendar.period;
+      assert.equal(period.interRegnumId, rules.INTER_REGNUM_IDS[index]);
+      assert.equal(period.day, day);
+      assert.equal(period.namedDayId, day === 1 ? 'named-day-05' : null);
+    }
+  }
+  assert.equal(calculateCalendarState(atDay(352)).calendar.period.namedDayId, null);
+});
+
 test('Interregnos neither contain rulership nor advance the regular rotation', () => {
   const monthOne = calculateCalendarState(atDay(28)).calendar.period;
   const interRegnum = calculateCalendarState(atDay(29)).calendar.period;
@@ -126,6 +195,9 @@ test('raw state contains IDs and mechanics but no presentation fields', () => {
   assert.doesNotMatch(raw, /"(?:name|shortName|symbol|formatted)"/);
   assert.doesNotMatch(raw, /Dies (?:Lunae|Martis|Mercurii|Iovis|Veneris|Saturni|Solis)/);
   for (const id of ['month-', 'weekday-', 'season-', 'phase-', 'tide-', 'body-', 'pull-', 'outcome-tier-']) assert.match(raw, new RegExp(id));
+  const namedState = calculateCalendarState(0);
+  assert.equal(namedState.calendar.period.namedDayId, 'named-day-01');
+  assert.match(JSON.stringify(namedState), /named-day-01/);
 });
 
 test('the exact mechanical constants remain stable', () => {
@@ -155,6 +227,24 @@ test('the exact mechanical constants remain stable', () => {
   ]);
   assert.equal(rules.ALTERNATING_SKIP_REPLACEMENT_RULES.every(Object.isFrozen), true);
   assert.equal(rules.REIGN_ORDINAL_IDS.length, 11);
+  assert.deepEqual(rules.NAMED_DAY_IDS, [
+    'named-day-01', 'named-day-02', 'named-day-03', 'named-day-04', 'named-day-05'
+  ]);
+  assert.deepEqual(rules.CALENDAR_NAMED_DAY_RULES, {
+    month: [
+      { day: 1, namedDayId: 'named-day-01' },
+      { day: 7, namedDayId: 'named-day-02' },
+      { day: 15, namedDayId: 'named-day-03' },
+      { day: 23, namedDayId: 'named-day-04' }
+    ],
+    inter_regnum: [{ day: 1, namedDayId: 'named-day-05' }]
+  });
+  assert.equal(Object.isFrozen(rules.NAMED_DAY_IDS), true);
+  assert.equal(Object.isFrozen(rules.CALENDAR_NAMED_DAY_RULES), true);
+  assert.equal(Object.isFrozen(rules.CALENDAR_NAMED_DAY_RULES.month), true);
+  assert.equal(Object.isFrozen(rules.CALENDAR_NAMED_DAY_RULES.inter_regnum), true);
+  assert.equal(rules.CALENDAR_NAMED_DAY_RULES.month.every(Object.isFrozen), true);
+  assert.equal(rules.CALENDAR_NAMED_DAY_RULES.inter_regnum.every(Object.isFrozen), true);
 });
 
 test('Outcome thresholds use tide progress and retain their exact neutral IDs', () => {

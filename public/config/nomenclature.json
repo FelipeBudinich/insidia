@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "application": {
     "displayName": "Insidia"
   },
@@ -45,18 +45,25 @@
       { "id": "weekday-06", "name": "Dies Saturni" },
       { "id": "weekday-07", "name": "Dies Solis" }
     ],
+    "namedDays": [
+      { "id": "named-day-01", "name": "Kalendis" },
+      { "id": "named-day-02", "name": "Nonis" },
+      { "id": "named-day-03", "name": "Idibus" },
+      { "id": "named-day-04", "name": "Liminis" },
+      { "id": "named-day-05", "name": "Interregis" }
+    ],
     "interRegna": [
-      { "id": "interregnum-01", "name": "Interregno 1 → 2" },
-      { "id": "interregnum-02", "name": "Interregno 2 → 3" },
-      { "id": "interregnum-03", "name": "Interregno 3 → 4" },
-      { "id": "interregnum-04", "name": "Interregno 4 → 5" },
-      { "id": "interregnum-05", "name": "Interregno 5 → 6" },
-      { "id": "interregnum-06", "name": "Interregno 6 → 7" },
-      { "id": "interregnum-07", "name": "Interregno 7 → 8" },
-      { "id": "interregnum-08", "name": "Interregno 8 → 9" },
-      { "id": "interregnum-09", "name": "Interregno 9 → 10" },
-      { "id": "interregnum-10", "name": "Interregno 10 → 11" },
-      { "id": "interregnum-11", "name": "Interregno 11 → 1" }
+      { "id": "interregnum-01", "name": "Primus Interregno" },
+      { "id": "interregnum-02", "name": "Secundus Interregno" },
+      { "id": "interregnum-03", "name": "Tertius Interregno" },
+      { "id": "interregnum-04", "name": "Quartus Interregno" },
+      { "id": "interregnum-05", "name": "Quintus Interregno" },
+      { "id": "interregnum-06", "name": "Sextus Interregno" },
+      { "id": "interregnum-07", "name": "Septimus Interregno" },
+      { "id": "interregnum-08", "name": "Octavus Interregno" },
+      { "id": "interregnum-09", "name": "Nonus Interregno" },
+      { "id": "interregnum-10", "name": "Decimus Interregno" },
+      { "id": "interregnum-11", "name": "Undecimus Interregno" }
     ]
   },
   "seasons": [

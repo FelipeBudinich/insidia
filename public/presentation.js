@@ -16,21 +16,28 @@ export function formatMonthReignName(rulership, context) {
   });
 }
 
+export function formatCalendarDayDesignation(period, context) {
+  if (period.namedDayId !== null) {
+    return context.getNamedDay(period.namedDayId).name;
+  }
+  return formatRomanNumeral(period.day);
+}
+
 export function formatCalendarPeriod(state, context) {
   const period = state.calendar.period;
   const weekdayName = context.getWeekday(state.calendar.weekdayId).name;
-  const dayRoman = formatRomanNumeral(period.day);
+  const dayDesignation = formatCalendarDayDesignation(period, context);
   if (period.type === 'month') {
     return context.format('calendar.monthPeriod', {
       monthName: formatMonthReignName(period.rulership, context),
       weekdayName,
-      dayRoman
+      dayDesignation
     });
   }
   return context.format('calendar.interPeriod', {
     interRegnumName: context.getInterRegnum(period.interRegnumId).name,
     weekdayName,
-    dayRoman
+    dayDesignation
   });
 }
 
@@ -117,6 +124,8 @@ export function createDisplayData(state, context) {
   const month = displayMonth(period, context);
   const interRegnum = period.type === 'inter_regnum' ? context.getInterRegnum(period.interRegnumId) : null;
   const weekday = context.getWeekday(state.calendar.weekdayId);
+  const namedDay = period.namedDayId ? context.getNamedDay(period.namedDayId) : null;
+  const dayDesignation = formatCalendarDayDesignation(period, context);
   const formattedYear = formatFictionalYear(state, context);
   return {
     formattedDate: formatFictionalDate(state, context),
@@ -126,6 +135,8 @@ export function createDisplayData(state, context) {
       month,
       interRegnum,
       weekday,
+      namedDay,
+      dayDesignation,
       periodLabel: formatCalendarPeriod(state, context),
       time: formatClock(state.calendar.time)
     },
@@ -173,7 +184,7 @@ function copyRawState(state) {
 
 export function createCalendarJson(state, realUnixMilliseconds, context) {
   return {
-    calendarVersion: 'v17',
+    calendarVersion: 'v18',
     nomenclature: {
       schemaVersion: context.nomenclatureSchemaVersion,
       applicationDisplayName: context.applicationDisplayName

@@ -3,6 +3,7 @@ import {
   ALTERNATING_SKIP_ORBITAL_THRESHOLD,
   ALTERNATING_SKIP_REPLACEMENT_RULES,
   ALTERNATING_SKIP_RULER_ID,
+  CALENDAR_NAMED_DAY_RULES,
   CELESTIAL_BODY_RULES,
   DAYS_PER_MONTH,
   DAYS_PER_YEAR,
@@ -62,6 +63,17 @@ function assertProgressFraction(value, label = 'progressFraction') {
   if (!Number.isFinite(value) || value < 0 || value >= 1) {
     throw new RangeError(`${label} must be finite and at least 0 but less than 1`);
   }
+}
+
+export function resolveNamedDayId(periodType, day) {
+  if (typeof periodType !== 'string') {
+    throw new TypeError('periodType must be a string');
+  }
+  const rules = CALENDAR_NAMED_DAY_RULES[periodType];
+  if (!rules) throw new RangeError(`Unsupported period type: ${periodType}`);
+  assertNonNegativeSafeInteger(day, 'day');
+  if (day < 1) throw new RangeError('day must be at least 1');
+  return rules.find((rule) => rule.day === day)?.namedDayId ?? null;
 }
 
 export function calculateAbsoluteMonthStartDay(absoluteMonthIndex) {
@@ -657,11 +669,13 @@ export function calculateCalendarState(realUnixMilliseconds) {
   let period;
   for (let index = 0; index < MONTHS_PER_YEAR; index += 1) {
     if (remainingDays < DAYS_PER_MONTH) {
+      const day = remainingDays + 1;
       period = {
         type: 'month',
         monthId: MONTH_IDS[index],
         monthIndex: index + 1,
-        day: remainingDays + 1,
+        day,
+        namedDayId: resolveNamedDayId('month', day),
         length: DAYS_PER_MONTH,
         rulership: calculateMonthRulershipState(zeroBasedYear, index)
       };
@@ -670,12 +684,14 @@ export function calculateCalendarState(realUnixMilliseconds) {
     remainingDays -= DAYS_PER_MONTH;
     const interLength = INTER_REGNUM_LENGTHS[index];
     if (remainingDays < interLength) {
+      const day = remainingDays + 1;
       period = {
         type: 'inter_regnum',
         interRegnumId: INTER_REGNUM_IDS[index],
         fromMonthId: MONTH_IDS[index],
         toMonthId: MONTH_IDS[(index + 1) % MONTHS_PER_YEAR],
-        day: remainingDays + 1,
+        day,
+        namedDayId: resolveNamedDayId('inter_regnum', day),
         length: interLength
       };
       break;

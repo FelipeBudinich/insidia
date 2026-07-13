@@ -74,14 +74,15 @@ test('query parameters cannot change the nomenclature request', async () => {
 
 test('production nomenclature validates complete neutral ID coverage', async () => {
   const value = validateNomenclature(await readJson(nomenclaturePath));
-  assert.equal(value.schemaVersion, 6);
+  assert.equal(value.schemaVersion, 7);
   assert.deepEqual(value.lunarCycle, { name: 'Cyclus Lunae' });
   assert.deepEqual(Object.keys(value.lunarCycle), ['name']);
   assert.equal(value.calendar.yearName, 'Annus Solis');
-  assert.deepEqual(Object.keys(value.calendar).sort(), ['interRegna', 'monthReign', 'weekdays', 'yearName']);
+  assert.deepEqual(Object.keys(value.calendar).sort(), ['interRegna', 'monthReign', 'namedDays', 'weekdays', 'yearName']);
   assert.equal(Object.hasOwn(value.calendar, 'months'), false);
   assert.deepEqual(value.pages.map(({ id }) => id), ['page-01', 'page-02', 'page-03']);
   assert.equal(value.calendar.weekdays.length, 7);
+  assert.equal(value.calendar.namedDays.length, 5);
   assert.equal(value.calendar.interRegna.length, 11);
   assert.equal(value.seasons.length, 2);
   assert.equal(value.lunarPhases.length, 13);
@@ -97,10 +98,35 @@ test('nomenclature validation rejects missing, duplicate, unknown, and invalid e
   const unknown = structuredClone(valid); unknown.seasons[1].id = 'season-99';
   const empty = structuredClone(valid); empty.seasons[0].name = '';
   const nonString = structuredClone(valid); nonString.celestialBodies[0].symbol = 7;
-  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 7;
+  const wrongSchema = structuredClone(valid); wrongSchema.schemaVersion = 6;
   for (const invalid of [missing, duplicate, unknown, empty, nonString, wrongSchema]) {
     assert.throws(() => validateNomenclature(invalid));
   }
+});
+
+test('named-day nomenclature requires exact canonical entities and no mechanics', async () => {
+  const valid = await readJson(nomenclaturePath);
+  assert.deepEqual(validateNomenclature(valid).calendar.namedDays, [
+    { id: 'named-day-01', name: 'Kalendis' },
+    { id: 'named-day-02', name: 'Nonis' },
+    { id: 'named-day-03', name: 'Idibus' },
+    { id: 'named-day-04', name: 'Liminis' },
+    { id: 'named-day-05', name: 'Interregis' }
+  ]);
+
+  const missing = structuredClone(valid); missing.calendar.namedDays.pop();
+  const duplicate = structuredClone(valid); duplicate.calendar.namedDays[1].id = 'named-day-01';
+  const unknown = structuredClone(valid); unknown.calendar.namedDays[1].id = 'named-day-99';
+  const reordered = structuredClone(valid); reordered.calendar.namedDays.reverse();
+  const emptyName = structuredClone(valid); emptyName.calendar.namedDays[0].name = '';
+  const nonStringName = structuredClone(valid); nonStringName.calendar.namedDays[0].name = 1;
+  const extraDay = structuredClone(valid); extraDay.calendar.namedDays[0].day = 1;
+  const extraPeriodType = structuredClone(valid); extraPeriodType.calendar.namedDays[0].periodType = 'month';
+  const oldCalendarShape = structuredClone(valid); delete oldCalendarShape.calendar.namedDays;
+  for (const invalid of [
+    missing, duplicate, unknown, reordered, emptyName, nonStringName,
+    extraDay, extraPeriodType, oldCalendarShape
+  ]) assert.throws(() => validateNomenclature(invalid));
 });
 
 test('month-reign nomenclature requires exact rulers, ordinals, and name-only entities', async () => {
@@ -367,8 +393,8 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
   assert.deepEqual(Object.values(english.outcomeTypes).map(({ name }) => name), ['Common', 'Uncommon', 'Rare']);
   assert.deepEqual(Object.values(spanish.outcomeTypes).map(({ name }) => name), ['Común', 'Poco común', 'Raro']);
-  assert.equal(english.schemaVersion, 6);
-  assert.equal(spanish.schemaVersion, 6);
+  assert.equal(english.schemaVersion, 7);
+  assert.equal(spanish.schemaVersion, 7);
   assert.equal(english.messages['label.currentTideProgress'], 'Current Tide Progress');
   assert.equal(spanish.messages['label.currentTideProgress'], 'Progreso de la marea actual');
   assert.equal(english.messages['label.currentHour'], 'Current Hour');
@@ -387,8 +413,8 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
     'calendar.formattedYear': '{yearName} {yearRoman}',
     'calendar.firstMonthReign': '{reignName} {rulerName}',
     'calendar.repeatedMonthReign': '{ordinalName} {reignName} {rulerName}',
-    'calendar.monthPeriod': '{weekdayName} · {dayRoman} {monthName}',
-    'calendar.interPeriod': '{weekdayName} · {dayRoman} {interRegnumName}',
+    'calendar.monthPeriod': '{weekdayName} {dayDesignation} · {monthName}',
+    'calendar.interPeriod': '{weekdayName} {dayDesignation} · {interRegnumName}',
     'calendar.formattedDate': '{formattedYear} · {periodLabel}'
   };
   for (const locale of [english, spanish]) {
@@ -399,6 +425,8 @@ test('locale Outcome types are exact and malformed known locales fail', async ()
     for (const key of ['section.lunar', 'label.phase', 'label.lunarDay']) assert.equal(Object.hasOwn(locale.messages, key), false, key);
     assert.equal(locale.messages['label.cycle'] !== undefined, true);
     assert.doesNotMatch(JSON.stringify(locale), /Morditura|Cyclus Lunae/);
+    assert.doesNotMatch(JSON.stringify(locale), /Kalendis|Nonis|Idibus|Liminis|Interregis|Primus Interregno/);
+    assert.doesNotMatch(JSON.stringify(locale), /dayRoman/);
   }
   for (const key of ['section.lunar', 'label.phase', 'label.lunarDay']) assert.equal(MESSAGE_KEYS.includes(key), false, key);
   assert.equal(MESSAGE_KEYS.includes('label.cycle'), true);

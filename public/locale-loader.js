@@ -66,7 +66,7 @@ function validateOutcomeTypes(outcomeTypes) {
 
 export function validateLocale(locale) {
   if (!locale || typeof locale !== 'object' || Array.isArray(locale)) throw new TypeError('locale must be an object');
-  if (locale.schemaVersion !== 6) throw new Error('locale schemaVersion must be 6');
+  if (locale.schemaVersion !== 7) throw new Error('locale schemaVersion must be 7');
   assertNonEmpty(locale.id, 'locale.id');
   assertNonEmpty(locale.languageTag, 'locale.languageTag');
   validateOutcomeTypes(locale.outcomeTypes);

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "id": "en",
   "languageTag": "en",
   "outcomeTypes": {
@@ -60,8 +60,8 @@
     "calendar.formattedYear": "{yearName} {yearRoman}",
     "calendar.firstMonthReign": "{reignName} {rulerName}",
     "calendar.repeatedMonthReign": "{ordinalName} {reignName} {rulerName}",
-    "calendar.monthPeriod": "{weekdayName} · {dayRoman} {monthName}",
-    "calendar.interPeriod": "{weekdayName} · {dayRoman} {interRegnumName}",
+    "calendar.monthPeriod": "{weekdayName} {dayDesignation} · {monthName}",
+    "calendar.interPeriod": "{weekdayName} {dayDesignation} · {interRegnumName}",
     "calendar.formattedDate": "{formattedYear} · {periodLabel}",
     "lunar.summary": "{phaseName} • {cycleName} {cycleRoman}",
     "season.metadata": "{dayLabel} {day} of {length} · {cycleLabel} {cycle}",
