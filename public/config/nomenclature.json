@@ -46,17 +46,17 @@
       { "id": "weekday-07", "name": "Dies Solis" }
     ],
     "interRegna": [
-      { "id": "interregnum-01", "name": "Inter Regnum 1 → 2" },
-      { "id": "interregnum-02", "name": "Inter Regnum 2 → 3" },
-      { "id": "interregnum-03", "name": "Inter Regnum 3 → 4" },
-      { "id": "interregnum-04", "name": "Inter Regnum 4 → 5" },
-      { "id": "interregnum-05", "name": "Inter Regnum 5 → 6" },
-      { "id": "interregnum-06", "name": "Inter Regnum 6 → 7" },
-      { "id": "interregnum-07", "name": "Inter Regnum 7 → 8" },
-      { "id": "interregnum-08", "name": "Inter Regnum 8 → 9" },
-      { "id": "interregnum-09", "name": "Inter Regnum 9 → 10" },
-      { "id": "interregnum-10", "name": "Inter Regnum 10 → 11" },
-      { "id": "interregnum-11", "name": "Inter Regnum 11 → 1" }
+      { "id": "interregnum-01", "name": "Interregno 1 → 2" },
+      { "id": "interregnum-02", "name": "Interregno 2 → 3" },
+      { "id": "interregnum-03", "name": "Interregno 3 → 4" },
+      { "id": "interregnum-04", "name": "Interregno 4 → 5" },
+      { "id": "interregnum-05", "name": "Interregno 5 → 6" },
+      { "id": "interregnum-06", "name": "Interregno 6 → 7" },
+      { "id": "interregnum-07", "name": "Interregno 7 → 8" },
+      { "id": "interregnum-08", "name": "Interregno 8 → 9" },
+      { "id": "interregnum-09", "name": "Interregno 9 → 10" },
+      { "id": "interregnum-10", "name": "Interregno 10 → 11" },
+      { "id": "interregnum-11", "name": "Interregno 11 → 1" }
     ]
   },
   "seasons": [

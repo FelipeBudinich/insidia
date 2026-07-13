@@ -83,7 +83,7 @@ test('new year begins after all 353 days', () => {
   assert.equal(state.calendar.period.monthId, 'month-01');
 });
 
-test('weekday is continuous at month, interregnum, and year boundaries', () => {
+test('weekday is continuous at month, Interregno, and year boundaries', () => {
   for (const index of [29, 32, 353]) {
     const before = calculateCalendarState(atDay(index - 1)).calendar.dayOfWeek;
     const after = calculateCalendarState(atDay(index)).calendar.dayOfWeek;
@@ -145,7 +145,7 @@ test('month rotation continues across years while reign counts reset yearly', ()
   assert.equal(calculateMonthRulershipState(0, 9).reignNumber, 2);
 });
 
-test('Inter Regna neither contain rulership nor advance the regular rotation', () => {
+test('Interregnos neither contain rulership nor advance the regular rotation', () => {
   const monthOne = calculateCalendarState(atDay(28)).calendar.period;
   const interRegnum = calculateCalendarState(atDay(29)).calendar.period;
   const monthTwo = calculateCalendarState(atDay(32)).calendar.period;

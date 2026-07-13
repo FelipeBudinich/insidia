@@ -1,11 +1,20 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readPublic = (file) => readFile(path.join(root, 'public', file), 'utf8');
+
+async function listSourceFiles(directory) {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const nested = await Promise.all(entries.map((entry) => {
+    const fullPath = path.join(directory, entry.name);
+    return entry.isDirectory() ? listSourceFiles(fullPath) : [fullPath];
+  }));
+  return nested.flat();
+}
 
 test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async () => {
   const [html, script] = await Promise.all([readPublic('calendario.html'), readPublic('calendario-page.js')]);
@@ -148,14 +157,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each renamed page has one localized v8.12 footer version', async () => {
+test('each renamed page has one localized v8.13 footer version', async () => {
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.12/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.13/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -199,6 +208,32 @@ test('JSON serialization is schema v16 with calendar time intact', async () => {
   assert.match(presentation, /calendarVersion: 'v16'/);
   assert.match(presentation, /time: formatClock\(state\.calendar\.time\)/);
   assert.match(mechanics, /time: \{ hour, minute, second \}/);
+});
+
+test('repository prose contains only the approved period terminology', async () => {
+  const sourceFiles = [
+    path.join(root, 'README.md'),
+    ...await listSourceFiles(path.join(root, 'public')),
+    ...await listSourceFiles(path.join(root, 'test'))
+  ];
+  const obsoleteSpacedForm = /Inter\s+(?:Regnum|Regna|Rengum)/i;
+  const obsoleteUnspacedLatinForm = /Interregn(?:um|a)/;
+  for (const file of sourceFiles) {
+    const source = await readFile(file, 'utf8');
+    assert.doesNotMatch(source, obsoleteSpacedForm, file);
+    assert.doesNotMatch(source, obsoleteUnspacedLatinForm, file);
+  }
+});
+
+test('Interregno proper names are sourced only from nomenclature', async () => {
+  for (const file of [
+    'presentation.js', 'calendario-page.js', 'calendario.html',
+    'locales/en.json', 'locales/es.json', 'core/rules.js', 'core/mechanics.js'
+  ]) {
+    assert.doesNotMatch(await readPublic(file), /Interregno/, file);
+  }
+  const nomenclature = await readPublic('config/nomenclature.json');
+  assert.equal((nomenclature.match(/"name": "Interregno /g) ?? []).length, 11);
 });
 
 test('Calendario renderer arranges presentation-ready lunar title and subtitle values', async () => {
