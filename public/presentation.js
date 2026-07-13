@@ -136,6 +136,7 @@ export function createDisplayData(state, context) {
 function copyRawState(state) {
   return {
     totalSeconds: state.totalSeconds,
+    totalLunarSeconds: state.totalLunarSeconds,
     calendar: state.calendar,
     season: state.season,
     lunar: state.lunar,
@@ -146,7 +147,7 @@ function copyRawState(state) {
 
 export function createCalendarJson(state, realUnixMilliseconds, context) {
   return {
-    calendarVersion: 'v14',
+    calendarVersion: 'v15',
     nomenclature: {
       schemaVersion: context.nomenclatureSchemaVersion,
       applicationDisplayName: context.applicationDisplayName

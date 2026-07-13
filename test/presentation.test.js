@@ -7,9 +7,10 @@ import { applyCommonDocumentPresentation } from '../public/app-bootstrap.js';
 import { calculateCalendarState, calculateMonthRulershipState } from '../public/core/mechanics.js';
 import {
   FICTIONAL_SECONDS_PER_DAY,
-  FICTIONAL_SECONDS_PER_LUNAR_DAY,
   LUNAR_DAYS_PER_CYCLE,
-  REAL_MS_PER_FICTIONAL_SECOND
+  LUNAR_SECONDS_PER_DAY,
+  REAL_MS_PER_FICTIONAL_SECOND,
+  REAL_MS_PER_LUNAR_SECOND
 } from '../public/core/rules.js';
 import { validateLocale } from '../public/locale-loader.js';
 import { validateNomenclature } from '../public/nomenclature-loader.js';
@@ -25,8 +26,8 @@ const containsProperNoun = (source, name) => new RegExp(`(?<![\\p{L}])${escapeRe
 const weekdayDayMilliseconds = FICTIONAL_SECONDS_PER_DAY * REAL_MS_PER_FICTIONAL_SECOND;
 const representativeLunarDays = ((1234 - 1) * LUNAR_DAYS_PER_CYCLE) + 8;
 const representativeLunarTimestamp = representativeLunarDays
-  * FICTIONAL_SECONDS_PER_LUNAR_DAY
-  * REAL_MS_PER_FICTIONAL_SECOND;
+  * LUNAR_SECONDS_PER_DAY
+  * REAL_MS_PER_LUNAR_SECOND;
 const LUNAR_PHASE_NAMES = Object.freeze([
   'Renascimento', 'Corno', 'Falce', 'Passage', 'Ascrescimento', 'Crescente', 'Ascenso',
   'Apice', 'Morditura', 'Decrescente', 'Recedente', 'Velo', 'Morte'
@@ -280,7 +281,7 @@ test('representative lunar state produces one exact locale-invariant Roman summa
 
   const englishJson = createCalendarJson(state, representativeLunarTimestamp, englishContext);
   const spanishJson = createCalendarJson(state, representativeLunarTimestamp, spanishContext);
-  assert.equal(englishJson.calendarVersion, 'v14');
+  assert.equal(englishJson.calendarVersion, 'v15');
   assert.deepEqual(englishJson.nomenclature, { schemaVersion: 6, applicationDisplayName: 'Insidia' });
   assert.equal(englishJson.locale.schemaVersion, 5);
   assert.deepEqual(englishJson.state, spanishJson.state);
@@ -389,11 +390,22 @@ test('Destino classification uses nomenclature while Outcome types use locale', 
   assert.equal(spanish.format('outcome.type', { pageName: spanish.getPage('page-02').name, name: spanish.getOutcomeType('outcome-tier-01').name }), 'Destino: Común');
 });
 
-test('JSON v14 exposes dynamic month and lunar display while raw state remains neutral', async () => {
+test('JSON v15 exposes independent lunar state while raw state remains neutral', async () => {
   const raw = calculateCalendarState(0);
   const english = createCalendarJson(raw, 0, await context('en'));
   const spanish = createCalendarJson(raw, 0, await context('es'));
-  assert.equal(english.calendarVersion, 'v14');
+  assert.equal(english.calendarVersion, 'v15');
+  assert.equal(english.state.totalSeconds, 0);
+  assert.equal(english.state.totalLunarSeconds, 0);
+  assert.deepEqual(english.state.lunar.time, {
+    hour: 0,
+    minute: 0,
+    second: 0,
+    realMillisecondsPerLunarSecond: 1009,
+    secondsPerLunarMinute: 59,
+    minutesPerLunarHour: 67,
+    hoursPerLunarDay: 31
+  });
   assert.equal(Object.hasOwn(english, 'universe'), false);
   assert.deepEqual(english.nomenclature, { schemaVersion: 6, applicationDisplayName: 'Insidia' });
   assert.equal(Object.hasOwn(english.nomenclature, 'requestedId'), false);
@@ -463,19 +475,19 @@ test('navigation applies only resolved locale and fixed application metadata', a
   assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore']);
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.9');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.9');
+  assert.equal(versionElements[0].textContent, 'v8.10');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.10');
   applyCommonDocumentPresentation(documentRoot, 'page-01', await context('en'));
-  assert.equal(versionElements[0]['aria-label'], 'Application version 8.9');
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.10');
 });
 
-test('static HTML remains neutral and uses v8.9 page IDs and application placeholders', async () => {
+test('static HTML remains neutral and uses v8.10 page IDs and application placeholders', async () => {
   const properNouns = ['Insidia','Calendario','Destino','Tempore','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.9/);
+    assert.match(html, /data-version>v8\.10/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);

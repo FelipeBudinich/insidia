@@ -6,17 +6,20 @@ import {
   DAYS_PER_YEAR,
   FICTIONAL_DAYS_PER_WEEK,
   FICTIONAL_HOURS_PER_DAY,
-  FICTIONAL_HOURS_PER_LUNAR_DAY,
   FICTIONAL_MINUTES_PER_HOUR,
   FICTIONAL_SECONDS_PER_DAY,
   FICTIONAL_SECONDS_PER_HOUR,
-  FICTIONAL_SECONDS_PER_LUNAR_CYCLE,
-  FICTIONAL_SECONDS_PER_LUNAR_DAY,
   FICTIONAL_SECONDS_PER_MINUTE,
   INTER_REGNUM_IDS,
   INTER_REGNUM_LENGTHS,
   LUNAR_DAYS_PER_CYCLE,
+  LUNAR_HOURS_PER_DAY,
+  LUNAR_MINUTES_PER_HOUR,
   LUNAR_PHASE_RULES,
+  LUNAR_SECONDS_PER_CYCLE,
+  LUNAR_SECONDS_PER_DAY,
+  LUNAR_SECONDS_PER_HOUR,
+  LUNAR_SECONDS_PER_MINUTE,
   MONTH_IDS,
   MONTH_RULER_SUPERCYCLE_IDS,
   MONTHS_PER_YEAR,
@@ -25,6 +28,7 @@ import {
   OUTCOME_TYPE_RULES,
   PULL_RULES,
   REAL_MS_PER_FICTIONAL_SECOND,
+  REAL_MS_PER_LUNAR_SECOND,
   REIGN_ORDINAL_IDS,
   SEASONAL_CYCLE_LENGTH_DAYS,
   SEASON_RULES,
@@ -217,15 +221,18 @@ export function calculateOrbitalPulls(bodyStates) {
   };
 }
 
-export function calculateOrbitalState(totalFictionalSeconds) {
-  assertNonNegativeSafeInteger(totalFictionalSeconds, 'totalFictionalSeconds');
+export function calculateOrbitalState(totalCalendarSeconds, totalLunarSeconds) {
+  assertNonNegativeSafeInteger(totalCalendarSeconds, 'totalCalendarSeconds');
+  assertNonNegativeSafeInteger(totalLunarSeconds, 'totalLunarSeconds');
   const bodies = CELESTIAL_BODY_RULES.map((rule) => {
-    const unitSeconds = rule.orbitalPeriod.unit === 'lunar_day'
-      ? FICTIONAL_SECONDS_PER_LUNAR_DAY
+    const usesLunarTime = rule.orbitalPeriod.unit === 'lunar_day';
+    const elapsedSeconds = usesLunarTime ? totalLunarSeconds : totalCalendarSeconds;
+    const unitSeconds = usesLunarTime
+      ? LUNAR_SECONDS_PER_DAY
       : FICTIONAL_SECONDS_PER_DAY;
     const periodSeconds = rule.orbitalPeriod.value * unitSeconds;
-    const completedOrbits = Math.floor(totalFictionalSeconds / periodSeconds);
-    const secondsIntoOrbit = totalFictionalSeconds % periodSeconds;
+    const completedOrbits = Math.floor(elapsedSeconds / periodSeconds);
+    const secondsIntoOrbit = elapsedSeconds % periodSeconds;
     const progressFraction = secondsIntoOrbit / periodSeconds;
     return {
       id: rule.id,
@@ -296,16 +303,17 @@ function progressValue(fraction) {
   return { fraction, percentage: fraction * 100 };
 }
 
-export function calculateProgressState(totalFictionalSeconds, season, lunar) {
-  assertNonNegativeSafeInteger(totalFictionalSeconds, 'totalFictionalSeconds');
-  const secondsIntoHour = totalFictionalSeconds % FICTIONAL_SECONDS_PER_HOUR;
-  const secondsIntoDay = totalFictionalSeconds % FICTIONAL_SECONDS_PER_DAY;
-  const totalElapsedDays = Math.floor(totalFictionalSeconds / FICTIONAL_SECONDS_PER_DAY);
+export function calculateProgressState(totalCalendarSeconds, totalLunarSeconds, season, lunar) {
+  assertNonNegativeSafeInteger(totalCalendarSeconds, 'totalCalendarSeconds');
+  assertNonNegativeSafeInteger(totalLunarSeconds, 'totalLunarSeconds');
+  const secondsIntoHour = totalCalendarSeconds % FICTIONAL_SECONDS_PER_HOUR;
+  const secondsIntoDay = totalCalendarSeconds % FICTIONAL_SECONDS_PER_DAY;
+  const totalElapsedDays = Math.floor(totalCalendarSeconds / FICTIONAL_SECONDS_PER_DAY);
   const zeroBasedDayOfYear = totalElapsedDays % DAYS_PER_YEAR;
-  const secondsIntoLunarDay = totalFictionalSeconds % FICTIONAL_SECONDS_PER_LUNAR_DAY;
+  const secondsIntoLunarDay = totalLunarSeconds % LUNAR_SECONDS_PER_DAY;
   return {
-    lunarCycle: progressValue((((lunar.day - 1) * FICTIONAL_SECONDS_PER_LUNAR_DAY) + secondsIntoLunarDay) / FICTIONAL_SECONDS_PER_LUNAR_CYCLE),
-    lunarPhase: progressValue(secondsIntoLunarDay / FICTIONAL_SECONDS_PER_LUNAR_DAY),
+    lunarCycle: progressValue((((lunar.day - 1) * LUNAR_SECONDS_PER_DAY) + secondsIntoLunarDay) / LUNAR_SECONDS_PER_CYCLE),
+    lunarPhase: progressValue(secondsIntoLunarDay / LUNAR_SECONDS_PER_DAY),
     season: progressValue((((season.day - 1) * FICTIONAL_SECONDS_PER_DAY) + secondsIntoDay) / (season.lengthDays * FICTIONAL_SECONDS_PER_DAY)),
     year: progressValue(((zeroBasedDayOfYear * FICTIONAL_SECONDS_PER_DAY) + secondsIntoDay) / (DAYS_PER_YEAR * FICTIONAL_SECONDS_PER_DAY)),
     day: progressValue(secondsIntoDay / FICTIONAL_SECONDS_PER_DAY),
@@ -313,15 +321,15 @@ export function calculateProgressState(totalFictionalSeconds, season, lunar) {
   };
 }
 
-export function calculateLunarState(totalFictionalSeconds) {
-  assertNonNegativeSafeInteger(totalFictionalSeconds, 'totalFictionalSeconds');
-  const completedLunarDays = Math.floor(totalFictionalSeconds / FICTIONAL_SECONDS_PER_LUNAR_DAY);
+export function calculateLunarState(totalLunarSeconds) {
+  assertNonNegativeSafeInteger(totalLunarSeconds, 'totalLunarSeconds');
+  const completedLunarDays = Math.floor(totalLunarSeconds / LUNAR_SECONDS_PER_DAY);
   const zeroBasedLunarDay = completedLunarDays % LUNAR_DAYS_PER_CYCLE;
-  const secondsIntoLunarDay = totalFictionalSeconds % FICTIONAL_SECONDS_PER_LUNAR_DAY;
-  const hour = Math.floor(secondsIntoLunarDay / FICTIONAL_SECONDS_PER_HOUR);
-  const secondsIntoHour = secondsIntoLunarDay % FICTIONAL_SECONDS_PER_HOUR;
-  const minute = Math.floor(secondsIntoHour / FICTIONAL_SECONDS_PER_MINUTE);
-  const second = secondsIntoHour % FICTIONAL_SECONDS_PER_MINUTE;
+  const secondsIntoLunarDay = totalLunarSeconds % LUNAR_SECONDS_PER_DAY;
+  const hour = Math.floor(secondsIntoLunarDay / LUNAR_SECONDS_PER_HOUR);
+  const secondsIntoHour = secondsIntoLunarDay % LUNAR_SECONDS_PER_HOUR;
+  const minute = Math.floor(secondsIntoHour / LUNAR_SECONDS_PER_MINUTE);
+  const second = secondsIntoHour % LUNAR_SECONDS_PER_MINUTE;
   let elapsedHours = 0;
   let tide;
   for (const rule of TIDE_RULES) {
@@ -342,14 +350,24 @@ export function calculateLunarState(totalFictionalSeconds) {
     day: zeroBasedLunarDay + 1,
     cycleLengthDays: LUNAR_DAYS_PER_CYCLE,
     phaseId: LUNAR_PHASE_RULES[zeroBasedLunarDay].id,
-    time: { hour, minute, second, hoursPerLunarDay: FICTIONAL_HOURS_PER_LUNAR_DAY },
+    time: {
+      hour,
+      minute,
+      second,
+      realMillisecondsPerLunarSecond: REAL_MS_PER_LUNAR_SECOND,
+      secondsPerLunarMinute: LUNAR_SECONDS_PER_MINUTE,
+      minutesPerLunarHour: LUNAR_MINUTES_PER_HOUR,
+      hoursPerLunarDay: LUNAR_HOURS_PER_DAY
+    },
     tide
   };
 }
 
 export function calculateCalendarState(realUnixMilliseconds) {
   assertValidUnixMilliseconds(realUnixMilliseconds);
-  const totalSeconds = Math.floor((realUnixMilliseconds - CALENDAR_EPOCH_UNIX_MS) / REAL_MS_PER_FICTIONAL_SECOND);
+  const elapsedRealMilliseconds = realUnixMilliseconds - CALENDAR_EPOCH_UNIX_MS;
+  const totalSeconds = Math.floor(elapsedRealMilliseconds / REAL_MS_PER_FICTIONAL_SECOND);
+  const totalLunarSeconds = Math.floor(elapsedRealMilliseconds / REAL_MS_PER_LUNAR_SECOND);
   let remainingSeconds = totalSeconds;
   const second = remainingSeconds % FICTIONAL_SECONDS_PER_MINUTE;
   remainingSeconds = Math.floor(remainingSeconds / FICTIONAL_SECONDS_PER_MINUTE);
@@ -390,12 +408,13 @@ export function calculateCalendarState(realUnixMilliseconds) {
     remainingDays -= interLength;
   }
   const season = calculateSeasonState(totalElapsedDays);
-  const lunar = calculateLunarState(totalSeconds);
-  const orbits = calculateOrbitalState(totalSeconds);
-  const progress = calculateProgressState(totalSeconds, season, lunar);
+  const lunar = calculateLunarState(totalLunarSeconds);
+  const orbits = calculateOrbitalState(totalSeconds, totalLunarSeconds);
+  const progress = calculateProgressState(totalSeconds, totalLunarSeconds, season, lunar);
   const outcome = calculateOutcomeState(lunar.tide, orbits, progress.hour.fraction);
   return {
     totalSeconds,
+    totalLunarSeconds,
     totalElapsedDays,
     calendar: {
       year: zeroBasedYear + 1,
