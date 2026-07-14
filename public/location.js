@@ -1,4 +1,5 @@
 import { INITIAL_LOCATION_STATE } from './location-state.js';
+import { WORLD_SCHEMA_VERSION } from './world-loader.js';
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -21,6 +22,12 @@ function assertExactKeys(value, expectedKeys, label) {
   }
 }
 
+function assertNonEmptyString(value, label) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new TypeError(`${label} must be a non-empty string`);
+  }
+}
+
 function requireMapped(map, id, category) {
   const value = map.get(id);
   if (!value) throw new Error(`Unknown ${category} ID: ${id}`);
@@ -28,78 +35,141 @@ function requireMapped(map, id, category) {
 }
 
 export function createLocationContext({
-  regionResult,
+  worldResult,
   locationState = INITIAL_LOCATION_STATE
 }) {
-  assertObject(regionResult, 'regionResult');
-  assertExactKeys(regionResult, ['schemaVersion', 'region'], 'regionResult');
-  if (regionResult.schemaVersion !== 1) throw new Error('regionResult.schemaVersion must be 1');
-  assertObject(regionResult.region, 'regionResult.region');
-  assertExactKeys(locationState, ['regionName', 'locationId'], 'locationState');
-  if (typeof locationState.regionName !== 'string' || locationState.regionName.trim() === '') {
-    throw new TypeError('locationState.regionName must be a non-empty string');
+  assertObject(worldResult, 'worldResult');
+  assertExactKeys(worldResult, ['schemaVersion', 'world'], 'worldResult');
+  if (worldResult.schemaVersion !== WORLD_SCHEMA_VERSION) {
+    throw new Error(`worldResult.schemaVersion must be ${WORLD_SCHEMA_VERSION}`);
   }
-  if (typeof locationState.locationId !== 'string' || locationState.locationId.trim() === '') {
-    throw new TypeError('locationState.locationId must be a non-empty string');
+  assertObject(worldResult.world, 'worldResult.world');
+  assertExactKeys(locationState, ['regionId', 'locationId'], 'locationState');
+  assertNonEmptyString(locationState.regionId, 'locationState.regionId');
+  assertNonEmptyString(locationState.locationId, 'locationState.locationId');
+
+  const regionsById = new Map();
+  const locationsByRegionId = new Map();
+  const locationListsByRegionId = new Map();
+  const routeSetsByRegionId = new Map();
+  const routeListsByRegionId = new Map();
+  const routesByRegionAndLocation = new Map();
+
+  for (const [regionId, sourceRegion] of Object.entries(worldResult.world.regions)) {
+    const locationEntries = Object.entries(sourceRegion.locations).map(([locationId, location]) => (
+      [locationId, deepFreeze({ id: locationId, ...location })]
+    ));
+    const locationsById = new Map(locationEntries);
+    const locations = Object.freeze(locationEntries.map(([, location]) => location));
+    const routes = Object.freeze(sourceRegion.routes.map((route) => deepFreeze({
+      ...route,
+      between: [...route.between]
+    })));
+    const region = deepFreeze({
+      id: regionId,
+      regionName: sourceRegion.regionName,
+      description: sourceRegion.description,
+      locations: Object.fromEntries(locationEntries),
+      routes
+    });
+    const routesByLocation = new Map(locations.map(({ id }) => [id, []]));
+    for (const route of routes) {
+      for (const locationId of route.between) routesByLocation.get(locationId).push(route);
+    }
+    for (const [locationId, locationRoutes] of routesByLocation) {
+      routesByLocation.set(locationId, Object.freeze([...locationRoutes]));
+    }
+
+    regionsById.set(regionId, region);
+    locationsByRegionId.set(regionId, locationsById);
+    locationListsByRegionId.set(regionId, locations);
+    routeSetsByRegionId.set(regionId, new Set(routes));
+    routeListsByRegionId.set(regionId, routes);
+    routesByRegionAndLocation.set(regionId, routesByLocation);
   }
 
-  const sourceRegion = regionResult.region;
-  if (locationState.regionName !== sourceRegion.regionName) {
-    throw new Error(`Unknown current region: ${locationState.regionName}`);
-  }
-
-  const locationEntries = Object.entries(sourceRegion.locations).map(([id, location]) => {
-    return [id, deepFreeze({ id, ...location })];
-  });
-  const locationsById = new Map(locationEntries);
-  const locations = Object.freeze(locationEntries.map(([, location]) => location));
-  const currentLocation = requireMapped(locationsById, locationState.locationId, 'location');
-
-  const routes = Object.freeze(sourceRegion.routes.map((route) => deepFreeze({
+  const regions = Object.freeze([...regionsById.values()]);
+  const interRegionRoutes = Object.freeze(worldResult.world.interRegionRoutes.map((route) => deepFreeze({
     ...route,
     between: [...route.between]
   })));
-  const region = deepFreeze({
-    regionName: sourceRegion.regionName,
-    description: sourceRegion.description,
-    regions: [...sourceRegion.regions],
-    locations: Object.fromEntries(locationEntries),
-    routes
-  });
-  const routeSet = new Set(routes);
-  const routesByLocation = new Map(locations.map(({ id }) => [id, []]));
-  for (const route of routes) {
-    for (const locationId of route.between) routesByLocation.get(locationId).push(route);
+  const interRegionRouteSet = new Set(interRegionRoutes);
+  const interRegionRoutesByRegion = new Map(regions.map(({ id }) => [id, []]));
+  for (const route of interRegionRoutes) {
+    for (const regionId of route.between) interRegionRoutesByRegion.get(regionId).push(route);
   }
-  for (const [locationId, locationRoutes] of routesByLocation) {
-    routesByLocation.set(locationId, Object.freeze([...locationRoutes]));
+  for (const [regionId, routes] of interRegionRoutesByRegion) {
+    interRegionRoutesByRegion.set(regionId, Object.freeze([...routes]));
   }
 
+  const world = deepFreeze({
+    regions: Object.fromEntries(regions.map((region) => [region.id, region])),
+    interRegionRoutes
+  });
   const frozenLocationState = deepFreeze({ ...locationState });
+  const currentRegion = requireMapped(regionsById, frozenLocationState.regionId, 'region');
+  const currentLocation = requireMapped(
+    locationsByRegionId.get(currentRegion.id),
+    frozenLocationState.locationId,
+    `location in region ${currentRegion.id}`
+  );
+
+  function getRegion(regionId) {
+    return requireMapped(regionsById, regionId, 'region');
+  }
+
+  function getLocation(regionId, locationId) {
+    getRegion(regionId);
+    return requireMapped(locationsByRegionId.get(regionId), locationId, `location in region ${regionId}`);
+  }
+
   const context = {
-    region,
-    regionName: region.regionName,
-    regionDescription: region.description,
-    regions: region.regions,
-    regionSchemaVersion: regionResult.schemaVersion,
+    world,
+    worldSchemaVersion: worldResult.schemaVersion,
     locationState: frozenLocationState,
-    currentLocationId: frozenLocationState.locationId,
+    currentRegionId: currentRegion.id,
+    currentRegion,
+    currentRegionName: currentRegion.regionName,
+    currentRegionDescription: currentRegion.description,
+    currentLocationId: currentLocation.id,
     currentLocation,
-    locationCount: locations.length,
-    routeCount: routes.length,
-    getLocation: (id) => requireMapped(locationsById, id, 'location'),
-    getLocations: () => locations,
-    getRoutes: () => routes,
-    getRoutesFrom(id) {
-      requireMapped(locationsById, id, 'location');
-      return routesByLocation.get(id);
+    regionCount: regions.length,
+    interRegionRouteCount: interRegionRoutes.length,
+    locationCount: locationListsByRegionId.get(currentRegion.id).length,
+    routeCount: routeListsByRegionId.get(currentRegion.id).length,
+    getRegion,
+    getRegions: () => regions,
+    getLocation,
+    getLocations(regionId) {
+      getRegion(regionId);
+      return locationListsByRegionId.get(regionId);
     },
-    getDestination(route, originLocationId) {
-      requireMapped(locationsById, originLocationId, 'location');
-      if (!routeSet.has(route)) throw new Error('Unknown route');
-      if (route.between[0] === originLocationId) return requireMapped(locationsById, route.between[1], 'location');
-      if (route.between[1] === originLocationId) return requireMapped(locationsById, route.between[0], 'location');
+    getRoutes(regionId) {
+      getRegion(regionId);
+      return routeListsByRegionId.get(regionId);
+    },
+    getRoutesFrom(regionId, locationId) {
+      getLocation(regionId, locationId);
+      return routesByRegionAndLocation.get(regionId).get(locationId);
+    },
+    getDestination(regionId, route, originLocationId) {
+      getLocation(regionId, originLocationId);
+      if (!routeSetsByRegionId.get(regionId).has(route)) throw new Error(`Unknown route in region: ${regionId}`);
+      if (route.between[0] === originLocationId) return getLocation(regionId, route.between[1]);
+      if (route.between[1] === originLocationId) return getLocation(regionId, route.between[0]);
       throw new Error(`Route does not connect location: ${originLocationId}`);
+    },
+    getInterRegionRoutes: () => interRegionRoutes,
+    getInterRegionRoutesFrom(regionId) {
+      getRegion(regionId);
+      return interRegionRoutesByRegion.get(regionId);
+    },
+    getInterRegionDestination(route, originRegionId) {
+      getRegion(originRegionId);
+      if (!interRegionRouteSet.has(route)) throw new Error('Unknown inter-region route');
+      if (route.between[0] === originRegionId) return getRegion(route.between[1]);
+      if (route.between[1] === originRegionId) return getRegion(route.between[0]);
+      throw new Error(`Inter-region route does not connect region: ${originRegionId}`);
     }
   };
 

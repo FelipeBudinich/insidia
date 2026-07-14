@@ -35,8 +35,8 @@ function appendLabeledText(documentRoot, parent, className, label, value) {
 
 export function renderLocus(documentRoot, presentationContext, locationContext) {
   const location = locationContext.currentLocation;
-  requireElement(documentRoot, '[data-region-name]').textContent = locationContext.regionName;
-  requireElement(documentRoot, '[data-region-description]').textContent = locationContext.regionDescription;
+  requireElement(documentRoot, '[data-region-name]').textContent = locationContext.currentRegionName;
+  requireElement(documentRoot, '[data-region-description]').textContent = locationContext.currentRegionDescription;
   requireElement(documentRoot, '[data-location-name]').textContent = location.name;
   requireElement(documentRoot, '[data-location-description]').textContent = location.description;
   requireElement(documentRoot, '[data-location-elevation]').textContent = formatUnit(
@@ -46,18 +46,18 @@ export function renderLocus(documentRoot, presentationContext, locationContext) 
   );
 }
 
-export function renderRutas(documentRoot, presentationContext, locationContext) {
+function renderLocalRoutes(documentRoot, presentationContext, locationContext) {
   const origin = locationContext.currentLocation;
   requireElement(documentRoot, '[data-route-origin]').textContent = origin.name;
-  const routeList = requireElement(documentRoot, '[data-route-list]');
-  const emptyState = requireElement(documentRoot, '[data-route-empty]');
+  const routeList = requireElement(documentRoot, '[data-local-route-list]');
+  const emptyState = requireElement(documentRoot, '[data-local-route-empty]');
   clearElement(routeList);
-  const routes = locationContext.getRoutesFrom(origin.id);
-  emptyState.textContent = presentationContext.message('status.noAvailableRoutes');
+  const routes = locationContext.getRoutesFrom(locationContext.currentRegionId, origin.id);
+  emptyState.textContent = presentationContext.message('status.noAvailableLocalRoutes');
   emptyState.hidden = routes.length !== 0;
 
   for (const route of routes) {
-    const destination = locationContext.getDestination(route, origin.id);
+    const destination = locationContext.getDestination(locationContext.currentRegionId, route, origin.id);
     const card = documentRoot.createElement('article');
     card.className = 'route-card';
     appendTextElement(documentRoot, card, 'h3', 'route-name', route.name);
@@ -85,6 +85,42 @@ export function renderRutas(documentRoot, presentationContext, locationContext) 
     );
     routeList.append(card);
   }
+}
+
+function renderInterRegionRoutes(documentRoot, presentationContext, locationContext) {
+  const routeList = requireElement(documentRoot, '[data-inter-region-route-list]');
+  const emptyState = requireElement(documentRoot, '[data-inter-region-route-empty]');
+  clearElement(routeList);
+  const routes = locationContext.getInterRegionRoutesFrom(locationContext.currentRegionId);
+  emptyState.textContent = presentationContext.message('status.noAvailableInterRegionRoutes');
+  emptyState.hidden = routes.length !== 0;
+
+  for (const route of routes) {
+    const destination = locationContext.getInterRegionDestination(route, locationContext.currentRegionId);
+    const card = documentRoot.createElement('article');
+    card.className = 'route-card inter-region-route-card';
+    appendTextElement(documentRoot, card, 'h3', 'route-name', route.routeName);
+    appendLabeledText(
+      documentRoot,
+      card,
+      'route-destination',
+      presentationContext.message('label.destinationRegion'),
+      destination.regionName
+    );
+    appendLabeledText(
+      documentRoot,
+      card,
+      'route-metadata',
+      presentationContext.message('label.walkingTime'),
+      presentationContext.format('route.fictionalMinutes', { value: route.walkTime })
+    );
+    routeList.append(card);
+  }
+}
+
+export function renderRutas(documentRoot, presentationContext, locationContext) {
+  renderLocalRoutes(documentRoot, presentationContext, locationContext);
+  renderInterRegionRoutes(documentRoot, presentationContext, locationContext);
 }
 
 export function renderLocationPage(pageId, documentRoot, presentationContext, locationContext) {

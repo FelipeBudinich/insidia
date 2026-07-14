@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "id": "en",
   "languageTag": "en",
   "messages": {
@@ -34,8 +34,11 @@
     "label.currentLocation": "Current Location",
     "label.region": "Region",
     "label.elevation": "Elevation",
+    "label.localRoutes": "Local routes",
+    "label.interRegionalRoutes": "Inter-regional routes",
     "label.routesFrom": "Routes from",
     "label.destination": "Destination",
+    "label.destinationRegion": "Destination region",
     "label.walkingTime": "Walking time",
     "label.elevationChange": "Elevation change",
     "label.epoch": "Epoch",
@@ -43,7 +46,8 @@
     "status.copied": "Copied",
     "status.copyFailure": "Unable to copy. Select the JSON and copy it manually.",
     "status.tieBreakApplied": "Fixed-priority tie-break applied",
-    "status.noAvailableRoutes": "No available routes.",
+    "status.noAvailableLocalRoutes": "No local routes are available.",
+    "status.noAvailableInterRegionRoutes": "No inter-regional routes are available.",
     "selection.selection-rule-01": "Closest to orbit completion",
     "selection.selection-rule-02": "Furthest from orbit completion",
     "selection.selection-rule-03": "Middle orbital progress",
@@ -90,6 +94,7 @@
     "pull.alignment": "{label} {percentage}",
     "pull.tie": "{status} among {count} tied trios",
     "pull.noTie": "No fixed-priority tie-break · selected from {count} trios",
+    "route.fictionalMinutes": "{value} fictional minutes",
     "footer.epoch": "{epochLabel}: {epoch}"
   }
 }

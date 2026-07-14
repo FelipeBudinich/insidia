@@ -110,7 +110,6 @@ body {
   font-weight: 700;
 }
 .region-name,
-.route-origin,
 .location-name {
   margin: 0.35rem 0 0;
   font-size: clamp(1.45rem, 6vw, 2rem);
@@ -124,7 +123,11 @@ body {
 .location-description { margin: 0.5rem 0 0; }
 .location-elevation { margin: 0.75rem 0 0; color: color-mix(in srgb, CanvasText 72%, Canvas); font-variant-numeric: tabular-nums; }
 .route-list { display: grid; gap: 0.8rem; margin-top: 1.25rem; }
+.route-section-title { margin: 0; font-size: clamp(1.25rem, 5vw, 1.6rem); }
+.route-origin-line { margin: 0.65rem 0 0; color: color-mix(in srgb, CanvasText 72%, Canvas); }
+.route-origin-line strong { color: CanvasText; }
 .route-card { min-width: 0; padding: 1rem; border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: 0.55rem; background: Canvas; }
+.inter-region-route-card { border-style: dashed; }
 .route-card p { margin: 0; }
 .route-name { margin: 0; font-size: 1.15rem; }
 .route-destination { margin-top: 0.6rem !important; font-weight: 700; }

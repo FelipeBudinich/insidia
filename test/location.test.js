@@ -12,26 +12,26 @@ import { validateLocale } from '../public/locale-loader.js';
 import { validateNomenclature } from '../public/nomenclature-loader.js';
 import { createPresentationContext } from '../public/nomenclature.js';
 import {
-  REGION_PATH,
-  REGION_SCHEMA_VERSION,
-  loadRegion,
-  validateRegion
-} from '../public/region-loader.js';
+  WORLD_PATH,
+  WORLD_SCHEMA_VERSION,
+  loadWorld,
+  validateWorld
+} from '../public/world-loader.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicDirectory = path.join(root, 'public');
-const regionPath = path.join(publicDirectory, 'regions', 'sheol.json');
+const worldPath = path.join(publicDirectory, 'regions', 'world.json');
 const nomenclaturePath = path.join(publicDirectory, 'config', 'nomenclature.json');
 const readJson = async (filePath) => JSON.parse(await readFile(filePath, 'utf8'));
 
-async function productionRegion() {
-  return readJson(regionPath);
+async function productionWorld() {
+  return readJson(worldPath);
 }
 
-async function regionResult() {
+async function worldResult() {
   return {
-    schemaVersion: REGION_SCHEMA_VERSION,
-    region: validateRegion(await productionRegion())
+    schemaVersion: WORLD_SCHEMA_VERSION,
+    world: validateWorld(await productionWorld())
   };
 }
 
@@ -111,7 +111,7 @@ function makeBootstrapDocument(pageId) {
   const messageKeys = pageId === 'page-07'
     ? ['label.region', 'label.currentLocation', 'label.elevation']
     : pageId === 'page-08'
-      ? ['label.routesFrom']
+      ? ['label.localRoutes', 'label.routesFrom', 'label.interRegionalRoutes']
       : [];
   const messages = messageKeys.map((messageKey) => makeElement({ messageKey }));
   const specific = new Map();
@@ -123,10 +123,12 @@ function makeBootstrapDocument(pageId) {
   }
   if (pageId === 'page-08') {
     specific.set('[data-route-origin]', makeElement());
-    specific.set('[data-route-list]', makeElement());
-    const empty = makeElement();
-    empty.hidden = true;
-    specific.set('[data-route-empty]', empty);
+    for (const kind of ['local-route', 'inter-region-route']) {
+      specific.set(`[data-${kind}-list]`, makeElement());
+      const empty = makeElement();
+      empty.hidden = true;
+      specific.set(`[data-${kind}-empty]`, empty);
+    }
   }
   const selectorLists = new Map([
     ['[data-page-id]', links],
@@ -154,7 +156,7 @@ function makeBootstrapDocument(pageId) {
     },
     querySelectorAll(selector) { return selectorLists.get(selector) ?? []; }
   };
-  return { documentRoot, messages, specific, version };
+  return { documentRoot, specific };
 }
 
 function rendererRoot(selectors) {
@@ -175,213 +177,318 @@ async function listFiles(directory) {
   return nested.flat();
 }
 
-test('production Sheol configuration preserves all authored locations and routes', async () => {
-  const region = validateRegion(await productionRegion());
-  assert.equal(REGION_SCHEMA_VERSION, 1);
-  assert.equal(region.regionName, 'Sheol');
-  assert.equal(region.description, 'Le integre regno occultate sub le superficie.');
-  assert.deepEqual(region.regions, []);
-  assert.deepEqual(Object.entries(region.locations).map(([id, location]) => [
+function locationRows(region) {
+  return Object.entries(region.locations).map(([id, location]) => [
     id,
     location.name,
     location.description,
     location.latitude,
     location.longitude,
     location.elevationMeters
-  ]), [
-    ['bucca-de-sheol', 'Le Bucca de Sheol', 'Le entrata ceremonial principal ab le mundo del vivos.', 40.838737, 14.076167, 1],
-    ['descenso-del-sibylla', 'Le Descenso del Sibylla', 'Le corridor ritual per le qual le cavernas natural deveni le architectura de Sheol.', 40.8479, 14.0532, 17],
-    ['campo-del-ultime-pensamentos', 'Le Campo del Ultime Pensamentos', 'Un campo de battalia inundate ubi le mortos repete le ultime pensamento que illes portava al morte.', 40.84795, 14.056381, 22],
-    ['cais-del-desiro', 'Le Cais del Desiro', 'Un chantier naval submergite ubi le desiro es discargate, inventariate e consumite.', 40.8291, 14.0952, -4],
-    ['cortes-submergite', 'Le Cortes Submergite', 'Le palatios, thermas, jardines e tribunales submergite del mortos plen de desiro.', 40.817361, 14.070273, -9],
-    ['halito-de-sheol', 'Le Halito de Sheol', 'Le fumarolas per le qual le regno interrate exhala in le mundo del vivos.', 40.827, 14.139, 98],
-    ['costa-final', 'Le Costa Final', 'Le ultime ripa ante le mar nigre, marcate per turres de guarda, naufragios e currentes sin retorno.', 40.778259, 14.088936, 68]
   ]);
-  assert.deepEqual(region.routes.map((route) => [
+}
+
+function routeRows(region) {
+  return region.routes.map((route) => [
     route.name,
     route.between,
     route.walkingTime,
     route.elevationChangeMeters
-  ]), [
-    ['Le Sentiero del Ultime Pensamentos', ['campo-del-ultime-pensamentos', 'descenso-del-sibylla'], 10, 5],
-    ['Le Via del Sibylla', ['descenso-del-sibylla', 'bucca-de-sheol'], 70, 16],
-    ['Le Via del Desiro', ['bucca-de-sheol', 'cais-del-desiro'], 60, 5],
-    ['Le Passage Submergite', ['bucca-de-sheol', 'cortes-submergite'], 100, 10],
-    ['Le Cais del Ruinas', ['cais-del-desiro', 'cortes-submergite'], 75, 5],
-    ['Le Via del Fumarolas', ['cais-del-desiro', 'halito-de-sheol'], 130, 102],
-    ['Le Via del Mar Nigre', ['cortes-submergite', 'costa-final'], 150, 77],
-    ['Le Sentiero del Ultime Ripa', ['halito-de-sheol', 'costa-final'], 240, 30]
   ]);
-  assert.equal(Object.keys(region.locations).length, 7);
-  assert.equal(region.routes.length, 8);
-  assert.ok(Object.hasOwn(region.locations, INITIAL_LOCATION_STATE.locationId));
+}
+
+test('production world preserves the exact three-region data and inter-region graph', async () => {
+  const world = validateWorld(await productionWorld());
+  assert.equal(WORLD_SCHEMA_VERSION, 2);
+  assert.deepEqual(Object.keys(world), ['regions', 'interRegionRoutes']);
+  assert.deepEqual(Object.keys(world.regions), ['sheol', 'mercato-nigre', 'observatorio-del-prophetias']);
+  for (const region of Object.values(world.regions)) {
+    assert.deepEqual(Object.keys(region), ['regionName', 'description', 'locations', 'routes']);
+    for (const location of Object.values(region.locations)) {
+      assert.deepEqual(Object.keys(location), ['name', 'description', 'latitude', 'longitude', 'elevationMeters']);
+    }
+    for (const route of region.routes) {
+      assert.deepEqual(Object.keys(route), ['name', 'between', 'walkingTime', 'elevationChangeMeters']);
+    }
+  }
+
+  const sheol = world.regions.sheol;
+  assert.equal(sheol.regionName, 'Sheol');
+  assert.equal(sheol.description, 'Le integre regno occultate sub le superficie.');
+  assert.equal(Object.keys(sheol.locations).length, 7);
+  assert.equal(sheol.routes.length, 8);
+  assert.deepEqual(routeRows(sheol)[0], [
+    'Le Sentiero del Ultime Pensamentos',
+    ['campo-del-ultime-pensamentos', 'descenso-del-sibylla'],
+    10,
+    5
+  ]);
+
+  const mercato = world.regions['mercato-nigre'];
+  assert.equal(mercato.regionName, 'Mercato Nigre');
+  assert.equal(mercato.description, 'Un mercato neutral ubi objectos prohibite, reliquias e mercantias damnate es vendite per auction al offerente le plus alte.');
+  assert.deepEqual(locationRows(mercato), [
+    ['arena-del-auction', 'Le Arena del Auction', 'Le amphitheatro central ubi cata lotte es exponite e vendite al offerente le plus alte.', 41.482884, 13.823593, 67],
+    ['crypta-del-lottes', 'Le Crypta del Lottes', 'Un camera subterranee secur ubi objectos unic, periculose o contestate attende le auction.', 41.48258, 13.82207, 96],
+    ['tribunal-del-valor', 'Le Tribunal del Valor', 'Le sala ubi expertos examina, pesa e taxa cata objecto ante que illo entra in auction.', 41.48327, 13.82096, 116],
+    ['porta-del-mercatores', 'Le Porta del Mercatores', 'Le entrata de caravanas ubi mercantias es registrate, sigillate e admittite al mercato.', 41.48337, 13.82315, 86],
+    ['rocca-del-garantia', 'Le Rocca del Garantia', 'Le fortressa que custodia depositos e contractos e impone le neutralitate del mercato.', 41.49512, 13.82467, 175]
+  ]);
+  assert.deepEqual(routeRows(mercato), [
+    ['Le Passage del Lottes', ['arena-del-auction', 'crypta-del-lottes'], 10, 29],
+    ['Le Scala del Valor', ['crypta-del-lottes', 'tribunal-del-valor'], 10, 20],
+    ['Le Via del Mercatores', ['tribunal-del-valor', 'porta-del-mercatores'], 10, 30],
+    ['Le Arcadas del Auction', ['arena-del-auction', 'porta-del-mercatores'], 5, 19],
+    ['Le Ascenso del Garantia', ['porta-del-mercatores', 'rocca-del-garantia'], 45, 89]
+  ]);
+
+  const observatorio = world.regions['observatorio-del-prophetias'];
+  assert.equal(observatorio.regionName, 'Observatorio del Prophetias');
+  assert.equal(observatorio.description, 'Un complexo astronomic ubi demones studia le stellas, le planetas e le constellationes pro deducer prophetias del futuro.');
+  assert.deepEqual(locationRows(observatorio), [
+    ['turre-del-polo', 'Le Turre del Polo', 'Le observatorio inferior, ubi le rotation del celo es mesurate per aperturas aliniate con le nord celestial.', 42.328967, 13.688944, 1464],
+    ['circulo-del-horizonte', 'Le Circulo del Horizonte', 'Un templo octagonal ubi aperturas de petra marca le orto e le occaso del astros, le solstitios e le limites del constellationes.', 42.329808, 13.687514, 1423],
+    ['porta-del-celo', 'Le Porta del Celo', 'Le station fortificate ubi viatores prepara provisiones, cartas celestial e instrumentos ante le ascenso al planitie alte.', 42.364519, 13.725791, 1346],
+    ['speculo-del-firmamento', 'Le Speculo del Firmamento', 'Un bassino quiete ubi le celo es legite in reflection quando le vento cessa.', 42.427526, 13.624424, 1660],
+    ['observatorio-superior', 'Le Observatorio Superior', 'Le station principal de observation, ubi conjunctiones, eclipses, cometas e apparitiones stellar es registrate.', 42.444158, 13.557876, 2129],
+    ['oculo-del-zenith', 'Le Oculo del Zenith', 'Le puncto le plus alte del complexo, usate pro observationes que require un horizonte libere e un celo sin obstruction.', 42.448121, 13.552037, 2388]
+  ]);
+  assert.deepEqual(routeRows(observatorio), [
+    ['Le Passo del Octagono', ['circulo-del-horizonte', 'turre-del-polo'], 10, 41],
+    ['Le Cammino del Cartas Celestial', ['turre-del-polo', 'porta-del-celo'], 200, 118],
+    ['Le Ascenso del Speculo', ['porta-del-celo', 'speculo-del-firmamento'], 300, 314],
+    ['Le Via del Stella Matutin', ['speculo-del-firmamento', 'observatorio-superior'], 180, 469],
+    ['Le Scala del Zenith', ['observatorio-superior', 'oculo-del-zenith'], 50, 259]
+  ]);
+
+  assert.deepEqual(world.interRegionRoutes, [
+    { routeName: 'Le Via del Obolo Nigre', between: ['sheol', 'mercato-nigre'], walkTime: 1800 },
+    { routeName: 'Le Via del Signos Celestial', between: ['mercato-nigre', 'observatorio-del-prophetias'], walkTime: 3000 }
+  ]);
+  assert.equal(world.interRegionRoutes.some(({ between }) => (
+    between.includes('sheol') && between.includes('observatorio-del-prophetias')
+  )), false);
   assert.deepEqual(INITIAL_LOCATION_STATE, {
-    regionName: 'Sheol',
+    regionId: 'sheol',
     locationId: 'campo-del-ultime-pensamentos'
   });
 });
 
-test('region validation enforces exact location and route shapes', async () => {
-  const valid = await productionRegion();
+test('world validation enforces strict generic world, region, location, and local-route rules', async () => {
+  const valid = await productionWorld();
   for (const mutate of [
-    (region) => { region.extra = true; },
-    (region) => { region.regions.push({ name: 'child' }); },
-    (region) => { region.locations['bucca-de-sheol'].extra = true; },
-    (region) => { region.locations['BUCCA'] = region.locations['bucca-de-sheol']; delete region.locations['bucca-de-sheol']; },
-    (region) => { region.routes[0].extra = true; },
-    (region) => { region.locations['bucca-de-sheol'].latitude = 90.01; },
-    (region) => { region.locations['bucca-de-sheol'].longitude = -180.01; },
-    (region) => { region.locations['bucca-de-sheol'].elevationMeters = Infinity; },
-    (region) => { region.locations['bucca-de-sheol'].elevationMeters = '1'; },
-    (region) => { region.routes[0].between[1] = 'missing-location'; },
-    (region) => { region.routes[0].between[1] = region.routes[0].between[0]; },
-    (region) => { region.routes.push({ ...structuredClone(region.routes[0]), between: [...region.routes[0].between].reverse() }); },
-    (region) => { region.routes[0].walkingTime = 0; },
-    (region) => { region.routes[0].walkingTime = 1.5; },
-    (region) => { region.routes[0].walkingTime = Number.MAX_SAFE_INTEGER + 1; },
-    (region) => { region.routes[0].elevationChangeMeters = -1; },
-    (region) => { region.routes[0].elevationChangeMeters = Infinity; },
-    (region) => { region.routes = region.routes.filter(({ between }) => !between.includes('costa-final')); }
+    (world) => { world.extra = true; },
+    (world) => { world.regions = []; },
+    (world) => { world.regions['Bad ID'] = world.regions.sheol; delete world.regions.sheol; },
+    (world) => { world.regions.sheol.extra = true; },
+    (world) => { world.regions.sheol.regionName = world.regions['mercato-nigre'].regionName; },
+    (world) => { world.regions.sheol.locations = []; },
+    (world) => { world.regions.sheol.locations['bucca-de-sheol'].extra = true; },
+    (world) => { world.regions.sheol.locations.BAD = world.regions.sheol.locations['bucca-de-sheol']; },
+    (world) => { world.regions.sheol.locations['bucca-de-sheol'].name = ''; },
+    (world) => { world.regions.sheol.locations['bucca-de-sheol'].latitude = 90.01; },
+    (world) => { world.regions.sheol.locations['bucca-de-sheol'].longitude = -180.01; },
+    (world) => { world.regions.sheol.locations['bucca-de-sheol'].elevationMeters = Infinity; },
+    (world) => { world.regions.sheol.routes = {}; },
+    (world) => { world.regions.sheol.routes[0].extra = true; },
+    (world) => { world.regions.sheol.routes[0].between = ['bucca-de-sheol']; },
+    (world) => { world.regions.sheol.routes[0].between[1] = 'missing'; },
+    (world) => { world.regions.sheol.routes[0].between[1] = world.regions.sheol.routes[0].between[0]; },
+    (world) => { world.regions.sheol.routes.push({ ...structuredClone(world.regions.sheol.routes[0]), between: [...world.regions.sheol.routes[0].between].reverse() }); },
+    (world) => { world.regions.sheol.routes[0].walkingTime = 0; },
+    (world) => { world.regions.sheol.routes[0].walkingTime = 1.5; },
+    (world) => { world.regions.sheol.routes[0].walkingTime = Number.MAX_SAFE_INTEGER + 1; },
+    (world) => { world.regions.sheol.routes[0].elevationChangeMeters = -1; },
+    (world) => { world.regions.sheol.routes[0].elevationChangeMeters = Infinity; },
+    (world) => { world.regions.sheol.routes = world.regions.sheol.routes.filter(({ between }) => !between.includes('costa-final')); }
   ]) {
     const invalid = structuredClone(valid);
     mutate(invalid);
-    assert.throws(() => validateRegion(invalid));
+    assert.throws(() => validateWorld(invalid));
   }
 
   const negativeElevation = structuredClone(valid);
-  negativeElevation.locations['bucca-de-sheol'].elevationMeters = -250.5;
-  assert.equal(validateRegion(negativeElevation).locations['bucca-de-sheol'].elevationMeters, -250.5);
-
+  negativeElevation.regions.sheol.locations['bucca-de-sheol'].elevationMeters = -250.5;
+  assert.equal(validateWorld(negativeElevation).regions.sheol.locations['bucca-de-sheol'].elevationMeters, -250.5);
   const authoredChange = structuredClone(valid);
-  authoredChange.routes[0].elevationChangeMeters = 0.5;
-  assert.equal(validateRegion(authoredChange).routes[0].elevationChangeMeters, 0.5);
+  authoredChange.regions.sheol.routes[0].elevationChangeMeters = 0.5;
+  assert.equal(validateWorld(authoredChange).regions.sheol.routes[0].elevationChangeMeters, 0.5);
 });
 
-test('region loader uses one fixed no-cache same-origin request', async () => {
-  const region = await productionRegion();
+test('world validation enforces strict inter-region routes and a connected global graph', async () => {
+  const valid = await productionWorld();
+  for (const mutate of [
+    (world) => { world.interRegionRoutes = {}; },
+    (world) => { world.interRegionRoutes[0].extra = true; },
+    (world) => { world.interRegionRoutes[0].routeName = ''; },
+    (world) => { world.interRegionRoutes[0].between = ['sheol']; },
+    (world) => { world.interRegionRoutes[0].between[1] = 'missing-region'; },
+    (world) => { world.interRegionRoutes[0].between[1] = world.interRegionRoutes[0].between[0]; },
+    (world) => { world.interRegionRoutes.push({ ...structuredClone(world.interRegionRoutes[0]), between: [...world.interRegionRoutes[0].between].reverse() }); },
+    (world) => { world.interRegionRoutes[0].walkTime = 0; },
+    (world) => { world.interRegionRoutes[0].walkTime = 2.5; },
+    (world) => { world.interRegionRoutes = world.interRegionRoutes.slice(0, 1); }
+  ]) {
+    const invalid = structuredClone(valid);
+    mutate(invalid);
+    assert.throws(() => validateWorld(invalid));
+  }
+});
+
+test('world loader uses one fixed no-cache same-origin request', async () => {
+  const world = await productionWorld();
   for (const query of ['', '?region=other', '?path=https://evil.test/x', '?locale=es']) {
     const requests = [];
-    const result = await loadRegion({
+    const result = await loadWorld({
       baseUrl: `https://app.test/locus.html${query}`,
       fetchFn: async (url, options) => {
         requests.push({ url, options });
-        return response(region, 'https://app.test/regions/sheol.json');
+        return response(world, 'https://app.test/regions/world.json');
       }
     });
-    assert.equal(REGION_PATH, '/regions/sheol.json');
+    assert.equal(WORLD_PATH, '/regions/world.json');
     assert.deepEqual(requests, [{
-      url: 'https://app.test/regions/sheol.json',
+      url: 'https://app.test/regions/world.json',
       options: { cache: 'no-cache' }
     }]);
-    assert.equal(result.schemaVersion, 1);
-    assert.equal(result.region.regionName, 'Sheol');
+    assert.equal(result.schemaVersion, 2);
+    assert.equal(result.world.regions.sheol.regionName, 'Sheol');
   }
 });
 
-test('region loader rejects unsupported sources, cross-origin responses, missing, and malformed data', async () => {
-  const region = await productionRegion();
+test('world loader rejects alternate sources, unsafe URLs, redirects, missing, malformed, and invalid data', async () => {
+  const world = await productionWorld();
   for (const unsupported of [
     { path: '/regions/other.json' },
-    { url: 'https://evil.test/region.json' },
+    { url: 'https://evil.test/world.json' },
     { regionId: 'other' },
     { requestedId: 'other' }
   ]) {
-    await assert.rejects(() => loadRegion({
+    await assert.rejects(() => loadWorld({
       baseUrl: 'https://app.test/locus.html',
-      fetchFn: async () => response(region),
+      fetchFn: async () => response(world),
       ...unsupported
-    }), /Unsupported region loader option/);
+    }), /Unsupported world loader option/);
   }
-  await assert.rejects(() => loadRegion({
+  await assert.rejects(() => loadWorld({
     baseUrl: 'file:///tmp/locus.html',
-    fetchFn: async () => response(region)
+    fetchFn: async () => response(world)
   }), /HTTP or HTTPS/);
-  await assert.rejects(() => loadRegion({
+  await assert.rejects(() => loadWorld({
     baseUrl: 'https://app.test/locus.html',
-    fetchFn: async () => response(region, 'https://evil.test/regions/sheol.json')
+    fetchFn: async () => response(world, 'https://evil.test/regions/world.json')
   }), /same-origin/);
-  await assert.rejects(() => loadRegion({
+  await assert.rejects(() => loadWorld({
     baseUrl: 'https://app.test/locus.html',
     fetchFn: async () => ({ ok: false, json: async () => null })
-  }), /Unable to load region/);
-  await assert.rejects(() => loadRegion({
+  }), /Unable to load world/);
+  await assert.rejects(() => loadWorld({
     baseUrl: 'https://app.test/locus.html',
     fetchFn: async () => ({ ok: true, json: async () => { throw new SyntaxError('bad JSON'); } })
   }), /Malformed JSON/);
-  const invalid = structuredClone(region);
-  invalid.routes[0].between[0] = 'missing';
-  await assert.rejects(() => loadRegion({
+  const invalid = structuredClone(world);
+  invalid.interRegionRoutes[0].between[0] = 'missing';
+  await assert.rejects(() => loadWorld({
     baseUrl: 'https://app.test/locus.html',
     fetchFn: async () => response(invalid)
   }));
 });
 
-test('location context clones and deeply freezes region, locations, routes, and state', async () => {
-  const source = await productionRegion();
+test('location context clones and deeply freezes the world, regions, routes, locations, and state', async () => {
+  const source = await productionWorld();
   const before = structuredClone(source);
   const context = createLocationContext({
-    regionResult: { schemaVersion: 1, region: validateRegion(source) }
+    worldResult: { schemaVersion: 2, world: validateWorld(source) }
   });
   assert.deepEqual(source, before);
-  assert.notEqual(context.region, source);
-  assert.notEqual(context.region.locations['bucca-de-sheol'], source.locations['bucca-de-sheol']);
-  assert.notEqual(context.region.routes[0], source.routes[0]);
-  assert.notEqual(context.region.routes[0].between, source.routes[0].between);
+  assert.notEqual(context.world, source);
+  assert.notEqual(context.currentRegion, source.regions.sheol);
+  assert.notEqual(context.currentLocation, source.regions.sheol.locations[context.currentLocationId]);
+  assert.notEqual(context.getRoutes('sheol')[0], source.regions.sheol.routes[0]);
+  assert.notEqual(context.getInterRegionRoutes()[0], source.interRegionRoutes[0]);
   assert.notEqual(context.locationState, INITIAL_LOCATION_STATE);
   for (const value of [
-    context, context.region, context.region.regions, context.region.locations,
-    context.region.routes, context.region.routes[0], context.region.routes[0].between,
-    context.locationState, context.currentLocation, context.getLocations(), context.getRoutes(),
-    ...context.getLocations(), ...context.getRoutes()
+    context, context.world, context.world.regions, context.getRegions(), context.currentRegion,
+    context.currentRegion.locations, context.currentLocation, context.getLocations('sheol'),
+    context.getRoutes('sheol'), context.getRoutes('sheol')[0], context.getRoutes('sheol')[0].between,
+    context.getInterRegionRoutes(), context.getInterRegionRoutes()[0],
+    context.getInterRegionRoutes()[0].between, context.locationState
   ]) assert.equal(Object.isFrozen(value), true);
-  assert.equal(context.getLocations()[0].id, 'bucca-de-sheol');
-  assert.equal(Object.hasOwn(source.locations['bucca-de-sheol'], 'id'), false);
+  assert.equal(Object.hasOwn(source.regions.sheol.locations['bucca-de-sheol'], 'id'), false);
+  assert.equal(Object.hasOwn(source.regions.sheol, 'id'), false);
   assert.throws(() => { context.currentLocation.name = 'Changed'; }, TypeError);
-  assert.throws(() => { context.getRoutes()[0].between[0] = 'changed'; }, TypeError);
+  assert.throws(() => { context.getInterRegionRoutes()[0].between[0] = 'changed'; }, TypeError);
   assert.equal(Object.values(context).some((value) => value instanceof Map || value instanceof Set), false);
 });
 
-test('location context preserves order and resolves symmetric direct routes and destinations', async () => {
-  const source = await productionRegion();
-  const context = createLocationContext({
-    regionResult: { schemaVersion: 1, region: validateRegion(source) }
-  });
-  assert.equal(context.regionName, 'Sheol');
+test('location context exposes scoped local APIs and rejects invalid IDs and foreign routes', async () => {
+  const source = await productionWorld();
+  const context = createLocationContext({ worldResult: await worldResult() });
+  assert.equal(context.worldSchemaVersion, 2);
+  assert.equal(context.regionCount, 3);
+  assert.equal(context.interRegionRouteCount, 2);
+  assert.equal(context.currentRegionId, 'sheol');
+  assert.equal(context.currentRegionName, 'Sheol');
+  assert.equal(context.currentRegionDescription, source.regions.sheol.description);
   assert.equal(context.currentLocationId, 'campo-del-ultime-pensamentos');
   assert.equal(context.currentLocation.name, 'Le Campo del Ultime Pensamentos');
-  assert.deepEqual(context.getLocations().map(({ id }) => id), Object.keys(source.locations));
-  assert.deepEqual(context.getRoutes().map(({ name }) => name), source.routes.map(({ name }) => name));
-  for (const route of context.getRoutes()) {
-    const [firstId, secondId] = route.between;
-    assert.ok(context.getRoutesFrom(firstId).includes(route));
-    assert.ok(context.getRoutesFrom(secondId).includes(route));
-    assert.equal(context.getDestination(route, firstId).id, secondId);
-    assert.equal(context.getDestination(route, secondId).id, firstId);
+  assert.deepEqual(context.getRegions().map(({ id }) => id), Object.keys(source.regions));
+  for (const regionId of Object.keys(source.regions)) {
+    assert.deepEqual(context.getLocations(regionId).map(({ id }) => id), Object.keys(source.regions[regionId].locations));
+    assert.deepEqual(context.getRoutes(regionId).map(({ name }) => name), source.regions[regionId].routes.map(({ name }) => name));
+    for (const route of context.getRoutes(regionId)) {
+      const [firstId, secondId] = route.between;
+      assert.ok(context.getRoutesFrom(regionId, firstId).includes(route));
+      assert.ok(context.getRoutesFrom(regionId, secondId).includes(route));
+      assert.equal(context.getDestination(regionId, route, firstId).id, secondId);
+      assert.equal(context.getDestination(regionId, route, secondId).id, firstId);
+    }
   }
-  const currentRoutes = context.getRoutesFrom(context.currentLocationId);
+  const currentRoutes = context.getRoutesFrom('sheol', context.currentLocationId);
   assert.equal(currentRoutes.length, 1);
   assert.equal(currentRoutes[0].name, 'Le Sentiero del Ultime Pensamentos');
-  assert.equal(context.getDestination(currentRoutes[0], context.currentLocationId).id, 'descenso-del-sibylla');
-  assert.throws(() => context.getLocation('missing'), /Unknown location/);
-  assert.throws(() => context.getRoutesFrom('missing'), /Unknown location/);
-  assert.throws(() => context.getDestination(currentRoutes[0], 'missing'), /Unknown location/);
-  assert.throws(() => context.getDestination({ ...currentRoutes[0] }, context.currentLocationId), /Unknown route/);
+  assert.throws(() => context.getRegion('missing'), /Unknown region/);
+  assert.throws(() => context.getLocation('missing', 'anything'), /Unknown region/);
+  assert.throws(() => context.getLocation('sheol', 'missing'), /Unknown location/);
+  assert.throws(() => context.getRoutesFrom('sheol', 'missing'), /Unknown location/);
+  assert.throws(() => context.getDestination('sheol', context.getRoutes('mercato-nigre')[0], 'bucca-de-sheol'), /Unknown route/);
+  assert.throws(() => context.getDestination('sheol', { ...currentRoutes[0] }, context.currentLocationId), /Unknown route/);
   assert.throws(() => createLocationContext({
-    regionResult: { schemaVersion: 1, region: source },
-    locationState: { regionName: 'Other', locationId: context.currentLocationId }
-  }), /Unknown current region/);
+    worldResult: { schemaVersion: 2, world: source },
+    locationState: { regionId: 'missing', locationId: context.currentLocationId }
+  }), /Unknown region/);
+  assert.throws(() => createLocationContext({
+    worldResult: { schemaVersion: 2, world: source },
+    locationState: { regionId: 'sheol', locationId: 'missing' }
+  }), /Unknown location/);
 });
 
-test('Locus and Rutas start locale, nomenclature, and region requests concurrently without timers', async (t) => {
-  const [nomenclature, region, english, spanish] = await Promise.all([
+test('location context keeps inter-region routes distinct, symmetric, and region-scoped', async () => {
+  const context = createLocationContext({ worldResult: await worldResult() });
+  const [obolo, signos] = context.getInterRegionRoutes();
+  assert.deepEqual(context.getInterRegionRoutesFrom('sheol'), [obolo]);
+  assert.deepEqual(context.getInterRegionRoutesFrom('mercato-nigre'), [obolo, signos]);
+  assert.deepEqual(context.getInterRegionRoutesFrom('observatorio-del-prophetias'), [signos]);
+  assert.equal(context.getInterRegionDestination(obolo, 'sheol').id, 'mercato-nigre');
+  assert.equal(context.getInterRegionDestination(obolo, 'mercato-nigre').id, 'sheol');
+  assert.equal(context.getInterRegionDestination(signos, 'mercato-nigre').id, 'observatorio-del-prophetias');
+  assert.throws(() => context.getInterRegionRoutesFrom('missing'), /Unknown region/);
+  assert.throws(() => context.getInterRegionDestination({ ...obolo }, 'sheol'), /Unknown inter-region route/);
+  assert.throws(() => context.getInterRegionDestination(signos, 'sheol'), /does not connect region/);
+  assert.equal(context.getRoutes('sheol').includes(obolo), false);
+  assert.equal(context.getInterRegionRoutes().includes(context.getRoutes('sheol')[0]), false);
+});
+
+test('Locus and Rutas start locale, nomenclature, and world requests concurrently without timers', async (t) => {
+  const [nomenclature, world, english, spanish] = await Promise.all([
     readJson(nomenclaturePath),
-    productionRegion(),
+    productionWorld(),
     readJson(path.join(publicDirectory, 'locales', 'en.json')),
     readJson(path.join(publicDirectory, 'locales', 'es.json'))
   ]);
   const values = new Map([
     ['/config/nomenclature.json', nomenclature],
-    ['/regions/sheol.json', region],
+    ['/regions/world.json', world],
     ['/locales/en.json', english],
     ['/locales/es.json', spanish]
   ]);
@@ -408,7 +515,7 @@ test('Locus and Rutas start locale, nomenclature, and region requests concurrent
     assert.deepEqual(requests.sort(), [
       `/locales/${localeId}.json`,
       '/config/nomenclature.json',
-      '/regions/sheol.json'
+      '/regions/world.json'
     ].sort());
     assert.equal(requests.length, 3);
     for (const requestPath of requests) {
@@ -420,7 +527,8 @@ test('Locus and Rutas start locale, nomenclature, and region requests concurrent
     if (pageId === 'page-07') {
       assert.equal(specific.get('[data-region-name]').textContent, 'Sheol');
     } else {
-      assert.equal(specific.get('[data-route-list]').children.length, 1);
+      assert.equal(specific.get('[data-local-route-list]').children.length, 1);
+      assert.equal(specific.get('[data-inter-region-route-list]').children.length, 1);
     }
   }
   assert.equal(timeoutMock.mock.callCount(), 0);
@@ -449,7 +557,7 @@ test('ordinary static pages still load only locale and nomenclature resources', 
     }
   });
   assert.deepEqual(requests.sort(), ['/locales/en.json', '/config/nomenclature.json'].sort());
-  assert.equal(requests.includes('/regions/sheol.json'), false);
+  assert.equal(requests.includes('/regions/world.json'), false);
   for (const requestPath of requests) {
     pending.get(requestPath)(response(values.get(requestPath), `https://app.test${requestPath}`));
   }
@@ -457,7 +565,7 @@ test('ordinary static pages still load only locale and nomenclature resources', 
   assert.equal(context.applicationDisplayName, 'Insidia');
 });
 
-test('location configuration failures use the resolved localized error and never render partial UI', async (t) => {
+test('world configuration failures use the resolved localized error and never render partial UI', async (t) => {
   t.mock.method(console, 'error', () => {});
   const [nomenclature, spanish] = await Promise.all([
     readJson(nomenclaturePath),
@@ -469,7 +577,7 @@ test('location configuration failures use the resolved localized error and never
     locationLike: { href: 'https://app.test/locus.html?locale=es' },
     fetchFn: async (url) => {
       const pathname = new URL(url).pathname;
-      if (pathname === '/regions/sheol.json') return { ok: false, json: async () => null };
+      if (pathname === '/regions/world.json') return { ok: false, json: async () => null };
       return response(pathname === '/locales/es.json' ? spanish : nomenclature, `https://app.test${pathname}`);
     }
   });
@@ -483,8 +591,8 @@ test('location configuration failures use the resolved localized error and never
   assert.equal(specific.get('[data-region-name]').textContent, '');
 });
 
-test('Locus renders configured Sheol data without coordinates in both locales', async () => {
-  const locationContext = createLocationContext({ regionResult: await regionResult() });
+test('Locus renders initial Sheol data without coordinates in both locales', async () => {
+  const locationContext = createLocationContext({ worldResult: await worldResult() });
   const selectors = [
     '[data-region-name]', '[data-region-description]', '[data-location-name]',
     '[data-location-description]', '[data-location-elevation]'
@@ -508,47 +616,59 @@ test('Locus renders configured Sheol data without coordinates in both locales', 
   }
   assert.equal(visibleByLocale.en['[data-location-elevation]'], '22 meters');
   assert.equal(visibleByLocale.es['[data-location-elevation]'], '22 metros');
-  const visibleText = JSON.stringify(visibleByLocale);
-  assert.doesNotMatch(visibleText, /40\.84795|14\.056381/);
+  assert.doesNotMatch(JSON.stringify(visibleByLocale), /40\.84795|14\.056381/);
 });
 
-test('Rutas renders only the direct Sibyl route with localized generic labels', async () => {
-  const locationContext = createLocationContext({ regionResult: await regionResult() });
+test('Rutas renders separate direct local and inter-regional routes in both locales', async () => {
+  const locationContext = createLocationContext({ worldResult: await worldResult() });
+  const selectors = [
+    '[data-route-origin]', '[data-local-route-list]', '[data-local-route-empty]',
+    '[data-inter-region-route-list]', '[data-inter-region-route-empty]'
+  ];
   const snapshots = {};
   for (const localeId of ['en', 'es']) {
-    const rootElement = rendererRoot(['[data-route-origin]', '[data-route-list]', '[data-route-empty]']);
+    const rootElement = rendererRoot(selectors);
     renderRutas(rootElement, await presentationContext(localeId), locationContext);
-    const cards = rootElement.elements.get('[data-route-list]').children;
-    assert.equal(cards.length, 1);
-    assert.equal(rootElement.elements.get('[data-route-empty]').hidden, true);
+    const localCards = rootElement.elements.get('[data-local-route-list]').children;
+    const interRegionCards = rootElement.elements.get('[data-inter-region-route-list]').children;
+    assert.equal(localCards.length, 1);
+    assert.equal(interRegionCards.length, 1);
+    assert.equal(rootElement.elements.get('[data-local-route-empty]').hidden, true);
+    assert.equal(rootElement.elements.get('[data-inter-region-route-empty]').hidden, true);
     snapshots[localeId] = {
       origin: rootElement.elements.get('[data-route-origin]').textContent,
-      card: cards[0].children.map(({ textContent }) => textContent)
+      local: localCards[0].children.map(({ textContent }) => textContent),
+      interRegion: interRegionCards[0].children.map(({ textContent }) => textContent)
     };
   }
   assert.equal(snapshots.en.origin, 'Le Campo del Ultime Pensamentos');
   assert.equal(snapshots.es.origin, snapshots.en.origin);
-  assert.deepEqual(snapshots.en.card, [
+  assert.deepEqual(snapshots.en.local, [
     'Le Sentiero del Ultime Pensamentos',
     'Destination: Le Descenso del Sibylla',
     'Le corridor ritual per le qual le cavernas natural deveni le architectura de Sheol.',
     'Walking time: 10 minutes',
     'Elevation change: 5 meters'
   ]);
-  assert.deepEqual(snapshots.es.card, [
-    'Le Sentiero del Ultime Pensamentos',
-    'Destino: Le Descenso del Sibylla',
-    'Le corridor ritual per le qual le cavernas natural deveni le architectura de Sheol.',
-    'Tiempo a pie: 10 minutos',
-    'Cambio de elevación: 5 metros'
+  assert.deepEqual(snapshots.en.interRegion, [
+    'Le Via del Obolo Nigre',
+    'Destination region: Mercato Nigre',
+    'Walking time: 1800 fictional minutes'
   ]);
-  assert.doesNotMatch(JSON.stringify(snapshots), /Le Via del Sibylla|Le Bucca de Sheol|40\.8479|14\.0532/);
+  assert.deepEqual(snapshots.es.interRegion, [
+    'Le Via del Obolo Nigre',
+    'Región de destino: Mercato Nigre',
+    'Tiempo a pie: 1800 minutos ficticios'
+  ]);
+  assert.doesNotMatch(JSON.stringify(snapshots), /Le Via del Signos Celestial|Observatorio del Prophetias|40\.8479|14\.0532/);
 });
 
-test('location production sources remain read-only and free of prohibited integrations', async () => {
+test('location production has one world source and remains read-only and free of prohibited integrations', async () => {
+  const regionFiles = await readdir(path.join(publicDirectory, 'regions'));
+  assert.deepEqual(regionFiles, ['world.json']);
   const locationFiles = [
     'location-bootstrap.js', 'location-renderers.js', 'location-state.js',
-    'location.js', 'region-loader.js', 'locus-page.js', 'rutas-page.js',
+    'location.js', 'world-loader.js', 'locus-page.js', 'rutas-page.js',
     'locus.html', 'rutas.html'
   ];
   const locationSource = (await Promise.all(locationFiles.map((file) => (
@@ -564,15 +684,18 @@ test('location production sources remain read-only and free of prohibited integr
     assert.doesNotMatch(html, /<button|<form|<iframe|latitude|longitude|coordinates/i);
   }
 
-  const region = await productionRegion();
+  const world = await productionWorld();
   const properNouns = [
-    region.regionName,
-    region.description,
-    ...Object.values(region.locations).flatMap(({ name, description }) => [name, description]),
-    ...region.routes.map(({ name }) => name)
+    ...Object.values(world.regions).flatMap((region) => [
+      region.regionName,
+      region.description,
+      ...Object.values(region.locations).flatMap(({ name, description }) => [name, description]),
+      ...region.routes.map(({ name }) => name)
+    ]),
+    ...world.interRegionRoutes.map(({ routeName }) => routeName)
   ];
   const productionFiles = (await listFiles(publicDirectory)).filter((file) => (
-    !file.endsWith(path.join('regions', 'sheol.json'))
+    !file.endsWith(path.join('regions', 'world.json'))
     && !file.endsWith('location-state.js')
   ));
   const otherProductionSource = (await Promise.all(productionFiles.map((file) => readFile(file, 'utf8')))).join('\n');
@@ -580,6 +703,6 @@ test('location production sources remain read-only and free of prohibited integr
     assert.equal(otherProductionSource.includes(properNoun), false, properNoun);
   }
   const stateSource = await readFile(path.join(publicDirectory, 'location-state.js'), 'utf8');
-  assert.match(stateSource, /regionName: 'Sheol'/);
+  assert.match(stateSource, /regionId: 'sheol'/);
   assert.match(stateSource, /locationId: 'campo-del-ultime-pensamentos'/);
 });

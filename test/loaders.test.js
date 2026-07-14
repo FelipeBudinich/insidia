@@ -514,15 +514,15 @@ test('static bootstrap applies shared presentation without starting a recurring 
   assert.equal(section.textContent, 'Titulo');
   assert.equal(message.textContent, 'Ubicación actual');
   assert.equal(application.textContent, 'Insidia');
-  assert.equal(version.textContent, 'v8.21');
+  assert.equal(version.textContent, 'v8.22');
   assert.match(epoch.textContent, /1970-01-01 00:00:00 UTC/);
 });
 
-test('locale schema 11 contains only localized UI language and exact page descriptions', async () => {
+test('locale schema 12 contains only localized UI language and exact page descriptions', async () => {
   const english = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'en.json')));
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
-  assert.equal(english.schemaVersion, 11);
-  assert.equal(spanish.schemaVersion, 11);
+  assert.equal(english.schemaVersion, 12);
+  assert.equal(spanish.schemaVersion, 12);
   assert.deepEqual(Object.keys(english).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
   assert.deepEqual(Object.keys(spanish).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
   assert.equal(Object.hasOwn(english, 'outcomeTypes'), false);
@@ -536,20 +536,34 @@ test('locale schema 11 contains only localized UI language and exact page descri
   assert.deepEqual(
     [
       english.messages['label.region'], english.messages['label.elevation'],
+      english.messages['label.localRoutes'], english.messages['label.interRegionalRoutes'],
       english.messages['label.routesFrom'], english.messages['label.destination'],
-      english.messages['label.walkingTime'], english.messages['label.elevationChange'],
-      english.messages['status.noAvailableRoutes']
+      english.messages['label.destinationRegion'], english.messages['label.walkingTime'],
+      english.messages['label.elevationChange'], english.messages['status.noAvailableLocalRoutes'],
+      english.messages['status.noAvailableInterRegionRoutes'], english.templates['route.fictionalMinutes']
     ],
-    ['Region', 'Elevation', 'Routes from', 'Destination', 'Walking time', 'Elevation change', 'No available routes.']
+    [
+      'Region', 'Elevation', 'Local routes', 'Inter-regional routes', 'Routes from',
+      'Destination', 'Destination region', 'Walking time', 'Elevation change',
+      'No local routes are available.', 'No inter-regional routes are available.',
+      '{value} fictional minutes'
+    ]
   );
   assert.deepEqual(
     [
       spanish.messages['label.region'], spanish.messages['label.elevation'],
+      spanish.messages['label.localRoutes'], spanish.messages['label.interRegionalRoutes'],
       spanish.messages['label.routesFrom'], spanish.messages['label.destination'],
-      spanish.messages['label.walkingTime'], spanish.messages['label.elevationChange'],
-      spanish.messages['status.noAvailableRoutes']
+      spanish.messages['label.destinationRegion'], spanish.messages['label.walkingTime'],
+      spanish.messages['label.elevationChange'], spanish.messages['status.noAvailableLocalRoutes'],
+      spanish.messages['status.noAvailableInterRegionRoutes'], spanish.templates['route.fictionalMinutes']
     ],
-    ['Región', 'Elevación', 'Rutas desde', 'Destino', 'Tiempo a pie', 'Cambio de elevación', 'No hay rutas disponibles.']
+    [
+      'Región', 'Elevación', 'Rutas locales', 'Rutas interregionales', 'Rutas desde',
+      'Destino', 'Región de destino', 'Tiempo a pie', 'Cambio de elevación',
+      'No hay rutas locales disponibles.', 'No hay rutas interregionales disponibles.',
+      '{value} minutos ficticios'
+    ]
   );
   assert.equal(
     english.templates['document.page-02Description'],

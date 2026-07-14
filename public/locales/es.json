@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "id": "es",
   "languageTag": "es",
   "messages": {
@@ -34,8 +34,11 @@
     "label.currentLocation": "Ubicación actual",
     "label.region": "Región",
     "label.elevation": "Elevación",
+    "label.localRoutes": "Rutas locales",
+    "label.interRegionalRoutes": "Rutas interregionales",
     "label.routesFrom": "Rutas desde",
     "label.destination": "Destino",
+    "label.destinationRegion": "Región de destino",
     "label.walkingTime": "Tiempo a pie",
     "label.elevationChange": "Cambio de elevación",
     "label.epoch": "Época",
@@ -43,7 +46,8 @@
     "status.copied": "Copiado",
     "status.copyFailure": "No se pudo copiar. Selecciona el JSON y cópialo manualmente.",
     "status.tieBreakApplied": "Desempate por prioridad fija aplicado",
-    "status.noAvailableRoutes": "No hay rutas disponibles.",
+    "status.noAvailableLocalRoutes": "No hay rutas locales disponibles.",
+    "status.noAvailableInterRegionRoutes": "No hay rutas interregionales disponibles.",
     "selection.selection-rule-01": "Más cerca de completar la órbita",
     "selection.selection-rule-02": "Más lejos de completar la órbita",
     "selection.selection-rule-03": "Progreso orbital intermedio",
@@ -90,6 +94,7 @@
     "pull.alignment": "{label} {percentage}",
     "pull.tie": "{status} entre {count} tríos empatados",
     "pull.noTie": "Sin desempate por prioridad fija · seleccionado entre {count} tríos",
+    "route.fictionalMinutes": "{value} minutos ficticios",
     "footer.epoch": "{epochLabel}: {epoch}"
   }
 }
