@@ -48,6 +48,27 @@ export const PAGE_DEFINITIONS = Object.freeze({
 
 export const PAGE_IDS = Object.freeze(Object.keys(PAGE_DEFINITIONS));
 
+export const NAVIGATION_GROUPS = Object.freeze([
+  Object.freeze({
+    id: 'navigation-group-02',
+    targetPageId: 'page-04',
+    categoryElementId: 'navigation-category-personage',
+    pageIds: Object.freeze(['page-04', 'page-05', 'page-06'])
+  }),
+  Object.freeze({
+    id: 'navigation-group-01',
+    targetPageId: 'page-01',
+    categoryElementId: 'navigation-category-almanac',
+    pageIds: Object.freeze(['page-01', 'page-02', 'page-03'])
+  }),
+  Object.freeze({
+    id: 'navigation-group-03',
+    targetPageId: 'page-07',
+    categoryElementId: 'navigation-category-location',
+    pageIds: Object.freeze(['page-07', 'page-08', 'page-09'])
+  })
+]);
+
 export const NAVIGATION_GROUP_IDS = Object.freeze([
   'navigation-group-01',
   'navigation-group-02',

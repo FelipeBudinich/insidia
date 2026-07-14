@@ -2,6 +2,7 @@ import http from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { APPLICATION_VERSION } from './public/version.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 3000;
@@ -38,7 +39,7 @@ const BASE_SECURITY_HEADERS = Object.freeze({
   'Content-Security-Policy': CONTENT_SECURITY_POLICY,
   'Cross-Origin-Opener-Policy': 'same-origin',
   'Cross-Origin-Resource-Policy': 'same-origin',
-  'Permissions-Policy': 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), clipboard-read=(), clipboard-write=(self)',
+  'Permissions-Policy': 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), clipboard-read=(), clipboard-write=()',
   'Referrer-Policy': 'no-referrer',
   'X-Content-Type-Options': 'nosniff',
   'X-DNS-Prefetch-Control': 'off',
@@ -348,7 +349,7 @@ export function createStaticServer(options = {}) {
       sendResponse(response, method, environment, 200, {
         'Cache-Control': 'no-store',
         'Content-Type': 'application/json; charset=utf-8'
-      }, JSON.stringify({ ok: true, version: 'v8.24' }));
+      }, JSON.stringify({ ok: true, version: `v${APPLICATION_VERSION}` }));
       return;
     }
 

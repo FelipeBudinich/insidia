@@ -3,14 +3,15 @@ import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { bootstrapPage, bootstrapStaticPage } from '../public/app-bootstrap.js';
+import { bootstrapDocument, bootstrapStaticPage } from '../public/app-bootstrap.js';
+import { loadJsonConfiguration } from '../public/config-loader.js';
 import {
   INTERFACE_LANGUAGE_TAG,
   INTERFACE_MESSAGES,
   INTERFACE_TEMPLATES
 } from '../public/interface-text.js';
 import { loadNomenclature, NOMENCLATURE_PATH, validateNomenclature } from '../public/nomenclature-loader.js';
-import { formatTemplate } from '../public/templates.js';
+import { createBootstrapDocument, createFixedPathFetch, createProductionPresentationContext, FakeElement } from './helpers.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const publicDirectory = path.join(root, 'public');
@@ -20,21 +21,99 @@ const readJson = async (filePath) => JSON.parse(await readFile(filePath, 'utf8')
 function localFetch(overrides = new Map(), requests = []) {
   return async (url, options) => {
     assert.equal(options.cache, 'no-cache');
-    const pathname = new URL(url).pathname;
+    assert.equal(options.redirect, 'error');
+    const parsed = new URL(url);
+    const pathname = parsed.pathname;
     requests.push(pathname);
     if (overrides.has(pathname)) {
       const override = overrides.get(pathname);
-      if (override === 'malformed') return { ok: true, json: async () => { throw new SyntaxError('bad JSON'); } };
-      if (override === 'missing') return { ok: false, json: async () => null };
-      return { ok: true, json: async () => structuredClone(override) };
+      if (override === 'malformed') return { ok: true, url, json: async () => { throw new SyntaxError('bad JSON'); } };
+      if (override === 'missing') return { ok: false, url, json: async () => null };
+      return { ok: true, url, json: async () => structuredClone(override) };
     }
     try {
-      return { ok: true, json: async () => readJson(path.join(publicDirectory, pathname)) };
+      return { ok: true, url, json: async () => readJson(path.join(publicDirectory, pathname)) };
     } catch {
-      return { ok: false, json: async () => null };
+      return { ok: false, url, json: async () => null };
     }
   };
 }
+
+test('shared JSON loading accepts only fixed same-origin HTTP(S) requests and parses once', async () => {
+  for (const protocol of ['http:', 'https:']) {
+    let request;
+    let parseCount = 0;
+    const origin = `${protocol}//app.test`;
+    const value = { ok: true };
+    const loaded = await loadJsonConfiguration({
+      path: '/fixed/config.json',
+      resourceName: 'test configuration',
+      baseUrl: `${origin}/page.html?path=https://evil.test/other.json`,
+      fetchFn: createFixedPathFetch({
+        expectedPath: '/fixed/config.json',
+        value,
+        origin,
+        onRequest(observed) { request = observed; },
+        onParse() { parseCount += 1; }
+      })
+    });
+    assert.deepEqual(loaded, value);
+    assert.equal(parseCount, 1);
+    assert.equal(request.url, `${origin}/fixed/config.json`);
+    assert.deepEqual(request.options, { cache: 'no-cache', redirect: 'error' });
+  }
+});
+
+test('shared JSON loading rejects unsafe bases, paths, responses, status, and malformed data', async () => {
+  const baseOptions = {
+    path: '/fixed/config.json',
+    resourceName: 'test configuration',
+    baseUrl: 'https://app.test/page.html',
+    fetchFn: async () => ({ ok: true, url: 'https://app.test/fixed/config.json', json: async () => ({}) })
+  };
+  for (const baseUrl of [
+    'file:///tmp/config.html',
+    'data:text/html,test',
+    'javascript:alert(1)'
+  ]) {
+    await assert.rejects(() => loadJsonConfiguration({ ...baseOptions, baseUrl }), /HTTP or HTTPS/);
+  }
+  await assert.rejects(
+    () => loadJsonConfiguration({ ...baseOptions, fetchFn: null }),
+    /fetchFn must be a function/
+  );
+  await assert.rejects(
+    () => loadJsonConfiguration({ ...baseOptions, path: '//evil.test/config.json' }),
+    /same-origin/
+  );
+  for (const pathValue of ['/config.json?other=1', '/config.json#other', 'relative.json']) {
+    await assert.rejects(
+      () => loadJsonConfiguration({ ...baseOptions, path: pathValue }),
+      /fixed absolute path/
+    );
+  }
+  await assert.rejects(
+    () => loadJsonConfiguration({
+      ...baseOptions,
+      fetchFn: async () => ({ ok: false, url: 'https://app.test/fixed/config.json', json: async () => ({}) })
+    }),
+    /Unable to load test configuration/
+  );
+  await assert.rejects(
+    () => loadJsonConfiguration({
+      ...baseOptions,
+      fetchFn: async () => ({ ok: true, url: 'https://evil.test/config.json', json: async () => ({}) })
+    }),
+    /response must be same-origin/
+  );
+  await assert.rejects(
+    () => loadJsonConfiguration({
+      ...baseOptions,
+      fetchFn: async () => ({ ok: true, url: 'https://app.test/fixed/config.json', json: async () => { throw new SyntaxError('bad'); } })
+    }),
+    /Malformed JSON: \/fixed\/config.json/
+  );
+});
 
 test('there is exactly one production nomenclature JSON file and no universe infrastructure', async () => {
   const configJson = (await readdir(path.join(publicDirectory, 'config'))).filter((file) => file.endsWith('.json'));
@@ -376,11 +455,11 @@ test('missing or invalid nomenclature prevents rendering and shows the fixed Int
   for (const replacement of ['missing', invalid, invalidWeekday, invalidYearName, invalidLunarCycle]) {
     const documentRoot = configurationErrorDocument();
     let rendererCreated = false;
-    const result = await bootstrapPage('page-01', () => { rendererCreated = true; }, {
+    const result = await bootstrapDocument('page-01', {
       documentRoot,
       locationLike: { href: 'http://app.test/calendario.html?locale=es' },
       fetchFn: localFetch(new Map([[NOMENCLATURE_PATH, replacement]]))
-    });
+    }, () => { rendererCreated = true; });
     assert.equal(result, null);
     assert.equal(rendererCreated, false);
     assert.equal(documentRoot.documentElement.attributes['aria-busy'], undefined);
@@ -393,45 +472,20 @@ test('missing or invalid nomenclature prevents rendering and shows the fixed Int
   }
 });
 
-test('app bootstrap loads fixed nomenclature directly without localization infrastructure', async () => {
-  const source = await readFile(path.join(publicDirectory, 'app-bootstrap.js'), 'utf8');
-  assert.match(source, /import \{ loadNomenclature \} from '\.\/nomenclature-loader\.js'/);
-  assert.match(source, /import \{ createPresentationContext \} from '\.\/nomenclature\.js'/);
-  assert.doesNotMatch(source, /loadLocale|loadPresentationContext|requestedPresentationOptions/);
-});
-
 test('static bootstrap applies shared presentation without starting a recurring timer', async (t) => {
-  const makeElement = (dataset = {}) => ({
-    dataset, attributes: {}, textContent: '',
-    setAttribute(name, value) { this.attributes[name] = value; }
-  });
-  const links = Array.from({ length: 9 }, (_, index) => makeElement({
-    pageId: `page-${String(index + 1).padStart(2, '0')}`
-  }));
-  const pageName = makeElement();
-  const section = makeElement({ pageSectionId: 'page-section-01' });
-  const message = makeElement({ messageKey: 'label.currentLocation' });
-  const application = makeElement();
-  const version = makeElement();
-  const epoch = makeElement();
-  const nav = makeElement();
-  const meta = makeElement();
+  const { documentRoot, navigation, metaDescription: meta } = createBootstrapDocument();
+  const pageName = new FakeElement();
+  const section = new FakeElement(); section.dataset.pageSectionId = 'page-section-01';
+  const message = new FakeElement(); message.dataset.messageKey = 'label.currentLocation';
+  const application = new FakeElement();
+  const version = new FakeElement();
+  const epoch = new FakeElement();
   const selectorLists = new Map([
-    ['[data-page-id]', links], ['[data-page-name]', [pageName]],
-    ['[data-page-section-id]', [section]],
+    ['[data-page-name]', [pageName]], ['[data-page-section-id]', [section]],
     ['[data-message-key]', [message]], ['[data-application-name]', [application]],
     ['[data-version]', [version]], ['[data-epoch]', [epoch]]
   ]);
-  const documentRoot = {
-    title: '',
-    documentElement: makeElement(),
-    querySelector(selector) {
-      if (selector === 'meta[name="description"]') return meta;
-      if (selector === '.primary-nav') return nav;
-      return null;
-    },
-    querySelectorAll(selector) { return selectorLists.get(selector) ?? []; }
-  };
+  documentRoot.querySelectorAll = (selector) => selectorLists.get(selector) ?? [];
   const requests = [];
   const timeoutMock = t.mock.method(globalThis, 'setTimeout', () => assert.fail('static bootstrap must not schedule a timer'));
   const result = await bootstrapStaticPage('page-04', {
@@ -441,17 +495,17 @@ test('static bootstrap applies shared presentation without starting a recurring 
   });
   assert.ok(result);
   assert.equal(timeoutMock.mock.callCount(), 0);
-  assert.equal(documentRoot.documentElement.attributes['aria-busy'], 'false');
+  assert.equal(documentRoot.documentElement.getAttribute('aria-busy'), 'false');
   assert.equal(documentRoot.documentElement.lang, 'ia');
   assert.equal(documentRoot.title, 'Identitate · Insidia');
-  assert.equal(meta.attributes.content, 'Profilo e historia del persona pro Insidia.');
-  assert.equal(links[6].textContent, 'Locus');
-  assert.equal(links[6].attributes.href, '/locus.html');
+  assert.equal(meta.getAttribute('content'), 'Profilo e historia del persona pro Insidia.');
+  assert.deepEqual(navigation.children[0].children.map((link) => link.textContent), ['Personage', 'Almanac', 'Location']);
+  assert.deepEqual(navigation.children[1].children.map((link) => link.textContent), ['Identitate', 'Inventario', 'Subordinatos']);
   assert.equal(pageName.textContent, 'Identitate');
   assert.equal(section.textContent, 'Titulo');
   assert.equal(message.textContent, 'Loco actual');
   assert.equal(application.textContent, 'Insidia');
-  assert.equal(version.textContent, 'v8.24');
+  assert.equal(version.textContent, 'v8.25');
   assert.match(epoch.textContent, /1970-01-01 00:00:00 UTC/);
   assert.deepEqual(requests, [NOMENCLATURE_PATH]);
 });
@@ -532,7 +586,14 @@ test('fixed interface values contain no nomenclature- or world-owned visible ter
   }
 });
 
-test('template formatter replaces named values and rejects missing values', () => {
-  assert.equal(formatTemplate('{dayLabel} {day}', { dayLabel: 'Day', day: 2 }), 'Day 2');
-  assert.throws(() => formatTemplate('{dayLabel} {day}', { dayLabel: 'Day' }), /Missing template value/);
+test('presentation context formatting replaces named values and rejects missing values', async () => {
+  const context = await createProductionPresentationContext();
+  assert.equal(
+    context.format('calendar.formattedDate', { formattedYear: 'Anno I', periodLabel: 'Die I' }),
+    'Anno I · Die I'
+  );
+  assert.throws(
+    () => context.format('calendar.formattedDate', { formattedYear: 'Anno I' }),
+    /Missing template value/
+  );
 });

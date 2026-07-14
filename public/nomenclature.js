@@ -1,9 +1,16 @@
-import { formatTemplate } from './templates.js';
 import {
   INTERFACE_LANGUAGE_TAG,
   INTERFACE_MESSAGES,
   INTERFACE_TEMPLATES
 } from './interface-text.js';
+
+function formatTemplate(template, values = {}) {
+  if (typeof template !== 'string') throw new TypeError('template must be a string');
+  return template.replace(/\{([A-Za-z][A-Za-z0-9]*)\}/g, (_, token) => {
+    if (!Object.hasOwn(values, token)) throw new Error(`Missing template value: ${token}`);
+    return String(values[token]);
+  });
+}
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;

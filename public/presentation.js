@@ -94,9 +94,11 @@ export function formatFictionalYear(state, context) {
 }
 
 export function formatFictionalDate(state, context) {
+  const formattedYear = formatFictionalYear(state, context);
+  const periodLabel = formatCalendarPeriod(state, context);
   return context.format('calendar.formattedDate', {
-    formattedYear: formatFictionalYear(state, context),
-    periodLabel: formatCalendarPeriod(state, context)
+    formattedYear,
+    periodLabel
   });
 }
 
@@ -107,6 +109,20 @@ export function formatLunarSummary(state, context) {
     cycleName: context.lunarCycleName,
     cycleRoman: formatRomanNumeral(state.lunar.cycle)
   });
+}
+
+export function createCalendarioDisplayData(state, context) {
+  const formattedYear = formatFictionalYear(state, context);
+  const periodLabel = formatCalendarPeriod(state, context);
+  return {
+    formattedYear,
+    seasonName: context.getSeason(state.season.id).name,
+    periodLabel,
+    formattedDate: context.format('calendar.formattedDate', { formattedYear, periodLabel }),
+    lunarCycleName: context.lunarCycleName,
+    formattedLunarCycle: formatRomanNumeral(state.lunar.cycle),
+    lunarPhaseName: context.getLunarPhase(state.lunar.phaseId).name
+  };
 }
 
 function displayPull(pull, context) {
@@ -127,8 +143,9 @@ export function createDisplayData(state, context) {
   const namedDay = period.namedDayId ? context.getNamedDay(period.namedDayId) : null;
   const dayDesignation = formatCalendarDayDesignation(period, context);
   const formattedYear = formatFictionalYear(state, context);
+  const periodLabel = formatCalendarPeriod(state, context);
   return {
-    formattedDate: formatFictionalDate(state, context),
+    formattedDate: context.format('calendar.formattedDate', { formattedYear, periodLabel }),
     calendar: {
       yearName: context.calendarYearName,
       formattedYear,
@@ -137,7 +154,7 @@ export function createDisplayData(state, context) {
       weekday,
       namedDay,
       dayDesignation,
-      periodLabel: formatCalendarPeriod(state, context),
+      periodLabel,
       time: formatClock(state.calendar.time)
     },
     season: {

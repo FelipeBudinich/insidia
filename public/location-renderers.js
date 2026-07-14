@@ -28,7 +28,7 @@ function appendLabeledText(documentRoot, parent, className, label, value) {
   return appendTextElement(documentRoot, parent, 'p', className, `${label}: ${value}`);
 }
 
-export function renderLocus(documentRoot, presentationContext, locationContext) {
+export function renderLocus(documentRoot, locationContext) {
   const location = locationContext.currentLocation;
   requireElement(documentRoot, '[data-region-name]').textContent = locationContext.currentRegionName;
   requireElement(documentRoot, '[data-region-description]').textContent = locationContext.currentRegionDescription;
@@ -138,7 +138,7 @@ export function renderRutas(documentRoot, presentationContext, locationContext) 
 
 export function renderLocationPage(pageId, documentRoot, presentationContext, locationContext) {
   if (pageId === 'page-07') {
-    renderLocus(documentRoot, presentationContext, locationContext);
+    renderLocus(documentRoot, locationContext);
     return;
   }
   if (pageId === 'page-08') {

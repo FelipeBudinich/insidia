@@ -9,6 +9,7 @@ import {
   calculateMonthRulershipState,
   calculateOrbitalState,
   calculateSeasonState,
+  getMonthRulershipReplayCount,
   resolveNextMonthRulership,
   selectAlternatingSkipReplacement,
   selectNextSeasonOneFallbackRuler
@@ -284,6 +285,32 @@ test('raw month rulership is neutral and contains the complete decision seam', (
     JSON.stringify(rulership),
     /"(?:Ossos|Lacrimas|Pigritia|Vanitate|Luxuria|Orgolio|Rabia|Gula|Invidia|Avaritia|Mars|Mercurius|Jupiter|Venus|Saturnus|Luna)"|formatted/
   );
+});
+
+test('last-month memoization uses the cached path and returns isolated deep clones', () => {
+  calculateMonthRulershipState(20, 3);
+  const replayCountBefore = getMonthRulershipReplayCount();
+  const first = calculateMonthRulershipState(20, 4);
+  const replayCountAfterMiss = getMonthRulershipReplayCount();
+  const expected = structuredClone(first);
+  first.decision.bodyProgress[0].progressFraction = -1;
+  first.decision.qualifyingBodyIds.push('body-99');
+  first.replacement.selectedBodyId = 'body-99';
+  const second = calculateMonthRulershipState(20, 4);
+  assert.equal(replayCountAfterMiss, replayCountBefore + 1);
+  assert.equal(getMonthRulershipReplayCount(), replayCountAfterMiss);
+  assert.notEqual(second, first);
+  assert.notEqual(second.decision, first.decision);
+  assert.notEqual(second.decision.bodyProgress, first.decision.bodyProgress);
+  assert.notEqual(second.replacement, first.replacement);
+  assert.deepEqual(second, expected);
+
+  const nextMonth = calculateMonthRulershipState(20, 5);
+  assert.notDeepEqual(nextMonth, second);
+  const historical = calculateMonthRulershipState(0, 4);
+  const historicalFresh = calculateMonthRulershipState(0, 4);
+  assert.deepEqual(historicalFresh, historical);
+  assert.notEqual(historicalFresh, historical);
 });
 
 test('the fixed supercycle implementation and description are removed', async () => {

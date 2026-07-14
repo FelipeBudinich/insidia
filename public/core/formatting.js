@@ -13,14 +13,9 @@ export function formatRomanNumeral(value) {
   if (!Number.isFinite(value) || !Number.isInteger(value) || value < 1 || value > 3999) {
     throw new RangeError('Roman numeral value must be an integer between 1 and 3999');
   }
-  const numerals = [
-    [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'],
-    [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'],
-    [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']
-  ];
   let remaining = value;
   let formatted = '';
-  for (const [numericValue, numeral] of numerals) {
+  for (const [numericValue, numeral] of ROMAN_NUMERALS) {
     while (remaining >= numericValue) {
       formatted += numeral;
       remaining -= numericValue;
@@ -40,3 +35,8 @@ export function formatPercentage(progressFraction) {
   const safe = progressFraction < 1 ? Math.min(truncated, 99.999999) : 100;
   return `${safe.toFixed(6)}%`;
 }
+const ROMAN_NUMERALS = Object.freeze([
+  Object.freeze([1000, 'M']), Object.freeze([900, 'CM']), Object.freeze([500, 'D']), Object.freeze([400, 'CD']),
+  Object.freeze([100, 'C']), Object.freeze([90, 'XC']), Object.freeze([50, 'L']), Object.freeze([40, 'XL']),
+  Object.freeze([10, 'X']), Object.freeze([9, 'IX']), Object.freeze([5, 'V']), Object.freeze([4, 'IV']), Object.freeze([1, 'I'])
+]);

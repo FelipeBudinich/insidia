@@ -1,3 +1,5 @@
+import { loadJsonConfiguration } from './config-loader.js';
+
 export const WORLD_PATH = '/regions/world.json';
 export const WORLD_SCHEMA_VERSION = 3;
 export const CARDINAL_DIRECTIONS = Object.freeze([
@@ -226,24 +228,12 @@ export async function loadWorld(options = {}) {
   if (unknownOptions.length > 0) throw new Error(`Unsupported world loader option: ${unknownOptions[0]}`);
 
   const fetchFn = options.fetchFn ?? window.fetch.bind(window);
-  if (typeof fetchFn !== 'function') throw new TypeError('loadWorld fetchFn must be a function');
   const baseUrl = options.baseUrl ?? window.location.href;
-  const base = new URL(baseUrl);
-  if (!['http:', 'https:'].includes(base.protocol)) throw new Error('World base URL must use HTTP or HTTPS');
-  const url = new URL(WORLD_PATH, base);
-  if (url.origin !== base.origin) throw new Error('World file must be same-origin');
-
-  const response = await fetchFn(url.href, { cache: 'no-cache' });
-  if (!response?.ok) throw new Error(`Unable to load world: ${url.pathname}`);
-  if (response.url && new URL(response.url, url).origin !== base.origin) {
-    throw new Error('World response must be same-origin');
-  }
-
-  let world;
-  try {
-    world = await response.json();
-  } catch {
-    throw new Error(`Malformed JSON: ${url.pathname}`);
-  }
+  const world = await loadJsonConfiguration({
+    path: WORLD_PATH,
+    resourceName: 'world',
+    fetchFn,
+    baseUrl
+  });
   return { schemaVersion: WORLD_SCHEMA_VERSION, world: validateWorld(world) };
 }

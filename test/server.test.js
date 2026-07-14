@@ -39,6 +39,8 @@ function assertSecurityHeaders(headers) {
   assert.match(headers['content-security-policy'], /default-src 'self'/);
   assert.match(headers['content-security-policy'], /connect-src 'self'/);
   assert.doesNotMatch(headers['content-security-policy'], /unsafe-inline|unsafe-eval/);
+  assert.match(headers['permissions-policy'], /clipboard-write=\(\)/);
+  assert.doesNotMatch(headers['permissions-policy'], /clipboard-write=\(self\)/);
 }
 
 test('root redirect always uses the fixed Calendario route for GET and HEAD', async () => {
@@ -76,7 +78,7 @@ test('canonical HTTPS redirect takes precedence and preserves the original reque
   } finally { await stop(server); }
 });
 
-test('health reports v8.24 JSON for GET and HEAD', async () => {
+test('health reports v8.25 JSON for GET and HEAD', async () => {
   const server = await start();
   try {
     const get = await request(server, '/health');
@@ -84,7 +86,7 @@ test('health reports v8.24 JSON for GET and HEAD', async () => {
     assert.equal(get.status, 200);
     assert.equal(get.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(get.headers['cache-control'], 'no-store');
-    assert.equal(get.body, '{"ok":true,"version":"v8.24"}');
+    assert.equal(get.body, '{"ok":true,"version":"v8.25"}');
     assert.equal(head.status, 200);
     assert.equal(head.body, '');
     assertSecurityHeaders(get.headers);
@@ -123,12 +125,12 @@ test('successful static files include MIME, caching, validators, and security he
       ['/calendario-page.js', 'text/javascript; charset=utf-8'],
       ['/destino-page.js', 'text/javascript; charset=utf-8'],
       ['/tempore-page.js', 'text/javascript; charset=utf-8'],
-      ['/identitate-page.js', 'text/javascript; charset=utf-8'],
-      ['/inventario-page.js', 'text/javascript; charset=utf-8'],
-      ['/subordinatos-page.js', 'text/javascript; charset=utf-8'],
-      ['/locus-page.js', 'text/javascript; charset=utf-8'],
-      ['/rutas-page.js', 'text/javascript; charset=utf-8'],
-      ['/explorar-page.js', 'text/javascript; charset=utf-8'],
+      ['/static-page.js', 'text/javascript; charset=utf-8'],
+      ['/location-page.js', 'text/javascript; charset=utf-8'],
+      ['/live-page-bootstrap.js', 'text/javascript; charset=utf-8'],
+      ['/live-state.js', 'text/javascript; charset=utf-8'],
+      ['/config-loader.js', 'text/javascript; charset=utf-8'],
+      ['/version.js', 'text/javascript; charset=utf-8'],
       ['/location-bootstrap.js', 'text/javascript; charset=utf-8'],
       ['/location-renderers.js', 'text/javascript; charset=utf-8'],
       ['/location-state.js', 'text/javascript; charset=utf-8'],
@@ -263,7 +265,9 @@ test('former routes, modules, and localization resources are ordinary Interlingu
     '/investigationes.html','/ordines.html',
     '/observationes.html','/observationes-page.js',
     '/decisiones.html','/decisiones-page.js',
-    '/locales/en.json','/locales/es.json','/locale-loader.js','/presentation-context-loader.js'
+    '/locales/en.json','/locales/es.json','/locale-loader.js','/presentation-context-loader.js',
+    '/identitate-page.js','/inventario-page.js','/subordinatos-page.js',
+    '/locus-page.js','/rutas-page.js','/explorar-page.js','/templates.js'
   ];
   try {
     for (const requestPath of oldPaths) {
