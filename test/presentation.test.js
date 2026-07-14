@@ -791,15 +791,19 @@ test('navigation nomenclature retains all three fixed group identifiers', () => 
   ]);
 });
 
-test('static HTML uses fixed Interlingua shells, neutral IDs, and nomenclature placeholders', async () => {
-  const properNouns = ['Insidia','Almanac','Calendario','Destino','Tempore','Personage','Location','Locus','Rutas','Explorar','Identitate','Inventario','Subordinatos','Observationes','Decisiones','Titulo','Nomine','Epitheto','Memorias','Equipamento','Deposito','Campiones','Miniones','Santiago','Commune','Infrequens','Rarum','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),...NAMED_DAYS.map(({ name }) => name),...INTERREGNOS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
+test('static HTML contains the current stable shell while dynamic terminology remains runtime-owned', async () => {
+  const dynamicProperNouns = ['Santiago','Commune','Infrequens','Rarum','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),...NAMED_DAYS.map(({ name }) => name),...INTERREGNOS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html','identitate.html','inventario.html','subordinatos.html','locus.html','rutas.html','explorar.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
-    for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
+    for (const properNoun of dynamicProperNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /<html lang="ia" aria-busy="true" data-current-page-id="page-\d{2}">/);
     assert.match(html, /aria-busy="true"/);
     assert.match(html, /aria-label="Navigation principal"/);
-    assert.match(html, /data-version><\/span>/);
+    assert.match(html, /<title>[^<]+ · Insidia<\/title>/);
+    assert.match(html, /Personage[\s\S]*Almanac[\s\S]*Location/);
+    assert.match(html, /data-application-name>Insidia<\/span>/);
+    assert.match(html, /data-version[^>]*>v8\.25<\/span>/);
+    assert.doesNotMatch(html, /data-(?:page-name|page-section-id|message-key|application-name|epoch|version)[^>]*>\s*</);
     assert.doesNotMatch(html, /\b(?:Live|Current|Character|Equipment|Storage|Champions|Local routes|Navegación|Tiempo|Ubicación|Información|Observaciones)\b/u);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);

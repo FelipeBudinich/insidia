@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { mkdtemp, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -43,27 +43,24 @@ function assertSecurityHeaders(headers) {
   assert.doesNotMatch(headers['permissions-policy'], /clipboard-write=\(self\)/);
 }
 
-test('root redirect always uses the fixed Calendario route for GET and HEAD', async () => {
+test('root serves Locus directly for GET and HEAD without redirecting', async () => {
   const server = await start();
-  const cases = [
-    ['/', '/calendario.html'],
-    ['/?locale=es', '/calendario.html'],
-    ['/?universe=other&locale=es', '/calendario.html'],
-    ['/?universe=other', '/calendario.html'],
-    ['/?locale=es&unused=value', '/calendario.html'],
-    ['/?unused=value&locale=en', '/calendario.html'],
-    ['/?locale=', '/calendario.html']
-  ];
+  const cases = ['/', '/?perf=1', '/?unused=value'];
   try {
-    for (const [requestPath, location] of cases) {
-      for (const method of ['GET', 'HEAD']) {
-        const response = await request(server, requestPath, { method });
-        assert.equal(response.status, 302, `${method} ${requestPath}`);
-        assert.equal(response.headers.location, location, `${method} ${requestPath}`);
-        assert.equal(response.headers['cache-control'], 'no-store');
-        assert.equal(response.body, '');
-        assertSecurityHeaders(response.headers);
-      }
+    const locus = await request(server, '/locus.html');
+    for (const requestPath of cases) {
+      const get = await request(server, requestPath);
+      const head = await request(server, requestPath, { method: 'HEAD' });
+      assert.equal(get.status, 200, `GET ${requestPath}`);
+      assert.equal(get.headers.location, undefined, `GET ${requestPath}`);
+      assert.equal(get.headers['content-type'], 'text/html; charset=utf-8');
+      assert.equal(get.headers['cache-control'], 'no-cache');
+      assert.equal(get.body, locus.body, `GET ${requestPath}`);
+      assert.equal(head.status, 200, `HEAD ${requestPath}`);
+      assert.equal(head.body, '', `HEAD ${requestPath}`);
+      assert.equal(Number(head.headers['content-length']), Buffer.byteLength(locus.body));
+      assertSecurityHeaders(get.headers);
+      assertSecurityHeaders(head.headers);
     }
   } finally { await stop(server); }
 });
@@ -113,6 +110,7 @@ test('successful static files include MIME, caching, validators, and security he
   const server = await start();
   try {
     for (const [file, type] of [
+      ['/', 'text/html; charset=utf-8'],
       ['/calendario.html', 'text/html; charset=utf-8'],
       ['/destino.html', 'text/html; charset=utf-8'],
       ['/tempore.html', 'text/html; charset=utf-8'],
@@ -130,6 +128,8 @@ test('successful static files include MIME, caching, validators, and security he
       ['/live-page-bootstrap.js', 'text/javascript; charset=utf-8'],
       ['/live-state.js', 'text/javascript; charset=utf-8'],
       ['/config-loader.js', 'text/javascript; charset=utf-8'],
+      ['/neutral-ids.js', 'text/javascript; charset=utf-8'],
+      ['/performance.js', 'text/javascript; charset=utf-8'],
       ['/version.js', 'text/javascript; charset=utf-8'],
       ['/location-bootstrap.js', 'text/javascript; charset=utf-8'],
       ['/location-renderers.js', 'text/javascript; charset=utf-8'],
@@ -235,14 +235,53 @@ test('static HEAD returns validators and length without a body, including condit
   } finally { await stop(server); }
 });
 
-test('conditional headers do not revalidate dynamic, redirect, or error responses', async () => {
+test('static metadata is rechecked while unchanged bodies are read only once', async () => {
+  const publicDirectory = await mkdtemp(path.join(os.tmpdir(), 'insidia-cache-'));
+  const locusPath = path.join(publicDirectory, 'locus.html');
+  await writeFile(locusPath, '<p>prime</p>');
+  const calls = { stat: 0, readFile: 0 };
+  const fileSystem = {
+    async stat(filePath) {
+      calls.stat += 1;
+      return stat(filePath);
+    },
+    async readFile(filePath) {
+      calls.readFile += 1;
+      return readFile(filePath);
+    }
+  };
+  const server = await start({ publicDirectory, fileSystem });
+  try {
+    const first = await request(server, '/');
+    const second = await request(server, '/locus.html');
+    const head = await request(server, '/', { method: 'HEAD' });
+    const conditional = await request(server, '/', { headers: { 'if-none-match': first.headers.etag } });
+    assert.equal(first.body, '<p>prime</p>');
+    assert.equal(second.body, first.body);
+    assert.equal(head.status, 200);
+    assert.equal(conditional.status, 304);
+    assert.deepEqual(calls, { stat: 4, readFile: 1 });
+
+    await writeFile(locusPath, '<p>secunde plus longe</p>');
+    const changed = await request(server, '/');
+    assert.equal(changed.status, 200);
+    assert.equal(changed.body, '<p>secunde plus longe</p>');
+    assert.notEqual(changed.headers.etag, first.headers.etag);
+    assert.deepEqual(calls, { stat: 5, readFile: 2 });
+  } finally {
+    await stop(server);
+    await rm(publicDirectory, { recursive: true, force: true });
+  }
+});
+
+test('conditional headers do not revalidate dynamic or error responses', async () => {
   const server = await start();
   const headers = {
     'if-none-match': '*',
     'if-modified-since': new Date(Date.now() + 86_400_000).toUTCString()
   };
   try {
-    for (const [requestPath, status] of [['/', 302], ['/health', 200], ['/missing', 404]]) {
+    for (const [requestPath, status] of [['/health', 200], ['/missing', 404]]) {
       const response = await request(server, requestPath, { headers });
       assert.equal(response.status, status, requestPath);
       assert.equal(response.headers['cache-control'], 'no-store', requestPath);

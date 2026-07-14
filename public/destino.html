@@ -1,20 +1,31 @@
 <!doctype html>
 <html lang="ia" aria-busy="true" data-current-page-id="page-02">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Resultato seligite, mareas, attractiones e orbitas celestial in directo."><title>…</title><link rel="stylesheet" href="/styles.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Resultato seligite, mareas, progresso del marea, attractiones e orbitas celestial in directo pro Insidia."><title>Destino · Insidia</title><link rel="stylesheet" href="/styles.css"><link rel="preload" href="/config/nomenclature.json" as="fetch" type="application/json" crossorigin><link rel="modulepreload" href="/app-bootstrap.js"><link rel="modulepreload" href="/nomenclature-loader.js"><link rel="modulepreload" href="/config-loader.js"><link rel="modulepreload" href="/neutral-ids.js"><script type="module" src="/destino-page.js"></script></head>
 <body><div class="page-shell">
   <header class="site-header">
-    <nav class="primary-nav" data-navigation aria-label="Navigation principal"></nav>
+    <nav class="primary-nav" data-navigation aria-label="Navigation principal">
+      <div class="primary-nav-categories">
+        <a id="navigation-category-personage" class="navigation-category-link" data-navigation-group-id="navigation-group-02" href="/identitate.html">Personage</a>
+        <a id="navigation-category-almanac" class="navigation-category-link" data-navigation-group-id="navigation-group-01" href="/calendario.html" data-active-section="true">Almanac</a>
+        <a id="navigation-category-location" class="navigation-category-link" data-navigation-group-id="navigation-group-03" href="/locus.html">Location</a>
+      </div>
+      <div class="secondary-nav" role="group" aria-labelledby="navigation-category-almanac">
+        <a data-page-id="page-01" href="/calendario.html">Calendario</a>
+        <a data-page-id="page-02" href="/destino.html" aria-current="page">Destino</a>
+        <a data-page-id="page-03" href="/tempore.html">Tempore</a>
+      </div>
+    </nav>
   </header>
   <main class="container">
-    <h1 id="page-heading" class="visually-hidden" data-page-name></h1>
+    <h1 id="page-heading" class="visually-hidden" data-page-name>Destino</h1>
     <section class="outcome-section" aria-labelledby="page-heading"><p id="outcome-body" class="outcome-body"></p><p id="outcome-type" class="outcome-type"></p><p id="outcome-attempts" class="outcome-attempts"></p><p id="outcome-source" class="outcome-source"></p><p id="outcome-progress" class="outcome-progress"></p><p id="outcome-rule" class="outcome-rule"></p><p id="outcome-tiebreak" class="outcome-tiebreak" hidden></p></section>
-    <section class="lunar-section" aria-labelledby="tide-heading"><p id="tide-heading" class="section-label" data-message-key="section.tide"></p><p class="lunar-name" data-tide-name></p><p class="lunar-metadata" data-tide-metadata></p><p class="lunar-time" data-tide-time></p></section>
-    <section class="orbital-pulls" aria-labelledby="pulls-heading"><p id="pulls-heading" class="section-label" data-message-key="section.pulls"></p><div class="pull-grid">
+    <section class="lunar-section" aria-labelledby="tide-heading"><p id="tide-heading" class="section-label" data-message-key="section.tide">Marea</p><p class="lunar-name" data-tide-name></p><p class="lunar-metadata" data-tide-metadata></p><p class="lunar-time" data-tide-time></p></section>
+    <section class="orbital-pulls" aria-labelledby="pulls-heading"><p id="pulls-heading" class="section-label" data-message-key="section.pulls">Attractiones orbital</p><div class="pull-grid">
       <article class="pull-card" data-pull-id="pull-01"><p class="group-label" data-pull-name></p><p class="pull-members" data-pull-members></p><p class="pull-detail" data-pull-span></p><p class="pull-detail" data-pull-alignment></p><p class="pull-selection" data-pull-selection></p></article>
       <article class="pull-card" data-pull-id="pull-02"><p class="group-label" data-pull-name></p><p class="pull-members" data-pull-members></p><p class="pull-detail" data-pull-span></p><p class="pull-detail" data-pull-alignment></p><p class="pull-selection" data-pull-selection></p></article>
       <article class="pull-card" data-pull-id="pull-03"><p class="group-label" data-pull-name></p><p class="pull-members" data-pull-members></p><p class="pull-detail" data-pull-span></p><p class="pull-detail" data-pull-alignment></p><p class="pull-selection" data-pull-selection></p></article>
-    </div><p class="orbital-clarification" data-message-key="clarification.pulls"></p></section>
-    <section class="orbital-section" aria-labelledby="orbits-heading"><p id="orbits-heading" class="section-label" data-message-key="section.orbits"></p><div class="orbital-bodies">
+    </div><p class="orbital-clarification" data-message-key="clarification.pulls">Le attractiones mesura le aggregation de phases orbital fictional, non le gravitate physic.</p></section>
+    <section class="orbital-section" aria-labelledby="orbits-heading"><p id="orbits-heading" class="section-label" data-message-key="section.orbits">Orbitas celestial</p><div class="orbital-bodies">
       <article class="orbital-body" data-body-id="body-01"><p class="orbital-name" data-orbital-name></p><p class="orbital-period" data-orbital-period></p><p class="orbital-metadata" data-orbital-metadata></p><div class="orbital-progress-row"><progress max="1" value="0"></progress><span class="orbital-percentage" data-orbital-percentage></span></div></article>
       <article class="orbital-body" data-body-id="body-02"><p class="orbital-name" data-orbital-name></p><p class="orbital-period" data-orbital-period></p><p class="orbital-metadata" data-orbital-metadata></p><div class="orbital-progress-row"><progress max="1" value="0"></progress><span class="orbital-percentage" data-orbital-percentage></span></div></article>
       <article class="orbital-body" data-body-id="body-03"><p class="orbital-name" data-orbital-name></p><p class="orbital-period" data-orbital-period></p><p class="orbital-metadata" data-orbital-metadata></p><div class="orbital-progress-row"><progress max="1" value="0"></progress><span class="orbital-percentage" data-orbital-percentage></span></div></article>
@@ -22,8 +33,8 @@
       <article class="orbital-body" data-body-id="body-05"><p class="orbital-name" data-orbital-name></p><p class="orbital-period" data-orbital-period></p><p class="orbital-metadata" data-orbital-metadata></p><div class="orbital-progress-row"><progress max="1" value="0"></progress><span class="orbital-percentage" data-orbital-percentage></span></div></article>
       <article class="orbital-body" data-body-id="body-06"><p class="orbital-name" data-orbital-name></p><p class="orbital-period" data-orbital-period></p><p class="orbital-metadata" data-orbital-metadata></p><div class="orbital-progress-row"><progress max="1" value="0"></progress><span class="orbital-percentage" data-orbital-percentage></span></div></article>
     </div></section>
-    <section class="progress-section" aria-labelledby="progress-heading"><p id="progress-heading" class="section-label" data-message-key="section.progress"></p><div class="progress-item"><div class="progress-heading-row"><label for="tide-progress" data-message-key="label.currentTideProgress"></label><span id="tide-progress-value">0.000000%</span></div><progress id="tide-progress" max="100" value="0"></progress></div></section>
-    <footer><span data-application-name></span><span aria-hidden="true"> · </span><span data-epoch></span><span aria-hidden="true"> · </span><span class="version footer-version" data-version></span></footer>
+    <section class="progress-section" aria-labelledby="progress-heading"><p id="progress-heading" class="section-label" data-message-key="section.progress">Progresso</p><div class="progress-item"><div class="progress-heading-row"><label for="tide-progress" data-message-key="label.currentTideProgress">Progresso del marea actual</label><span id="tide-progress-value">0.000000%</span></div><progress id="tide-progress" max="100" value="0"></progress></div></section>
+    <footer><span data-application-name>Insidia</span><span aria-hidden="true"> · </span><span data-epoch>Epoca: 1970-01-01 00:00:00 UTC</span><span aria-hidden="true"> · </span><span class="version footer-version" data-version aria-label="Version del application 8.25">v8.25</span></footer>
   </main>
-</div><script type="module" src="/destino-page.js"></script></body>
+</div></body>
 </html>

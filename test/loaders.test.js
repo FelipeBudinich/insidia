@@ -11,6 +11,7 @@ import {
   INTERFACE_TEMPLATES
 } from '../public/interface-text.js';
 import { loadNomenclature, NOMENCLATURE_PATH, validateNomenclature } from '../public/nomenclature-loader.js';
+import { PERFORMANCE_MARKS } from '../public/performance.js';
 import { createBootstrapDocument, createFixedPathFetch, createProductionPresentationContext, FakeElement } from './helpers.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -508,6 +509,36 @@ test('static bootstrap applies shared presentation without starting a recurring 
   assert.equal(version.textContent, 'v8.25');
   assert.match(epoch.textContent, /1970-01-01 00:00:00 UTC/);
   assert.deepEqual(requests, [NOMENCLATURE_PATH]);
+});
+
+test('?perf=1 emits deterministic Performance API marks without changing requests', async () => {
+  const enabledDocument = createBootstrapDocument().documentRoot;
+  const enabledMarks = [];
+  const requests = [];
+  await bootstrapDocument('page-07', {
+    documentRoot: enabledDocument,
+    locationLike: { href: 'https://app.test/locus.html?perf=1' },
+    performanceLike: { mark(name) { enabledMarks.push(name); } },
+    fetchFn: localFetch(new Map(), requests)
+  }, () => undefined, async () => ({}));
+  assert.deepEqual(enabledMarks, [
+    PERFORMANCE_MARKS.bootstrapStart,
+    PERFORMANCE_MARKS.nomenclatureRequestStart,
+    PERFORMANCE_MARKS.worldRequestStart,
+    PERFORMANCE_MARKS.configurationReady,
+    PERFORMANCE_MARKS.firstRender
+  ]);
+  assert.deepEqual(requests, [NOMENCLATURE_PATH]);
+
+  const disabledDocument = createBootstrapDocument().documentRoot;
+  const disabledMarks = [];
+  await bootstrapStaticPage('page-04', {
+    documentRoot: disabledDocument,
+    locationLike: { href: 'https://app.test/identitate.html?perf=0' },
+    performanceLike: { mark(name) { disabledMarks.push(name); } },
+    fetchFn: localFetch()
+  });
+  assert.deepEqual(disabledMarks, []);
 });
 
 test('fixed interface exports exactly the production-used Interlingua keys', () => {

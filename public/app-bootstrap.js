@@ -2,6 +2,7 @@ import { getPageDefinition, NAVIGATION_GROUPS } from './page-definitions.js';
 import { INTERFACE_LANGUAGE_TAG, INTERFACE_MESSAGES } from './interface-text.js';
 import { loadNomenclature } from './nomenclature-loader.js';
 import { createPresentationContext } from './nomenclature.js';
+import { createPerformanceInstrumentation, PERFORMANCE_MARKS } from './performance.js';
 import { APPLICATION_VERSION } from './version.js';
 
 export { APPLICATION_VERSION };
@@ -107,12 +108,17 @@ export async function bootstrapDocument(pageId, options, complete, loadConfigure
   const documentRoot = options.documentRoot ?? document;
   const locationLike = options.locationLike ?? window.location;
   const fetchFn = options.fetchFn ?? window.fetch.bind(window);
+  const performanceLike = options.performanceLike ?? globalThis.performance;
+  const instrumentation = createPerformanceInstrumentation({ locationLike, performanceLike });
   const baseUrl = locationLike.href ?? String(locationLike);
+  instrumentation.mark(PERFORMANCE_MARKS.bootstrapStart);
   documentRoot.documentElement.setAttribute('aria-busy', 'true');
   try {
+    instrumentation.mark(PERFORMANCE_MARKS.nomenclatureRequestStart);
     const nomenclaturePromise = loadNomenclature({ fetchFn, baseUrl });
     let configuredContextPromise;
     try {
+      if (loadConfiguredContext) instrumentation.mark(PERFORMANCE_MARKS.worldRequestStart);
       configuredContextPromise = loadConfiguredContext
         ? loadConfiguredContext({ fetchFn, baseUrl })
         : Promise.resolve(undefined);
@@ -123,12 +129,15 @@ export async function bootstrapDocument(pageId, options, complete, loadConfigure
       nomenclaturePromise,
       configuredContextPromise
     ]);
+    instrumentation.mark(PERFORMANCE_MARKS.configurationReady);
     const context = createPresentationContext({ nomenclatureResult });
     applyCommonDocumentPresentation(documentRoot, pageId, context);
     const completionValue = complete(context, documentRoot, configuredContext);
     documentRoot.documentElement.setAttribute('aria-busy', 'false');
+    instrumentation.mark(PERFORMANCE_MARKS.firstRender);
     return completionValue;
   } catch (error) {
+    instrumentation.mark(PERFORMANCE_MARKS.configurationError);
     renderConfigurationError(documentRoot);
     console.error('Application configuration failed.', error);
     return null;

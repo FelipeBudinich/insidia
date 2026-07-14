@@ -224,8 +224,23 @@ function createCanonicalLocation(canonicalOrigin, requestUrl) {
   return canonicalUrl.toString();
 }
 
-function createRootRedirectLocation() {
-  return '/calendario.html';
+function createStaticVersion(fileStats) {
+  return `${fileStats.size}:${fileStats.mtimeMs}`;
+}
+
+function createStaticCacheEntry(filePath, fileStats) {
+  return {
+    version: createStaticVersion(fileStats),
+    fileStats,
+    headers: {
+      'Cache-Control': getCacheControl(filePath),
+      'Content-Type': getContentType(filePath),
+      ETag: createStaticEtag(fileStats),
+      'Last-Modified': fileStats.mtime.toUTCString()
+    },
+    body: undefined,
+    bodyPromise: undefined
+  };
 }
 
 function writeClientError(socket, environment) {
@@ -296,6 +311,13 @@ export function parseCanonicalOrigin(value) {
 export function createStaticServer(options = {}) {
   const environment = options.environment ?? process.env.NODE_ENV;
   const publicDirectory = path.resolve(options.publicDirectory ?? path.join(__dirname, 'public'));
+  const statFile = options.fileSystem?.stat
+    ? options.fileSystem.stat.bind(options.fileSystem)
+    : stat;
+  const readStaticFile = options.fileSystem?.readFile
+    ? options.fileSystem.readFile.bind(options.fileSystem)
+    : readFile;
+  const staticCache = new Map();
   const canonicalOrigin = parseCanonicalOrigin(
     options.canonicalOrigin === undefined ? process.env.CANONICAL_ORIGIN : options.canonicalOrigin
   );
@@ -337,14 +359,6 @@ export function createStaticServer(options = {}) {
       return;
     }
 
-    if (requestUrl.pathname === '/') {
-      sendResponse(response, method, environment, 302, {
-        'Cache-Control': 'no-store',
-        Location: createRootRedirectLocation()
-      });
-      return;
-    }
-
     if (requestUrl.pathname === '/health') {
       sendResponse(response, method, environment, 200, {
         'Cache-Control': 'no-store',
@@ -355,7 +369,8 @@ export function createStaticServer(options = {}) {
 
     let requestedFile;
     try {
-      requestedFile = resolvePublicFile(publicDirectory, requestUrl.pathname);
+      const staticPathname = requestUrl.pathname === '/' ? '/locus.html' : requestUrl.pathname;
+      requestedFile = resolvePublicFile(publicDirectory, staticPathname);
     } catch {
       sendBadRequest(response, method, environment);
       return;
@@ -367,19 +382,21 @@ export function createStaticServer(options = {}) {
     }
 
     try {
-      const fileStats = await stat(requestedFile);
+      const fileStats = await statFile(requestedFile);
       if (!fileStats.isFile()) {
+        staticCache.delete(requestedFile);
         sendNotFound(response, method, environment);
         return;
       }
 
-      const etag = createStaticEtag(fileStats);
-      const staticHeaders = {
-        'Cache-Control': getCacheControl(requestedFile),
-        'Content-Type': getContentType(requestedFile),
-        ETag: etag,
-        'Last-Modified': fileStats.mtime.toUTCString()
-      };
+      const version = createStaticVersion(fileStats);
+      let cacheEntry = staticCache.get(requestedFile);
+      if (!cacheEntry || cacheEntry.version !== version) {
+        cacheEntry = createStaticCacheEntry(requestedFile, fileStats);
+        staticCache.set(requestedFile, cacheEntry);
+      }
+      const { headers: staticHeaders } = cacheEntry;
+      const etag = staticHeaders.ETag;
       const ifNoneMatch = request.headers['if-none-match'];
       if (ifNoneMatch !== undefined) {
         if (matchesIfNoneMatch(ifNoneMatch, etag)) {
@@ -392,14 +409,24 @@ export function createStaticServer(options = {}) {
       }
 
       if (method === 'HEAD') {
-        sendStaticHead(response, environment, staticHeaders, fileStats.size);
+        sendStaticHead(response, environment, staticHeaders, cacheEntry.fileStats.size);
         return;
       }
 
-      const content = await readFile(requestedFile);
-      sendResponse(response, method, environment, 200, staticHeaders, content);
+      if (cacheEntry.body === undefined) {
+        if (!cacheEntry.bodyPromise) {
+          cacheEntry.bodyPromise = readStaticFile(requestedFile);
+        }
+        try {
+          cacheEntry.body = await cacheEntry.bodyPromise;
+        } finally {
+          cacheEntry.bodyPromise = undefined;
+        }
+      }
+      sendResponse(response, method, environment, 200, staticHeaders, cacheEntry.body);
     } catch (error) {
       if (isMissingFileError(error)) {
+        if (requestedFile) staticCache.delete(requestedFile);
         sendNotFound(response, method, environment);
         return;
       }

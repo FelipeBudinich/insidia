@@ -1,16 +1,16 @@
 import {
-  CELESTIAL_BODY_RULES,
+  CELESTIAL_BODY_IDS,
   INTER_REGNUM_IDS,
-  LUNAR_PHASE_RULES,
+  LUNAR_PHASE_IDS,
   NAMED_DAY_IDS,
   MONTH_RULER_IDS,
-  OUTCOME_TYPE_RULES,
-  PULL_RULES,
+  OUTCOME_TYPE_IDS,
+  PULL_IDS,
   REIGN_ORDINAL_IDS,
-  SEASON_RULES,
-  TIDE_RULES,
+  SEASON_IDS,
+  TIDE_IDS,
   WEEKDAY_IDS
-} from './core/rules.js';
+} from './neutral-ids.js';
 import { loadJsonConfiguration } from './config-loader.js';
 import { NAVIGATION_GROUP_IDS, PAGE_IDS, PAGE_SECTION_IDS } from './page-definitions.js';
 
@@ -69,7 +69,7 @@ export function validateNomenclature(nomenclature) {
   validateEntities(nomenclature.pages, PAGE_IDS, 'nomenclature.pages', ['id', 'name']);
   validateEntities(nomenclature.navigationGroups, NAVIGATION_GROUP_IDS, 'nomenclature.navigationGroups', ['id', 'name']);
   validateEntities(nomenclature.pageSections, PAGE_SECTION_IDS, 'nomenclature.pageSections', ['id', 'name']);
-  validateEntities(nomenclature.outcomeTypes, OUTCOME_TYPE_RULES.map(({ id }) => id), 'nomenclature.outcomeTypes', ['id', 'name']);
+  validateEntities(nomenclature.outcomeTypes, OUTCOME_TYPE_IDS, 'nomenclature.outcomeTypes', ['id', 'name']);
   assertExactKeys(nomenclature.calendar, ['yearName', 'monthReign', 'weekdays', 'namedDays', 'interRegna'], 'nomenclature.calendar');
   assertNonEmptyString(nomenclature.calendar.yearName, 'nomenclature.calendar.yearName');
   assertExactKeys(nomenclature.calendar.monthReign, ['name', 'rulers', 'ordinals'], 'nomenclature.calendar.monthReign');
@@ -79,13 +79,13 @@ export function validateNomenclature(nomenclature) {
   validateEntities(nomenclature.calendar.weekdays, WEEKDAY_IDS, 'nomenclature.calendar.weekdays', ['id', 'name']);
   validateEntities(nomenclature.calendar.namedDays, NAMED_DAY_IDS, 'nomenclature.calendar.namedDays', ['id', 'name']);
   validateEntities(nomenclature.calendar.interRegna, INTER_REGNUM_IDS, 'nomenclature.calendar.interRegna', ['id', 'name']);
-  validateEntities(nomenclature.seasons, SEASON_RULES.map(({ id }) => id), 'nomenclature.seasons', ['id', 'name']);
+  validateEntities(nomenclature.seasons, SEASON_IDS, 'nomenclature.seasons', ['id', 'name']);
   assertExactKeys(nomenclature.lunarCycle, ['name'], 'nomenclature.lunarCycle');
   assertNonEmptyString(nomenclature.lunarCycle.name, 'nomenclature.lunarCycle.name');
-  validateEntities(nomenclature.lunarPhases, LUNAR_PHASE_RULES.map(({ id }) => id), 'nomenclature.lunarPhases', ['id', 'name']);
-  validateEntities(nomenclature.tides, TIDE_RULES.map(({ id }) => id), 'nomenclature.tides', ['id', 'name']);
-  validateEntities(nomenclature.celestialBodies, CELESTIAL_BODY_RULES.map(({ id }) => id), 'nomenclature.celestialBodies', ['id', 'name', 'symbol']);
-  validateEntities(nomenclature.pulls, PULL_RULES.map(({ id }) => id), 'nomenclature.pulls', ['id', 'name']);
+  validateEntities(nomenclature.lunarPhases, LUNAR_PHASE_IDS, 'nomenclature.lunarPhases', ['id', 'name']);
+  validateEntities(nomenclature.tides, TIDE_IDS, 'nomenclature.tides', ['id', 'name']);
+  validateEntities(nomenclature.celestialBodies, CELESTIAL_BODY_IDS, 'nomenclature.celestialBodies', ['id', 'name', 'symbol']);
+  validateEntities(nomenclature.pulls, PULL_IDS, 'nomenclature.pulls', ['id', 'name']);
   return nomenclature;
 }
 

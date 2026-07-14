@@ -1,3 +1,27 @@
+import {
+  CELESTIAL_BODY_IDS,
+  INTER_REGNUM_IDS,
+  LUNAR_PHASE_IDS,
+  MONTH_IDS,
+  MONTH_RULER_IDS,
+  NAMED_DAY_IDS,
+  OUTCOME_TYPE_IDS,
+  PULL_IDS,
+  REIGN_ORDINAL_IDS,
+  SEASON_IDS,
+  TIDE_IDS,
+  WEEKDAY_IDS
+} from '../neutral-ids.js';
+
+export {
+  INTER_REGNUM_IDS,
+  MONTH_IDS,
+  MONTH_RULER_IDS,
+  NAMED_DAY_IDS,
+  REIGN_ORDINAL_IDS,
+  WEEKDAY_IDS
+};
+
 function deepFreeze(value) {
   if (value && typeof value === 'object') {
     for (const nestedValue of Object.values(value)) deepFreeze(nestedValue);
@@ -45,20 +69,6 @@ export const DESTINO_BOUNDARY_MILLISECONDS = deepFreeze([
   REAL_MS_PER_LUNAR_SECOND
 ]);
 
-export const MONTH_IDS = deepFreeze(Array.from({ length: 11 }, (_, index) => `month-${String(index + 1).padStart(2, '0')}`));
-export const MONTH_RULER_IDS = deepFreeze([
-  'ruler-01',
-  'ruler-02',
-  'ruler-03',
-  'ruler-04',
-  'ruler-05',
-  'ruler-06',
-  'ruler-07',
-  'ruler-08'
-]);
-export const REIGN_ORDINAL_IDS = deepFreeze(
-  Array.from({ length: MONTHS_PER_YEAR }, (_, index) => `reign-ordinal-${String(index + 1).padStart(2, '0')}`)
-);
 export const ALTERNATING_SKIP_RULER_ID = 'ruler-08';
 export const MONTH_RULER_DECISION_HOUR = FICTIONAL_HOURS_PER_DAY - 1;
 export const SEASON_MONTH_RULER_ROTATIONS = deepFreeze({
@@ -74,15 +84,6 @@ export const ALTERNATING_SKIP_REPLACEMENT_RULES = deepFreeze([
   { bodyId: 'body-05', rulerId: 'ruler-01' },
   { bodyId: 'body-06', rulerId: 'ruler-06' }
 ]);
-export const WEEKDAY_IDS = deepFreeze(Array.from({ length: 7 }, (_, index) => `weekday-${String(index + 1).padStart(2, '0')}`));
-export const INTER_REGNUM_IDS = deepFreeze(Array.from({ length: 11 }, (_, index) => `interregnum-${String(index + 1).padStart(2, '0')}`));
-export const NAMED_DAY_IDS = deepFreeze([
-  'named-day-01',
-  'named-day-02',
-  'named-day-03',
-  'named-day-04',
-  'named-day-05'
-]);
 export const CALENDAR_NAMED_DAY_RULES = deepFreeze({
   month: [
     { day: 1, namedDayId: 'named-day-01' },
@@ -96,8 +97,8 @@ export const CALENDAR_NAMED_DAY_RULES = deepFreeze({
 });
 
 export const SEASON_RULES = deepFreeze([
-  { id: 'season-01', durationDays: SEASON_LENGTH_DAYS },
-  { id: 'season-02', durationDays: SEASON_LENGTH_DAYS }
+  { id: SEASON_IDS[0], durationDays: SEASON_LENGTH_DAYS },
+  { id: SEASON_IDS[1], durationDays: SEASON_LENGTH_DAYS }
 ]);
 
 export const SEASONAL_CYCLE_LENGTH_DAYS = SEASON_RULES.reduce(
@@ -106,40 +107,40 @@ export const SEASONAL_CYCLE_LENGTH_DAYS = SEASON_RULES.reduce(
 );
 
 export const LUNAR_PHASE_RULES = deepFreeze([
-  { id: 'phase-01', type: 'standard', stage: 'new', approximateIllumination: 0 },
-  { id: 'phase-02', type: 'fictional', stage: 'waxing', approximateIllumination: 8 },
-  { id: 'phase-03', type: 'standard', stage: 'waxing', approximateIllumination: 22 },
-  { id: 'phase-04', type: 'fictional', stage: 'waxing', approximateIllumination: 38 },
-  { id: 'phase-05', type: 'standard', stage: 'waxing', approximateIllumination: 50 },
-  { id: 'phase-06', type: 'standard', stage: 'waxing', approximateIllumination: 75 },
-  { id: 'phase-07', type: 'fictional', stage: 'waxing', approximateIllumination: 92 },
-  { id: 'phase-08', type: 'standard', stage: 'full', approximateIllumination: 100 },
-  { id: 'phase-09', type: 'fictional', stage: 'waning', approximateIllumination: 92 },
-  { id: 'phase-10', type: 'standard', stage: 'waning', approximateIllumination: 75 },
-  { id: 'phase-11', type: 'standard', stage: 'waning', approximateIllumination: 50 },
-  { id: 'phase-12', type: 'standard', stage: 'waning', approximateIllumination: 22 },
-  { id: 'phase-13', type: 'fictional', stage: 'waning', approximateIllumination: 8 }
+  { id: LUNAR_PHASE_IDS[0], type: 'standard', stage: 'new', approximateIllumination: 0 },
+  { id: LUNAR_PHASE_IDS[1], type: 'fictional', stage: 'waxing', approximateIllumination: 8 },
+  { id: LUNAR_PHASE_IDS[2], type: 'standard', stage: 'waxing', approximateIllumination: 22 },
+  { id: LUNAR_PHASE_IDS[3], type: 'fictional', stage: 'waxing', approximateIllumination: 38 },
+  { id: LUNAR_PHASE_IDS[4], type: 'standard', stage: 'waxing', approximateIllumination: 50 },
+  { id: LUNAR_PHASE_IDS[5], type: 'standard', stage: 'waxing', approximateIllumination: 75 },
+  { id: LUNAR_PHASE_IDS[6], type: 'fictional', stage: 'waxing', approximateIllumination: 92 },
+  { id: LUNAR_PHASE_IDS[7], type: 'standard', stage: 'full', approximateIllumination: 100 },
+  { id: LUNAR_PHASE_IDS[8], type: 'fictional', stage: 'waning', approximateIllumination: 92 },
+  { id: LUNAR_PHASE_IDS[9], type: 'standard', stage: 'waning', approximateIllumination: 75 },
+  { id: LUNAR_PHASE_IDS[10], type: 'standard', stage: 'waning', approximateIllumination: 50 },
+  { id: LUNAR_PHASE_IDS[11], type: 'standard', stage: 'waning', approximateIllumination: 22 },
+  { id: LUNAR_PHASE_IDS[12], type: 'fictional', stage: 'waning', approximateIllumination: 8 }
 ]);
 
 export const TIDE_RULES = deepFreeze([
-  { id: 'tide-01', durationHours: 17 },
-  { id: 'tide-02', durationHours: 13 },
-  { id: 'tide-03', durationHours: 1 }
+  { id: TIDE_IDS[0], durationHours: 17 },
+  { id: TIDE_IDS[1], durationHours: 13 },
+  { id: TIDE_IDS[2], durationHours: 1 }
 ]);
 
 export const CELESTIAL_BODY_RULES = deepFreeze([
-  { id: 'body-01', kind: 'planet', orbitalPeriod: { unit: 'calendar_day', value: 89 }, tieBreakPriorityRank: 4 },
-  { id: 'body-02', kind: 'planet', orbitalPeriod: { unit: 'calendar_day', value: 223 }, tieBreakPriorityRank: 2 },
-  { id: 'body-03', kind: 'planet', orbitalPeriod: { unit: 'calendar_day', value: 683 }, tieBreakPriorityRank: 3 },
-  { id: 'body-04', kind: 'planet', orbitalPeriod: { unit: 'calendar_day', value: 4337 }, tieBreakPriorityRank: 5 },
-  { id: 'body-05', kind: 'planet', orbitalPeriod: { unit: 'calendar_day', value: 7919 }, tieBreakPriorityRank: 6 },
-  { id: 'body-06', kind: 'satellite', orbitalPeriod: { unit: 'lunar_day', value: 13 }, tieBreakPriorityRank: 1 }
+  { id: CELESTIAL_BODY_IDS[0], kind: 'planet', orbitalPeriod: { unit: 'calendar_day', value: 89 }, tieBreakPriorityRank: 4 },
+  { id: CELESTIAL_BODY_IDS[1], kind: 'planet', orbitalPeriod: { unit: 'calendar_day', value: 223 }, tieBreakPriorityRank: 2 },
+  { id: CELESTIAL_BODY_IDS[2], kind: 'planet', orbitalPeriod: { unit: 'calendar_day', value: 683 }, tieBreakPriorityRank: 3 },
+  { id: CELESTIAL_BODY_IDS[3], kind: 'planet', orbitalPeriod: { unit: 'calendar_day', value: 4337 }, tieBreakPriorityRank: 5 },
+  { id: CELESTIAL_BODY_IDS[4], kind: 'planet', orbitalPeriod: { unit: 'calendar_day', value: 7919 }, tieBreakPriorityRank: 6 },
+  { id: CELESTIAL_BODY_IDS[5], kind: 'satellite', orbitalPeriod: { unit: 'lunar_day', value: 13 }, tieBreakPriorityRank: 1 }
 ]);
 
 export const PULL_RULES = deepFreeze([
-  { id: 'pull-01', selectionMethod: 'smallest_circular_arc' },
-  { id: 'pull-02', selectionMethod: 'second_ranked_circular_arc' },
-  { id: 'pull-03', selectionMethod: 'largest_circular_arc' }
+  { id: PULL_IDS[0], selectionMethod: 'smallest_circular_arc' },
+  { id: PULL_IDS[1], selectionMethod: 'second_ranked_circular_arc' },
+  { id: PULL_IDS[2], selectionMethod: 'largest_circular_arc' }
 ]);
 
 export const OUTCOME_TIDE_RULES = deepFreeze({
@@ -149,7 +150,7 @@ export const OUTCOME_TIDE_RULES = deepFreeze({
 });
 
 export const OUTCOME_TYPE_RULES = deepFreeze([
-  { id: 'outcome-tier-01', maximumPercentage: 85 },
-  { id: 'outcome-tier-02', maximumPercentage: 99 },
-  { id: 'outcome-tier-03', maximumPercentage: null }
+  { id: OUTCOME_TYPE_IDS[0], maximumPercentage: 85 },
+  { id: OUTCOME_TYPE_IDS[1], maximumPercentage: 99 },
+  { id: OUTCOME_TYPE_IDS[2], maximumPercentage: null }
 ]);

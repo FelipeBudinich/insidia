@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.25 is a browser-calculated fictional calendar and world-state interface with fixed Interlingua generic text. It has three focused live pages, four generic static pages, and two read-only location pages backed by one three-region world configuration. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time or location calculations.
+Insidia v8.25 is a browser-calculated fictional calendar and world-state interface with fixed Interlingua generic text. It has three focused live pages, four generic static pages, and two read-only location pages backed by one three-region world configuration. The Node.js backend serves Locus from `/`, serves static files, and exposes `/health`; it performs no fictional-time or location calculations.
 
 ## Run locally
 
@@ -16,7 +16,7 @@ Open [http://localhost:3000](http://localhost:3000). Set `PORT` to override port
 
 ## Pages and navigation
 
-The page registry contains exactly nine stable IDs, fixed routes, and nomenclature-owned names. Each HTML document contains one empty navigation placeholder. `app-bootstrap.js` renders the two-level navigation with DOM APIs from immutable group definitions, so membership and order exist in one place and every generated link remains a clean fixed route.
+The page registry contains exactly nine stable IDs, fixed routes, and nomenclature-owned names. Each HTML document contains a meaningful initial title, navigation, heading, fixed labels, and footer matching the current configuration, so the stable shell paints before JavaScript or JSON completes. `app-bootstrap.js` refreshes that two-level navigation with DOM APIs and runtime nomenclature from immutable group definitions, so every generated link remains a clean fixed route.
 
 The top category row is always Personage, Almanac, Location, in that order. Each top item is a navigation group rather than a page: Personage is `navigation-group-02` and opens Identitate; Almanac is `navigation-group-01` and opens Calendario; Location is `navigation-group-03` and opens Locus.
 
@@ -258,7 +258,9 @@ The generic scheduler keeps one recursive epoch-relative timeout, clears it whil
 6. `public/live-page-bootstrap.js` connects a live page's focused calculator, renderer, immutable cadence list, and `live-state.js` scheduler.
 7. `public/static-page.js` and `public/location-page.js` are the only shared entry modules for their respective static page classes.
 
-Normal pages make exactly one configuration request: `/config/nomenclature.json`. Locus and Rutas make exactly two concurrent configuration requests: `/config/nomenclature.json` and `/regions/world.json`, with no request waterfall. Navigation itself introduces no world request. Its two generated rows—the three top groups and the active three-page secondary group—remain inside the same sticky site header.
+Normal pages make exactly one configuration request: `/config/nomenclature.json`. Locus and Rutas make exactly two concurrent configuration requests: `/config/nomenclature.json` and `/regions/world.json`, with no request waterfall. The initial HTML preloads the required JSON and critical shared modules, and each deferred entry module is discoverable from the document head. Navigation itself introduces no world request. Its two generated rows—the three top groups and the active three-page secondary group—remain inside the same sticky site header.
+
+Adding `?perf=1` enables local Performance API marks for bootstrap start, configuration-request start, configuration readiness, first render, and configuration errors. Location pages also mark world-request start. This mode does not change configuration paths, persist data, or send telemetry.
 
 The public schemas are intentionally unchanged: Calendar JSON v20, nomenclature schema 12, and world schema 3.
 
@@ -280,13 +282,13 @@ The schema contains no language metadata. The raw Outcome thresholds and IDs did
 
 | Route | Purpose |
 |---|---|
-| `/` | Redirect to `/calendario.html`; query parameters are ignored |
+| `/` | Serve the Locus document directly with status 200 |
 | Nine page routes | Static HTML described above |
 | `/config/nomenclature.json` | Single read-only nomenclature configuration |
 | `/regions/world.json` | Sole read-only three-region world and route graph |
 | `/health` | `{"ok":true,"version":"v8.25"}` |
 
-The built-in-module Node server supports GET and HEAD, explicit MIME types, `Cache-Control: no-cache` for HTML/CSS/JavaScript/JSON, deterministic weak ETags, Last-Modified validation, bodyless 304 responses, CSP and related security headers, safe traversal/dotfile rejection, Interlingua response bodies for HTTP errors, canonical HTTPS redirects, and graceful shutdown. Static page additions and removals require no route-specific handlers.
+The built-in-module Node server supports GET and HEAD, explicit MIME types, `Cache-Control: no-cache` for HTML/CSS/JavaScript/JSON, deterministic weak ETags, Last-Modified validation, bodyless 304 responses, CSP and related security headers, safe traversal/dotfile rejection, Interlingua response bodies for HTTP errors, canonical HTTPS redirects, and graceful shutdown. It keeps unchanged static metadata and bodies in server memory while checking filesystem metadata on every request, so local edits are detected without rereading unchanged bodies. Static page additions and removals require no route-specific handlers.
 
 ## Editing configuration
 
@@ -310,6 +312,8 @@ public/
   static-page.js
   location-page.js
   config-loader.js
+  neutral-ids.js
+  performance.js
   version.js
   calendario.html
   calendario-page.js

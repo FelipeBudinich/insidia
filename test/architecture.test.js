@@ -44,6 +44,13 @@ test('static and location module graphs exclude live scheduling and mechanics', 
   }
 });
 
+test('nomenclature validation uses neutral IDs without loading the mechanical rules module', async () => {
+  const graph = await collectModuleGraph('nomenclature-loader.js');
+  assert.equal(graph.has('neutral-ids.js'), true);
+  assert.equal(graph.has('core/rules.js'), false);
+  assert.equal(graph.has('core/mechanics.js'), false);
+});
+
 test('each live graph includes the focused mechanics and generic scheduler path', async () => {
   for (const entryPath of ['calendario-page.js', 'tempore-page.js', 'destino-page.js']) {
     const graph = await collectModuleGraph(entryPath);
