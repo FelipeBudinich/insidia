@@ -557,7 +557,7 @@ test('representative lunar state produces one exact locale-invariant Roman summa
   const spanishJson = createCalendarJson(state, representativeLunarTimestamp, spanishContext);
   assert.equal(englishJson.calendarVersion, 'v19');
   assert.deepEqual(englishJson.nomenclature, { schemaVersion: 12, applicationDisplayName: 'Insidia' });
-  assert.equal(englishJson.locale.schemaVersion, 11);
+  assert.equal(englishJson.locale.schemaVersion, 12);
   assert.deepEqual(englishJson.state, spanishJson.state);
   assert.equal(englishJson.display.lunar.formattedSummary, 'Morditura • Cyclus Lunae MCCXXXIV');
   assert.equal(spanishJson.display.lunar.formattedSummary, englishJson.display.lunar.formattedSummary);
@@ -782,7 +782,7 @@ test('JSON v19 exposes named-day state, ruler decisions, and progress while raw 
   assert.deepEqual(english.nomenclature, { schemaVersion: 12, applicationDisplayName: 'Insidia' });
   assert.equal(Object.hasOwn(english.nomenclature, 'requestedId'), false);
   assert.equal(Object.hasOwn(english.nomenclature, 'resolvedId'), false);
-  assert.deepEqual(english.locale, { requestedId: 'en', resolvedId: 'en', languageTag: 'en', schemaVersion: 11 });
+  assert.deepEqual(english.locale, { requestedId: 'en', resolvedId: 'en', languageTag: 'en', schemaVersion: 12 });
   assert.deepEqual(english.state, spanish.state);
   assert.deepEqual(english.state.progress.tide, { fraction: 0, percentage: 0 });
   assert.deepEqual(english.state.progress.hour, { fraction: 0, percentage: 0 });
@@ -928,13 +928,13 @@ test('navigation applies resolved labels, category state, submenus, and fixed ap
   assert.equal(pageNameElements[0].textContent, 'Calendario');
   assert.equal(pageSectionElements[0].textContent, 'Titulo');
   assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.21');
-  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.21');
+  assert.equal(versionElements[0].textContent, 'v8.22');
+  assert.equal(versionElements[0]['aria-label'], 'Versión de la aplicación 8.22');
 
   applyAndAssert('page-04', englishContext, [personageCategory], [personageSubmenu]);
   assert.equal(documentRoot.title, 'Identitate · Insidia');
   assert.equal(meta.content, 'Character title, name, epithet, memories, and decisions for Insidia.');
-  assert.equal(versionElements[0]['aria-label'], 'Application version 8.21');
+  assert.equal(versionElements[0]['aria-label'], 'Application version 8.22');
   assert.equal(personageCategory.textContent, 'Personage');
   assert.equal(personageCategory.attributes.href, '/identitate.html?locale=en');
   assert.equal(almanacCategory.textContent, 'Almanac');
@@ -956,13 +956,13 @@ test('navigation applies resolved labels, category state, submenus, and fixed ap
   }
 });
 
-test('static HTML remains neutral and uses v8.21 page IDs and application placeholders', async () => {
+test('static HTML remains neutral and uses v8.22 page IDs and application placeholders', async () => {
   const properNouns = ['Insidia','Almanac','Calendario','Destino','Tempore','Personage','Location','Locus','Rutas','Explorar','Identitate','Inventario','Subordinatos','Observationes','Decisiones','Titulo','Nomine','Epitheto','Memorias','Equipamento','Deposito','Campiones','Miniones','Santiago','Commune','Infrequens','Rarum','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),...NAMED_DAYS.map(({ name }) => name),...INTERREGNOS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html','identitate.html','inventario.html','subordinatos.html','locus.html','rutas.html','explorar.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
     assert.match(html, /aria-busy="true"/);
-    assert.match(html, /data-version>v8\.21/);
+    assert.match(html, /data-version>v8\.22/);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);

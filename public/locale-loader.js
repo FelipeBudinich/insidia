@@ -4,9 +4,11 @@ export const MESSAGE_KEYS = Object.freeze([
   'label.year', 'label.month', 'label.week', 'label.day', 'label.hour', 'label.cycle', 'label.orbit', 'label.seasonalDay', 'label.next', 'label.progress',
   'label.currentFictionalTime', 'label.currentLunarTime', 'label.currentLunarDay', 'label.currentDay', 'label.currentHour', 'label.currentTideProgress',
   'label.attemptsUntilRare', 'label.orbitalProgress', 'label.circularSpan', 'label.alignment', 'label.currentLocation',
-  'label.region', 'label.elevation', 'label.routesFrom', 'label.destination', 'label.walkingTime', 'label.elevationChange',
+  'label.region', 'label.elevation', 'label.localRoutes', 'label.interRegionalRoutes', 'label.routesFrom',
+  'label.destination', 'label.destinationRegion', 'label.walkingTime', 'label.elevationChange',
   'label.epoch', 'label.copyJson',
-  'status.copied', 'status.copyFailure', 'status.tieBreakApplied', 'status.noAvailableRoutes',
+  'status.copied', 'status.copyFailure', 'status.tieBreakApplied',
+  'status.noAvailableLocalRoutes', 'status.noAvailableInterRegionRoutes',
   'selection.selection-rule-01', 'selection.selection-rule-02', 'selection.selection-rule-03',
   'clarification.pulls', 'accessibility.applicationVersion', 'accessibility.seasonProgress', 'accessibility.copyStatus', 'error.configuration'
 ]);
@@ -21,7 +23,8 @@ export const TEMPLATE_KEYS = Object.freeze([
   'lunar.summary', 'season.metadata', 'season.cycle', 'season.next', 'season.progress',
   'tide.metadata', 'tide.time', 'outcome.attempts', 'outcome.source', 'outcome.progress',
   'orbit.calendarPeriod', 'orbit.lunarPeriod', 'orbit.metadata',
-  'pull.members', 'pull.span', 'pull.alignment', 'pull.tie', 'pull.noTie', 'footer.epoch'
+  'pull.members', 'pull.span', 'pull.alignment', 'pull.tie', 'pull.noTie',
+  'route.fictionalMinutes', 'footer.epoch'
 ]);
 
 export const DEFAULT_LOCALE_ID = 'en';
@@ -52,7 +55,7 @@ function assertExactObjectKeys(value, expected, label) {
 
 export function validateLocale(locale) {
   assertExactObjectKeys(locale, ['schemaVersion', 'id', 'languageTag', 'messages', 'templates'], 'locale');
-  if (locale.schemaVersion !== 11) throw new Error('locale schemaVersion must be 11');
+  if (locale.schemaVersion !== 12) throw new Error('locale schemaVersion must be 12');
   assertNonEmpty(locale.id, 'locale.id');
   assertNonEmpty(locale.languageTag, 'locale.languageTag');
   assertExactKeys(locale.messages, MESSAGE_KEYS, 'locale.messages');

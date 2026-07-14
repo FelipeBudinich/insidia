@@ -1,13 +1,13 @@
 import { bootstrapConfiguredStaticPage } from './app-bootstrap.js';
 import { createLocationContext } from './location.js';
 import { renderLocationPage } from './location-renderers.js';
-import { loadRegion } from './region-loader.js';
+import { loadWorld } from './world-loader.js';
 
 const LOCATION_PAGE_IDS = new Set(['page-07', 'page-08']);
 
 async function loadLocationContext({ fetchFn, baseUrl }) {
-  const regionResult = await loadRegion({ fetchFn, baseUrl });
-  return createLocationContext({ regionResult });
+  const worldResult = await loadWorld({ fetchFn, baseUrl });
+  return createLocationContext({ worldResult });
 }
 
 export function bootstrapStaticPage(pageId, options = {}) {

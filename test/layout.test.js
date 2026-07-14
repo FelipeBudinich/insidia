@@ -59,15 +59,15 @@ async function listSourceFiles(directory) {
   return nested.flat();
 }
 
-test('package and visible application versions are v8.21', async () => {
+test('package and visible application versions are v8.22', async () => {
   const [packageJson, packageLock, bootstrap] = await Promise.all([
     readFile(path.join(root, 'package.json'), 'utf8'),
     readFile(path.join(root, 'package-lock.json'), 'utf8'),
     readPublic('app-bootstrap.js')
   ]);
-  assert.equal(JSON.parse(packageJson).version, '8.21.0');
-  assert.equal(JSON.parse(packageLock).version, '8.21.0');
-  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.21'/);
+  assert.equal(JSON.parse(packageJson).version, '8.22.0');
+  assert.equal(JSON.parse(packageLock).version, '8.22.0');
+  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.22'/);
 });
 
 test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async () => {
@@ -204,14 +204,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each configured page has one localized v8.21 footer version', async () => {
+test('each configured page has one localized v8.22 footer version', async () => {
   for (const [file] of PAGE_SHELLS) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.21/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.22/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -313,8 +313,13 @@ test('static page shells contain only their exact configured sections', async ()
   assert.doesNotMatch(identitateHtml, /page-section-(?:06|08|10)/);
 
   const [rutasHtml, rutasScript] = await Promise.all([readPublic('rutas.html'), readPublic('rutas-page.js')]);
-  assert.equal((rutasHtml.match(/class="route-section"/g) ?? []).length, 1);
-  for (const selector of ['data-route-origin', 'data-route-list', 'data-route-empty', 'data-message-key="label.routesFrom"']) {
+  assert.equal((rutasHtml.match(/class="route-section"/g) ?? []).length, 2);
+  for (const selector of [
+    'data-route-origin', 'data-local-route-list', 'data-local-route-empty',
+    'data-inter-region-route-list', 'data-inter-region-route-empty',
+    'data-message-key="label.localRoutes"', 'data-message-key="label.interRegionalRoutes"',
+    'data-message-key="label.routesFrom"'
+  ]) {
     assert.match(rutasHtml, new RegExp(selector));
   }
   assert.equal((rutasHtml.match(/data-page-section-id/g) ?? []).length, 0);
