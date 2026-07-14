@@ -3,6 +3,16 @@
     "sheol": {
       "regionName": "Sheol",
       "description": "Le integre regno occultate sub le superficie.",
+      "entryExitPoints": {
+        "N": "campo-del-ultime-pensamentos",
+        "NE": "halito-de-sheol",
+        "E": "halito-de-sheol",
+        "SE": "costa-final",
+        "S": "costa-final",
+        "SW": "costa-final",
+        "W": "descenso-del-sibylla",
+        "NW": "descenso-del-sibylla"
+      },
       "locations": {
         "bucca-de-sheol": {
           "name": "Le Bucca de Sheol",
@@ -58,49 +68,49 @@
         {
           "name": "Le Sentiero del Ultime Pensamentos",
           "between": ["campo-del-ultime-pensamentos", "descenso-del-sibylla"],
-          "walkingTime": 10,
+          "travelTime": 10,
           "elevationChangeMeters": 5
         },
         {
           "name": "Le Via del Sibylla",
           "between": ["descenso-del-sibylla", "bucca-de-sheol"],
-          "walkingTime": 70,
+          "travelTime": 70,
           "elevationChangeMeters": 16
         },
         {
           "name": "Le Via del Desiro",
           "between": ["bucca-de-sheol", "cais-del-desiro"],
-          "walkingTime": 60,
+          "travelTime": 60,
           "elevationChangeMeters": 5
         },
         {
           "name": "Le Passage Submergite",
           "between": ["bucca-de-sheol", "cortes-submergite"],
-          "walkingTime": 100,
+          "travelTime": 100,
           "elevationChangeMeters": 10
         },
         {
           "name": "Le Cais del Ruinas",
           "between": ["cais-del-desiro", "cortes-submergite"],
-          "walkingTime": 75,
+          "travelTime": 75,
           "elevationChangeMeters": 5
         },
         {
           "name": "Le Via del Fumarolas",
           "between": ["cais-del-desiro", "halito-de-sheol"],
-          "walkingTime": 130,
+          "travelTime": 130,
           "elevationChangeMeters": 102
         },
         {
           "name": "Le Via del Mar Nigre",
           "between": ["cortes-submergite", "costa-final"],
-          "walkingTime": 150,
+          "travelTime": 150,
           "elevationChangeMeters": 77
         },
         {
           "name": "Le Sentiero del Ultime Ripa",
           "between": ["halito-de-sheol", "costa-final"],
-          "walkingTime": 240,
+          "travelTime": 240,
           "elevationChangeMeters": 30
         }
       ]
@@ -108,6 +118,16 @@
     "mercato-nigre": {
       "regionName": "Mercato Nigre",
       "description": "Un mercato neutral ubi objectos prohibite, reliquias e mercantias damnate es vendite per auction al offerente le plus alte.",
+      "entryExitPoints": {
+        "N": "porta-del-mercatores",
+        "NE": "porta-del-mercatores",
+        "E": "porta-del-mercatores",
+        "SE": "porta-del-mercatores",
+        "S": "porta-del-mercatores",
+        "SW": "porta-del-mercatores",
+        "W": "porta-del-mercatores",
+        "NW": "porta-del-mercatores"
+      },
       "locations": {
         "arena-del-auction": {
           "name": "Le Arena del Auction",
@@ -149,31 +169,31 @@
         {
           "name": "Le Passage del Lottes",
           "between": ["arena-del-auction", "crypta-del-lottes"],
-          "walkingTime": 10,
+          "travelTime": 10,
           "elevationChangeMeters": 29
         },
         {
           "name": "Le Scala del Valor",
           "between": ["crypta-del-lottes", "tribunal-del-valor"],
-          "walkingTime": 10,
+          "travelTime": 10,
           "elevationChangeMeters": 20
         },
         {
           "name": "Le Via del Mercatores",
           "between": ["tribunal-del-valor", "porta-del-mercatores"],
-          "walkingTime": 10,
+          "travelTime": 10,
           "elevationChangeMeters": 30
         },
         {
           "name": "Le Arcadas del Auction",
           "between": ["arena-del-auction", "porta-del-mercatores"],
-          "walkingTime": 5,
+          "travelTime": 5,
           "elevationChangeMeters": 19
         },
         {
           "name": "Le Ascenso del Garantia",
           "between": ["porta-del-mercatores", "rocca-del-garantia"],
-          "walkingTime": 45,
+          "travelTime": 45,
           "elevationChangeMeters": 89
         }
       ]
@@ -181,6 +201,16 @@
     "observatorio-del-prophetias": {
       "regionName": "Observatorio del Prophetias",
       "description": "Un complexo astronomic ubi demones studia le stellas, le planetas e le constellationes pro deducer prophetias del futuro.",
+      "entryExitPoints": {
+        "N": "oculo-del-zenith",
+        "NE": "porta-del-celo",
+        "E": "porta-del-celo",
+        "SE": "turre-del-polo",
+        "S": "turre-del-polo",
+        "SW": "circulo-del-horizonte",
+        "W": "oculo-del-zenith",
+        "NW": "oculo-del-zenith"
+      },
       "locations": {
         "turre-del-polo": {
           "name": "Le Turre del Polo",
@@ -229,31 +259,31 @@
         {
           "name": "Le Passo del Octagono",
           "between": ["circulo-del-horizonte", "turre-del-polo"],
-          "walkingTime": 10,
+          "travelTime": 10,
           "elevationChangeMeters": 41
         },
         {
           "name": "Le Cammino del Cartas Celestial",
           "between": ["turre-del-polo", "porta-del-celo"],
-          "walkingTime": 200,
+          "travelTime": 200,
           "elevationChangeMeters": 118
         },
         {
           "name": "Le Ascenso del Speculo",
           "between": ["porta-del-celo", "speculo-del-firmamento"],
-          "walkingTime": 300,
+          "travelTime": 300,
           "elevationChangeMeters": 314
         },
         {
           "name": "Le Via del Stella Matutin",
           "between": ["speculo-del-firmamento", "observatorio-superior"],
-          "walkingTime": 180,
+          "travelTime": 180,
           "elevationChangeMeters": 469
         },
         {
           "name": "Le Scala del Zenith",
           "between": ["observatorio-superior", "oculo-del-zenith"],
-          "walkingTime": 50,
+          "travelTime": 50,
           "elevationChangeMeters": 259
         }
       ]
@@ -263,12 +293,20 @@
     {
       "routeName": "Le Via del Obolo Nigre",
       "between": ["sheol", "mercato-nigre"],
-      "walkTime": 1800
+      "directions": {
+        "sheol": "N",
+        "mercato-nigre": "S"
+      },
+      "travelTime": 1800
     },
     {
       "routeName": "Le Via del Signos Celestial",
       "between": ["mercato-nigre", "observatorio-del-prophetias"],
-      "walkTime": 3000
+      "directions": {
+        "mercato-nigre": "N",
+        "observatorio-del-prophetias": "S"
+      },
+      "travelTime": 3000
     }
   ]
 }

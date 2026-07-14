@@ -59,15 +59,15 @@ async function listSourceFiles(directory) {
   return nested.flat();
 }
 
-test('package and visible application versions are v8.22', async () => {
+test('package and visible application versions are v8.23', async () => {
   const [packageJson, packageLock, bootstrap] = await Promise.all([
     readFile(path.join(root, 'package.json'), 'utf8'),
     readFile(path.join(root, 'package-lock.json'), 'utf8'),
     readPublic('app-bootstrap.js')
   ]);
-  assert.equal(JSON.parse(packageJson).version, '8.22.0');
-  assert.equal(JSON.parse(packageLock).version, '8.22.0');
-  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.22'/);
+  assert.equal(JSON.parse(packageJson).version, '8.23.0');
+  assert.equal(JSON.parse(packageLock).version, '8.23.0');
+  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.23'/);
 });
 
 test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async () => {
@@ -204,14 +204,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each configured page has one localized v8.22 footer version', async () => {
+test('each configured page has one localized v8.23 footer version', async () => {
   for (const [file] of PAGE_SHELLS) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.22/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.23/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }

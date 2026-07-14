@@ -514,15 +514,15 @@ test('static bootstrap applies shared presentation without starting a recurring 
   assert.equal(section.textContent, 'Titulo');
   assert.equal(message.textContent, 'Ubicación actual');
   assert.equal(application.textContent, 'Insidia');
-  assert.equal(version.textContent, 'v8.22');
+  assert.equal(version.textContent, 'v8.23');
   assert.match(epoch.textContent, /1970-01-01 00:00:00 UTC/);
 });
 
-test('locale schema 12 contains only localized UI language and exact page descriptions', async () => {
+test('locale schema 13 contains only localized UI language and exact page descriptions', async () => {
   const english = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'en.json')));
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
-  assert.equal(english.schemaVersion, 12);
-  assert.equal(spanish.schemaVersion, 12);
+  assert.equal(english.schemaVersion, 13);
+  assert.equal(spanish.schemaVersion, 13);
   assert.deepEqual(Object.keys(english).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
   assert.deepEqual(Object.keys(spanish).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
   assert.equal(Object.hasOwn(english, 'outcomeTypes'), false);
@@ -538,15 +538,17 @@ test('locale schema 12 contains only localized UI language and exact page descri
       english.messages['label.region'], english.messages['label.elevation'],
       english.messages['label.localRoutes'], english.messages['label.interRegionalRoutes'],
       english.messages['label.routesFrom'], english.messages['label.destination'],
-      english.messages['label.destinationRegion'], english.messages['label.walkingTime'],
+      english.messages['label.destinationRegion'], english.messages['label.exitPoint'],
+      english.messages['label.entryPoint'], english.messages['label.travelTime'],
       english.messages['label.elevationChange'], english.messages['status.noAvailableLocalRoutes'],
-      english.messages['status.noAvailableInterRegionRoutes'], english.templates['route.fictionalMinutes']
+      english.messages['status.noAvailableInterRegionRoutes'], english.templates['route.fictionalMinutes'],
+      english.templates['route.directionalPoint']
     ],
     [
       'Region', 'Elevation', 'Local routes', 'Inter-regional routes', 'Routes from',
-      'Destination', 'Destination region', 'Walking time', 'Elevation change',
+      'Destination', 'Destination region', 'Exit point', 'Entry point', 'Travel time', 'Elevation change',
       'No local routes are available.', 'No inter-regional routes are available.',
-      '{value} fictional minutes'
+      '{value} fictional minutes', '{locationName} ({direction})'
     ]
   );
   assert.deepEqual(
@@ -554,15 +556,17 @@ test('locale schema 12 contains only localized UI language and exact page descri
       spanish.messages['label.region'], spanish.messages['label.elevation'],
       spanish.messages['label.localRoutes'], spanish.messages['label.interRegionalRoutes'],
       spanish.messages['label.routesFrom'], spanish.messages['label.destination'],
-      spanish.messages['label.destinationRegion'], spanish.messages['label.walkingTime'],
+      spanish.messages['label.destinationRegion'], spanish.messages['label.exitPoint'],
+      spanish.messages['label.entryPoint'], spanish.messages['label.travelTime'],
       spanish.messages['label.elevationChange'], spanish.messages['status.noAvailableLocalRoutes'],
-      spanish.messages['status.noAvailableInterRegionRoutes'], spanish.templates['route.fictionalMinutes']
+      spanish.messages['status.noAvailableInterRegionRoutes'], spanish.templates['route.fictionalMinutes'],
+      spanish.templates['route.directionalPoint']
     ],
     [
       'Región', 'Elevación', 'Rutas locales', 'Rutas interregionales', 'Rutas desde',
-      'Destino', 'Región de destino', 'Tiempo a pie', 'Cambio de elevación',
+      'Destino', 'Región de destino', 'Punto de salida', 'Punto de entrada', 'Tiempo de viaje', 'Cambio de elevación',
       'No hay rutas locales disponibles.', 'No hay rutas interregionales disponibles.',
-      '{value} minutos ficticios'
+      '{value} minutos ficticios', '{locationName} ({direction})'
     ]
   );
   assert.equal(
@@ -590,7 +594,7 @@ test('locale schema 12 contains only localized UI language and exact page descri
       'Character equipment and storage for {applicationName}.',
       "Champions and minions under the character's command for {applicationName}.",
       'Current location for {applicationName}.',
-      'Routes from the current location for {applicationName}.',
+      'Local and inter-regional route information for {applicationName}.',
       'Exploration observations for {applicationName}.'
     ]
   );
@@ -608,7 +612,7 @@ test('locale schema 12 contains only localized UI language and exact page descri
       'Equipo y depósito del personaje para {applicationName}.',
       'Campeones y esbirros bajo el mando del personaje para {applicationName}.',
       'Ubicación actual para {applicationName}.',
-      'Rutas desde la ubicación actual para {applicationName}.',
+      'Información de rutas locales e interregionales para {applicationName}.',
       'Observaciones de exploración para {applicationName}.'
     ]
   );

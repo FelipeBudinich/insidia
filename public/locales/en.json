@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 12,
+  "schemaVersion": 13,
   "id": "en",
   "languageTag": "en",
   "messages": {
@@ -39,7 +39,9 @@
     "label.routesFrom": "Routes from",
     "label.destination": "Destination",
     "label.destinationRegion": "Destination region",
-    "label.walkingTime": "Walking time",
+    "label.exitPoint": "Exit point",
+    "label.entryPoint": "Entry point",
+    "label.travelTime": "Travel time",
     "label.elevationChange": "Elevation change",
     "label.epoch": "Epoch",
     "label.copyJson": "Copy JSON",
@@ -66,7 +68,7 @@
     "document.page-05Description": "Character equipment and storage for {applicationName}.",
     "document.page-06Description": "Champions and minions under the character's command for {applicationName}.",
     "document.page-07Description": "Current location for {applicationName}.",
-    "document.page-08Description": "Routes from the current location for {applicationName}.",
+    "document.page-08Description": "Local and inter-regional route information for {applicationName}.",
     "document.page-09Description": "Exploration observations for {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Orbital progress for {bodyName}",
@@ -95,6 +97,7 @@
     "pull.tie": "{status} among {count} tied trios",
     "pull.noTie": "No fixed-priority tie-break · selected from {count} trios",
     "route.fictionalMinutes": "{value} fictional minutes",
+    "route.directionalPoint": "{locationName} ({direction})",
     "footer.epoch": "{epochLabel}: {epoch}"
   }
 }
