@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "application": {
     "displayName": "Insidia"
   },
@@ -36,9 +36,6 @@
     { "id": "outcome-tier-02", "name": "Infrequens" },
     { "id": "outcome-tier-03", "name": "Rarum" }
   ],
-  "location": {
-    "currentLocation": { "id": "location-01", "name": "Santiago" }
-  },
   "calendar": {
     "yearName": "Annus Solis",
     "monthReign": {

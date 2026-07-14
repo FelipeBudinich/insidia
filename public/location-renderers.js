@@ -29,11 +29,15 @@ function appendTextElement(documentRoot, parent, tagName, className, text) {
   return element;
 }
 
+function appendLabeledText(documentRoot, parent, className, label, value) {
+  return appendTextElement(documentRoot, parent, 'p', className, `${label}: ${value}`);
+}
+
 export function renderLocus(documentRoot, presentationContext, locationContext) {
   const location = locationContext.currentLocation;
   requireElement(documentRoot, '[data-region-name]').textContent = locationContext.regionName;
   requireElement(documentRoot, '[data-region-description]').textContent = locationContext.regionDescription;
-  requireElement(documentRoot, '[data-current-location]').textContent = location.name;
+  requireElement(documentRoot, '[data-location-name]').textContent = location.name;
   requireElement(documentRoot, '[data-location-description]').textContent = location.description;
   requireElement(documentRoot, '[data-location-elevation]').textContent = formatUnit(
     location.elevationMeters,
@@ -46,25 +50,38 @@ export function renderRutas(documentRoot, presentationContext, locationContext) 
   const origin = locationContext.currentLocation;
   requireElement(documentRoot, '[data-route-origin]').textContent = origin.name;
   const routeList = requireElement(documentRoot, '[data-route-list]');
+  const emptyState = requireElement(documentRoot, '[data-route-empty]');
   clearElement(routeList);
+  const routes = locationContext.getRoutesFrom(origin.id);
+  emptyState.textContent = presentationContext.message('status.noAvailableRoutes');
+  emptyState.hidden = routes.length !== 0;
 
-  for (const route of locationContext.getRoutesFrom(origin.id)) {
+  for (const route of routes) {
     const destination = locationContext.getDestination(route, origin.id);
     const card = documentRoot.createElement('article');
     card.className = 'route-card';
     appendTextElement(documentRoot, card, 'h3', 'route-name', route.name);
-    appendTextElement(documentRoot, card, 'p', 'route-destination', destination.name);
-    appendTextElement(documentRoot, card, 'p', 'route-description', destination.description);
-    appendTextElement(
+    appendLabeledText(
       documentRoot,
       card,
-      'p',
+      'route-destination',
+      presentationContext.message('label.destination'),
+      destination.name
+    );
+    appendTextElement(documentRoot, card, 'p', 'route-description', destination.description);
+    appendLabeledText(
+      documentRoot,
+      card,
       'route-metadata',
-      `${formatUnit(route.walkingTime, presentationContext.languageTag, 'minute')} · Δ ${formatUnit(
-        route.elevationChangeMeters,
-        presentationContext.languageTag,
-        'meter'
-      )}`
+      presentationContext.message('label.walkingTime'),
+      formatUnit(route.walkingTime, presentationContext.languageTag, 'minute')
+    );
+    appendLabeledText(
+      documentRoot,
+      card,
+      'route-metadata',
+      presentationContext.message('label.elevationChange'),
+      formatUnit(route.elevationChangeMeters, presentationContext.languageTag, 'meter')
     );
     routeList.append(card);
   }

@@ -43,22 +43,29 @@ export function createLocationContext({
     throw new TypeError('locationState.locationId must be a non-empty string');
   }
 
-  const region = regionResult.region;
-  if (locationState.regionName !== region.regionName) {
+  const sourceRegion = regionResult.region;
+  if (locationState.regionName !== sourceRegion.regionName) {
     throw new Error(`Unknown current region: ${locationState.regionName}`);
   }
 
-  const locationEntries = Object.entries(region.locations).map(([id, location]) => {
+  const locationEntries = Object.entries(sourceRegion.locations).map(([id, location]) => {
     return [id, deepFreeze({ id, ...location })];
   });
   const locationsById = new Map(locationEntries);
   const locations = Object.freeze(locationEntries.map(([, location]) => location));
   const currentLocation = requireMapped(locationsById, locationState.locationId, 'location');
 
-  const routes = Object.freeze(region.routes.map((route) => deepFreeze({
+  const routes = Object.freeze(sourceRegion.routes.map((route) => deepFreeze({
     ...route,
     between: [...route.between]
   })));
+  const region = deepFreeze({
+    regionName: sourceRegion.regionName,
+    description: sourceRegion.description,
+    regions: [...sourceRegion.regions],
+    locations: Object.fromEntries(locationEntries),
+    routes
+  });
   const routeSet = new Set(routes);
   const routesByLocation = new Map(locations.map(({ id }) => [id, []]));
   for (const route of routes) {
@@ -70,9 +77,10 @@ export function createLocationContext({
 
   const frozenLocationState = deepFreeze({ ...locationState });
   const context = {
+    region,
     regionName: region.regionName,
     regionDescription: region.description,
-    regions: Object.freeze([...region.regions]),
+    regions: region.regions,
     regionSchemaVersion: regionResult.schemaVersion,
     locationState: frozenLocationState,
     currentLocationId: frozenLocationState.locationId,
@@ -81,11 +89,13 @@ export function createLocationContext({
     routeCount: routes.length,
     getLocation: (id) => requireMapped(locationsById, id, 'location'),
     getLocations: () => locations,
+    getRoutes: () => routes,
     getRoutesFrom(id) {
       requireMapped(locationsById, id, 'location');
       return routesByLocation.get(id);
     },
     getDestination(route, originLocationId) {
+      requireMapped(locationsById, originLocationId, 'location');
       if (!routeSet.has(route)) throw new Error('Unknown route');
       if (route.between[0] === originLocationId) return requireMapped(locationsById, route.between[1], 'location');
       if (route.between[1] === originLocationId) return requireMapped(locationsById, route.between[0], 'location');

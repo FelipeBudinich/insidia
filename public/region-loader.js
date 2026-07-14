@@ -22,7 +22,6 @@ const ROUTE_KEYS = Object.freeze([
   'elevationChangeMeters'
 ]);
 const LOCATION_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const ELEVATION_EPSILON = 1e-9;
 
 function assertObject(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -71,10 +70,10 @@ function assertPositiveSafeInteger(value, label) {
   }
 }
 
-function assertNonNegativeSafeInteger(value, label) {
+function assertNonNegativeFiniteNumber(value, label) {
   assertFiniteNumber(value, label);
-  if (!Number.isSafeInteger(value) || value < 0) {
-    throw new RangeError(`${label} must be a non-negative safe integer`);
+  if (value < 0) {
+    throw new RangeError(`${label} must be non-negative`);
   }
 }
 
@@ -148,13 +147,7 @@ export function validateRegion(region) {
     routePairs.add(pair);
 
     assertPositiveSafeInteger(route.walkingTime, `${label}.walkingTime`);
-    assertNonNegativeSafeInteger(route.elevationChangeMeters, `${label}.elevationChangeMeters`);
-    const expectedElevationChange = Math.abs(
-      region.locations[firstId].elevationMeters - region.locations[secondId].elevationMeters
-    );
-    if (Math.abs(route.elevationChangeMeters - expectedElevationChange) > ELEVATION_EPSILON) {
-      throw new Error(`${label}.elevationChangeMeters must equal the endpoint elevation difference`);
-    }
+    assertNonNegativeFiniteNumber(route.elevationChangeMeters, `${label}.elevationChangeMeters`);
 
     adjacency.get(firstId).add(secondId);
     adjacency.get(secondId).add(firstId);
@@ -172,11 +165,15 @@ export async function loadRegion(options = {}) {
   const fetchFn = options.fetchFn ?? window.fetch.bind(window);
   const baseUrl = options.baseUrl ?? window.location.href;
   const base = new URL(baseUrl);
+  if (!['http:', 'https:'].includes(base.protocol)) throw new Error('Region base URL must use HTTP or HTTPS');
   const url = new URL(REGION_PATH, base);
   if (url.origin !== base.origin) throw new Error('Region file must be same-origin');
 
   const response = await fetchFn(url.href, { cache: 'no-cache' });
   if (!response?.ok) throw new Error(`Unable to load region: ${url.pathname}`);
+  if (response.url && new URL(response.url, url).origin !== base.origin) {
+    throw new Error('Region response must be same-origin');
+  }
 
   let region;
   try {

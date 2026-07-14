@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.20 is a browser-calculated fictional calendar and world-state interface. It has three live pages and six configuration-driven static pages, one fixed in-game nomenclature configuration, and localized generic UI language. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time calculations.
+Insidia v8.21 is a browser-calculated fictional calendar and world-state interface. It has three live pages, four generic static pages, and two read-only location pages backed by the Sheol region configuration. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time or location calculations.
 
 ## Run locally
 
@@ -51,8 +51,8 @@ Location
 | `page-04` | Identitate | `/identitate.html` | Static identity, memories, and decisions shell |
 | `page-05` | Inventario | `/inventario.html` | Static equipment and storage shell |
 | `page-06` | Subordinatos | `/subordinatos.html` | Static champions and minions shell |
-| `page-07` | Locus | `/locus.html` | Static configured current location |
-| `page-08` | Rutas | `/rutas.html` | Empty configuration-driven page shell |
+| `page-07` | Locus | `/locus.html` | Read-only configured region and current location |
+| `page-08` | Rutas | `/rutas.html` | Read-only routes directly connected to the current location |
 | `page-09` | Explorar | `/explorar.html` | Static exploration observations shell |
 
 The static section shells are intentionally empty apart from their configured headings:
@@ -60,15 +60,23 @@ The static section shells are intentionally empty apart from their configured he
 - Identitate: Titulo, Nomine, Epitheto, Memorias, Decisiones
 - Inventario: Equipamento, Deposito
 - Subordinatos: Campiones, Miniones
-- Locus: the current configured location, Santiago
-- Rutas: one configuration-driven page-name card
+- Locus: Sheol and the current configured location, Le Campo del Ultime Pensamentos
+- Rutas: the one directly connected route, Le Sentiero del Ultime Pensamentos
 - Explorar: Observationes
 
 Mappa, Pensamentos, Commandamento, Investigationes, and Ordines were removed. Observationes and Decisiones now exist only as sections on Explorar and Identitate respectively. Their former HTML routes and page modules, `/mappa.html`, `/mappa-page.js`, `/location.html`, the former Personage route, and the other legacy routes have no redirects, aliases, or compatibility files and return ordinary static 404 responses.
 
 Location pages do not use browser geolocation, request location permission, display coordinates, or load a graphical map, iframe, route provider, external map provider, or map tiles.
 
-The six static pages use `bootstrapStaticPage()`. They share locale/nomenclature loading, titles, descriptions, navigation, footer presentation, accessibility state, and configuration-error handling with the live pages, but do not start the live calendar scheduler or create a recurring timer.
+The four generic static pages use `bootstrapStaticPage()`. Locus and Rutas use the shared configured-static bootstrap so locale, nomenclature, and region configuration begin loading concurrently. All six share titles, descriptions, navigation, footer presentation, accessibility state, and configuration-error handling with the live pages, but do not start the live calendar scheduler or create a recurring timer.
+
+## Sheol location graph
+
+`public/regions/sheol.json` is the only region configuration. Schema version 1 contains seven locations and eight undirected walking routes; its `regions` array remains empty, and no inter-region or child-region behavior exists.
+
+The isolated initial read-only state selects `campo-del-ultime-pensamentos` in Sheol. Locus displays the region description, current location description, and elevation. Rutas filters the graph to routes directly connected to that location, which currently yields only Le Sentiero del Ultime Pensamentos to Le Descenso del Sibylla: 10 fictional minutes and 5 meters of authored elevation change.
+
+Latitude and longitude remain available in configuration and the immutable browser runtime context but are intentionally not rendered. The graph is read-only: there are no travel controls, movement, arrival times, countdowns, persistence, discovery state, route planning, or shortest-path calculations.
 
 ## Locale selection
 
@@ -84,11 +92,11 @@ Locale is the only presentation option accepted through the query string:
 
 English is the default. English and Spanish paths are allowlisted in `public/locale-loader.js`. Unknown IDs resolve safely to English; a known malformed locale stops bootstrap visibly. Query values never become file paths. There is no runtime universe selector, alternate world configuration, cookie, local-storage setting, header, route, or configurable frontend path for changing in-game nomenclature.
 
-Locale schema 10 contains exactly `schemaVersion`, `id`, `languageTag`, `messages`, and `templates`. Locale files own generic language such as Current Location / Ubicación actual, localized descriptions, and surrounding prose. They do not own page names, navigation-group names, page-section names, current-location names, Outcome-type names, or other fixed in-universe terms.
+Locale schema 11 contains exactly `schemaVersion`, `id`, `languageTag`, `messages`, and `templates`. Locale files own generic language such as Current Location / Ubicación actual, Elevation / Elevación, route metadata labels, localized descriptions, and surrounding prose. They do not own page names, navigation-group names, page-section names, region/location/route names or descriptions, Outcome-type names, or other fixed in-universe terms.
 
 ## Fixed nomenclature
 
-The browser always loads the single production nomenclature file from the fixed same-origin URL `/config/nomenclature.json`. It uses schema 11. Editing and redeploying this file is sufficient to rename the application, navigation groups, pages, page sections, current location, outcome classifications, calendar names, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls.
+The browser always loads the single production nomenclature file from the fixed same-origin URL `/config/nomenclature.json`. It uses schema 12. Editing and redeploying this file is sufficient to rename the application, navigation groups, pages, page sections, outcome classifications, calendar names, seasons, lunar phases, tides, celestial bodies and symbols, and Orbital Pulls. Location world data is deliberately separate in `/regions/sheol.json`.
 
 The active configured terms include:
 
@@ -96,7 +104,7 @@ The active configured terms include:
 - Navigation groups: Almanac (`navigation-group-01`), Personage (`navigation-group-02`), Location (`navigation-group-03`)
 - Pages: Calendario, Destino, Tempore, Identitate, Inventario, Subordinatos, Locus, Rutas, Explorar
 - Page sections: Titulo, Nomine, Epitheto, Equipamento, Observationes, Decisiones, Memorias, Campiones, Miniones, Deposito
-- Location configuration: `location.currentLocation` is Santiago (`location-01`); no `mappa` compatibility object exists
+- Location world data: excluded from nomenclature and loaded from the fixed Sheol region configuration
 - Outcome types: Commune, Infrequens, Rarum
 - Calendar year: Annus Solis
 - Lunar cycle: Cyclus Lunae
@@ -113,7 +121,7 @@ The active configured terms include:
 
 These terms are fixed in-universe nomenclature and remain identical in English and Spanish. Validation requires every canonical ID in canonical order and exact entity shapes. It rejects missing, duplicate, unknown, reordered, empty, non-string, extra, localized, and mechanical fields. Page routes and navigation hierarchy remain fixed application infrastructure; visible page and navigation-group names come from nomenclature and never generate routes.
 
-The presentation context clones and deeply freezes configured entities. It exposes stable getters for navigation groups, pages, page sections, outcome types, calendar entities, seasons, lunar phases, tides, celestial bodies, and Pulls, plus the frozen current location.
+The presentation context clones and deeply freezes nomenclature entities and exposes stable getters for navigation groups, pages, page sections, outcome types, calendar entities, seasons, lunar phases, tides, celestial bodies, and Pulls. The separate location context clones and deeply freezes the region graph, state, locations, and routes; its internal indexes are not exposed.
 
 ## Calendario presentation
 
@@ -135,7 +143,7 @@ For the representative state it reads `Cyclus Lunae MCCXXXIV · Morditura`. This
 
 ## Destino outcomes
 
-Outcome names are schema-11 nomenclature, not translations:
+Outcome names are schema-12 nomenclature, not translations:
 
 - `outcome-tier-01` → Commune
 - `outcome-tier-02` → Infrequens
@@ -172,13 +180,15 @@ All mechanics are deterministic browser-side calculations. Calendar and lunar el
 ## Architecture and request topology
 
 1. `public/core/` contains immutable numeric rules and presentation-neutral mechanics.
-2. `public/config/nomenclature.json` contains the single schema-11 in-game vocabulary.
-3. `public/locales/` contains schema-10 generic UI messages and templates.
+2. `public/config/nomenclature.json` contains the single schema-12 in-game vocabulary, excluding locations.
+3. `public/locales/` contains schema-11 generic UI messages and templates.
 4. `public/presentation-context-loader.js` starts exactly one locale request and one nomenclature request concurrently.
 5. `public/nomenclature.js` builds the frozen presentation context.
-6. `public/app-bootstrap.js` applies common document presentation, then either starts live state or completes a static page.
+6. `public/region-loader.js` validates the fixed same-origin `/regions/sheol.json` graph.
+7. `public/location.js` builds the frozen read-only location context.
+8. `public/app-bootstrap.js` applies common document presentation, then either starts live state or completes a generic/configured static page.
 
-Every page uses the same two concurrent configuration requests. The navigation hierarchy introduces no location, route, map, or exploration request. Its two visible rows—the top groups and one secondary group—remain inside the same sticky site header.
+Every page starts locale and nomenclature requests concurrently. Locus and Rutas additionally start the Sheol region request at the same time, with no request waterfall; all other pages make exactly the original two configuration requests. Navigation itself introduces no region request. Its two visible rows—the top groups and one secondary group—remain inside the same sticky site header.
 
 The project has no frontend framework, build system, runtime dependency, database, backend time API, WebSocket, authentication, external font, date library, server-side rendering, service worker, geolocation integration, or external map integration.
 
@@ -187,8 +197,8 @@ The project has no frontend framework, build system, runtime dependency, databas
 `createCalendarJson()` remains a public serialization API even though no page exposes a visible JSON or clipboard control. Its top-level fields are:
 
 - `calendarVersion: "v19"`
-- `nomenclature`: schema version 11 and application display name
-- `locale`: requested/resolved IDs, language tag, and schema version 10
+- `nomenclature`: schema version 12 and application display name
+- `locale`: requested/resolved IDs, language tag, and schema version 11
 - `source`: Unix milliseconds and ISO UTC
 - `state`: raw canonical IDs and numeric mechanics without configured names or symbols
 - `display`: configured entities, localized prose, and formatted values
@@ -202,16 +212,17 @@ English and Spanish JSON snapshots have identical raw state and identical `displ
 | `/` | Redirect to `/calendario.html`, preserving only a non-empty locale |
 | Nine page routes | Static HTML described above |
 | `/config/nomenclature.json` | Single read-only nomenclature configuration |
+| `/regions/sheol.json` | Single read-only seven-location Sheol graph |
 | `/locales/en.json`, `/locales/es.json` | Allowlisted locale files |
-| `/health` | `{"ok":true,"version":"v8.20"}` |
+| `/health` | `{"ok":true,"version":"v8.21"}` |
 
 The built-in-module Node server supports GET and HEAD, explicit MIME types, `Cache-Control: no-cache` for HTML/CSS/JavaScript/JSON, deterministic weak ETags, Last-Modified validation, bodyless 304 responses, CSP and related security headers, safe traversal/dotfile rejection, generic errors, canonical HTTPS redirects, and graceful shutdown. Static page additions and removals require no route-specific handlers.
 
 ## Editing configuration
 
-When editing nomenclature, retain schema 11, all canonical IDs, canonical ordering, and exact entity shapes. Keep translations, UI templates, routes, submenu membership, durations, orbital periods, thresholds, priorities, and other mechanics out of the file.
+When editing nomenclature, retain schema 12, all canonical IDs, canonical ordering, and exact entity shapes. Keep translations, UI templates, location data, routes, submenu membership, durations, orbital periods, thresholds, priorities, and other mechanics out of the file.
 
-When adding a locale, translate every required message and template, retain the exact schema-10 top-level shape, add its fixed same-origin path to `LOCALE_FILES`, and do not duplicate nomenclature-owned names.
+When adding a locale, translate every required message and template, retain the exact schema-11 top-level shape, add its fixed same-origin path to `LOCALE_FILES`, and do not duplicate nomenclature- or region-owned names.
 
 Run `npm test` before deployment.
 
@@ -239,6 +250,11 @@ public/
   locus-page.js
   rutas.html
   rutas-page.js
+  location-bootstrap.js
+  location-renderers.js
+  location-state.js
+  location.js
+  region-loader.js
   explorar.html
   explorar-page.js
   styles.css
@@ -251,12 +267,14 @@ public/
   live-state.js
   renderers.js
   config/nomenclature.json
+  regions/sheol.json
   locales/{en,es}.json
   core/{rules,mechanics,formatting}.js
 test/
   core.test.js
   layout.test.js
   loaders.test.js
+  location.test.js
   lunar-clock.test.js
   month-rulership.test.js
   presentation.test.js

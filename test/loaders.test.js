@@ -74,7 +74,7 @@ test('query parameters cannot change the nomenclature request', async () => {
 
 test('production nomenclature validates complete neutral ID coverage', async () => {
   const value = validateNomenclature(await readJson(nomenclaturePath));
-  assert.equal(value.schemaVersion, 11);
+  assert.equal(value.schemaVersion, 12);
   assert.deepEqual(value.lunarCycle, { name: 'Cyclus Lunae' });
   assert.deepEqual(Object.keys(value.lunarCycle), ['name']);
   assert.equal(value.calendar.yearName, 'Annus Solis');
@@ -100,7 +100,7 @@ test('production nomenclature validates complete neutral ID coverage', async () 
     { id: 'outcome-tier-02', name: 'Infrequens' },
     { id: 'outcome-tier-03', name: 'Rarum' }
   ]);
-  assert.deepEqual(value.location, { currentLocation: { id: 'location-01', name: 'Santiago' } });
+  assert.equal(Object.hasOwn(value, 'location'), false);
   assert.equal(Object.hasOwn(value, 'mappa'), false);
   assert.equal(value.calendar.weekdays.length, 7);
   assert.equal(value.calendar.namedDays.length, 5);
@@ -295,7 +295,7 @@ test('navigation-group nomenclature requires exact canonical name-only entities'
   }
 });
 
-test('page sections, Outcome types, and current location are exact nomenclature', async () => {
+test('page sections and Outcome types are exact nomenclature while location data is excluded', async () => {
   const valid = await readJson(nomenclaturePath);
   const value = validateNomenclature(valid);
   assert.deepEqual(value.pageSections.map(({ name }) => name), [
@@ -306,7 +306,7 @@ test('page sections, Outcome types, and current location are exact nomenclature'
     assert.equal(value.pageSections.some(({ name }) => name === removed), false, removed);
   }
   assert.deepEqual(value.outcomeTypes.map(({ name }) => name), ['Commune', 'Infrequens', 'Rarum']);
-  assert.deepEqual(value.location.currentLocation, { id: 'location-01', name: 'Santiago' });
+  assert.equal(Object.hasOwn(value, 'location'), false);
   assert.equal(Object.hasOwn(value, 'mappa'), false);
 
   const invalidValues = [];
@@ -317,12 +317,8 @@ test('page sections, Outcome types, and current location are exact nomenclature'
     const empty = structuredClone(valid); empty[key][0].name = ''; invalidValues.push(empty);
     const extra = structuredClone(valid); extra[key][0].mechanics = true; invalidValues.push(extra);
   }
-  const missingLocation = structuredClone(valid); delete missingLocation.location; invalidValues.push(missingLocation);
-  const extraLocation = structuredClone(valid); extraLocation.location.provider = 'external'; invalidValues.push(extraLocation);
-  const wrongLocation = structuredClone(valid); wrongLocation.location.currentLocation.id = 'location-02'; invalidValues.push(wrongLocation);
-  const emptyLocation = structuredClone(valid); emptyLocation.location.currentLocation.name = ''; invalidValues.push(emptyLocation);
-  const locationCoordinates = structuredClone(valid); locationCoordinates.location.currentLocation.coordinates = []; invalidValues.push(locationCoordinates);
-  const mappaCompatibility = structuredClone(valid); mappaCompatibility.mappa = structuredClone(valid.location); invalidValues.push(mappaCompatibility);
+  const legacyLocation = structuredClone(valid); legacyLocation.location = { currentLocation: { id: 'location-01', name: 'Santiago' } }; invalidValues.push(legacyLocation);
+  const mappaCompatibility = structuredClone(valid); mappaCompatibility.mappa = { currentLocation: { id: 'location-01', name: 'Santiago' } }; invalidValues.push(mappaCompatibility);
   const missingObservationes = structuredClone(valid); missingObservationes.pageSections.splice(4, 1); invalidValues.push(missingObservationes);
   const missingDecisiones = structuredClone(valid); missingDecisiones.pageSections.splice(5, 1); invalidValues.push(missingDecisiones);
   const investigationes = structuredClone(valid); investigationes.pageSections.push({ id: 'page-section-08', name: 'Investigationes' }); invalidValues.push(investigationes);
@@ -478,7 +474,6 @@ test('static bootstrap applies shared presentation without starting a recurring 
   }));
   const pageName = makeElement();
   const section = makeElement({ pageSectionId: 'page-section-01' });
-  const location = makeElement();
   const message = makeElement({ messageKey: 'label.currentLocation' });
   const application = makeElement();
   const version = makeElement();
@@ -487,7 +482,7 @@ test('static bootstrap applies shared presentation without starting a recurring 
   const meta = makeElement();
   const selectorLists = new Map([
     ['[data-page-id]', links], ['[data-page-name]', [pageName]],
-    ['[data-page-section-id]', [section]], ['[data-current-location]', [location]],
+    ['[data-page-section-id]', [section]],
     ['[data-message-key]', [message]], ['[data-application-name]', [application]],
     ['[data-version]', [version]], ['[data-epoch]', [epoch]]
   ]);
@@ -518,17 +513,16 @@ test('static bootstrap applies shared presentation without starting a recurring 
   assert.equal(pageName.textContent, 'Identitate');
   assert.equal(section.textContent, 'Titulo');
   assert.equal(message.textContent, 'Ubicación actual');
-  assert.equal(location.textContent, 'Santiago');
   assert.equal(application.textContent, 'Insidia');
-  assert.equal(version.textContent, 'v8.20');
+  assert.equal(version.textContent, 'v8.21');
   assert.match(epoch.textContent, /1970-01-01 00:00:00 UTC/);
 });
 
-test('locale schema 10 contains only localized UI language and exact page descriptions', async () => {
+test('locale schema 11 contains only localized UI language and exact page descriptions', async () => {
   const english = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'en.json')));
   const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
-  assert.equal(english.schemaVersion, 10);
-  assert.equal(spanish.schemaVersion, 10);
+  assert.equal(english.schemaVersion, 11);
+  assert.equal(spanish.schemaVersion, 11);
   assert.deepEqual(Object.keys(english).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
   assert.deepEqual(Object.keys(spanish).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
   assert.equal(Object.hasOwn(english, 'outcomeTypes'), false);
@@ -539,6 +533,24 @@ test('locale schema 10 contains only localized UI language and exact page descri
   assert.equal(spanish.messages['label.currentHour'], 'Hora actual');
   assert.equal(english.messages['label.currentLocation'], 'Current Location');
   assert.equal(spanish.messages['label.currentLocation'], 'Ubicación actual');
+  assert.deepEqual(
+    [
+      english.messages['label.region'], english.messages['label.elevation'],
+      english.messages['label.routesFrom'], english.messages['label.destination'],
+      english.messages['label.walkingTime'], english.messages['label.elevationChange'],
+      english.messages['status.noAvailableRoutes']
+    ],
+    ['Region', 'Elevation', 'Routes from', 'Destination', 'Walking time', 'Elevation change', 'No available routes.']
+  );
+  assert.deepEqual(
+    [
+      spanish.messages['label.region'], spanish.messages['label.elevation'],
+      spanish.messages['label.routesFrom'], spanish.messages['label.destination'],
+      spanish.messages['label.walkingTime'], spanish.messages['label.elevationChange'],
+      spanish.messages['status.noAvailableRoutes']
+    ],
+    ['Región', 'Elevación', 'Rutas desde', 'Destino', 'Tiempo a pie', 'Cambio de elevación', 'No hay rutas disponibles.']
+  );
   assert.equal(
     english.templates['document.page-02Description'],
     'Live selected outcome, tides, tide progress, pulls, and celestial orbits for {applicationName}.'
@@ -631,7 +643,7 @@ test('locale schema 10 contains only localized UI language and exact page descri
     (locale) => { locale.templates['outcome.type'] = '{name}'; },
     (locale) => { locale.templates['document.page-10Description'] = 'Unexpected'; },
     (locale) => { locale.templates['document.page-11Description'] = 'Unexpected'; },
-    (locale) => { locale.schemaVersion = 7; }
+    (locale) => { locale.schemaVersion = 10; }
   ]) {
     const invalid = structuredClone(spanish);
     mutate(invalid);

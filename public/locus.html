@@ -28,11 +28,18 @@
   </header>
   <main class="container">
     <h1 id="page-heading" class="visually-hidden" data-page-name></h1>
-    <section class="location-section" aria-labelledby="current-location-heading">
-      <p id="current-location-heading" class="section-label" data-message-key="label.currentLocation"></p>
-      <p class="location-name" data-current-location></p>
+    <section class="location-section" aria-labelledby="region-name">
+      <p class="section-label" data-message-key="label.region"></p>
+      <h2 id="region-name" class="region-name" data-region-name></h2>
+      <p class="region-description" data-region-description></p>
+      <div class="location-details">
+        <p class="group-label" data-message-key="label.currentLocation"></p>
+        <h3 class="location-name" data-location-name></h3>
+        <p class="location-description" data-location-description></p>
+        <p class="location-elevation"><span data-message-key="label.elevation"></span>: <span data-location-elevation></span></p>
+      </div>
     </section>
-    <footer><span data-application-name></span><span aria-hidden="true"> · </span><span data-epoch></span><span aria-hidden="true"> · </span><span class="version footer-version" data-version>v8.20</span></footer>
+    <footer><span data-application-name></span><span aria-hidden="true"> · </span><span data-epoch></span><span aria-hidden="true"> · </span><span class="version footer-version" data-version>v8.21</span></footer>
   </main>
 </div><script type="module" src="/locus-page.js"></script></body>
 </html>
