@@ -4,9 +4,12 @@ import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { bootstrapPage, bootstrapStaticPage } from '../public/app-bootstrap.js';
-import { DEFAULT_LOCALE_ID, LOCALE_FILES, MESSAGE_KEYS, TEMPLATE_KEYS, loadLocale, validateLocale } from '../public/locale-loader.js';
+import {
+  INTERFACE_LANGUAGE_TAG,
+  INTERFACE_MESSAGES,
+  INTERFACE_TEMPLATES
+} from '../public/interface-text.js';
 import { loadNomenclature, NOMENCLATURE_PATH, validateNomenclature } from '../public/nomenclature-loader.js';
-import { loadPresentationContext, requestedPresentationOptions } from '../public/presentation-context-loader.js';
 import { formatTemplate } from '../public/templates.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -41,10 +44,13 @@ test('there is exactly one production nomenclature JSON file and no universe inf
   await assert.rejects(access(path.join(publicDirectory, 'universe-loader.js')));
 });
 
-test('locale index is removed and supported locale files are fixed in the loader registry', async () => {
-  await assert.rejects(access(path.join(publicDirectory, 'locales', 'index.json')));
-  assert.equal(DEFAULT_LOCALE_ID, 'en');
-  assert.deepEqual(LOCALE_FILES, { en: '/locales/en.json', es: '/locales/es.json' });
+test('localization resources and presentation orchestrator are removed', async () => {
+  for (const removedPath of ['locales', 'locale-loader.js', 'presentation-context-loader.js']) {
+    await assert.rejects(access(path.join(publicDirectory, removedPath)));
+  }
+  assert.equal(INTERFACE_LANGUAGE_TAG, 'ia');
+  assert.equal(Object.isFrozen(INTERFACE_MESSAGES), true);
+  assert.equal(Object.isFrozen(INTERFACE_TEMPLATES), true);
 });
 
 test('loadNomenclature always requests the one fixed same-origin path', async () => {
@@ -360,7 +366,7 @@ function configurationErrorDocument() {
   return { documentElement, body: makeElement(), createElement: makeElement };
 }
 
-test('missing or invalid nomenclature prevents rendering and shows a localized accessible error', async (t) => {
+test('missing or invalid nomenclature prevents rendering and shows the fixed Interlingua accessible error', async (t) => {
   t.mock.method(console, 'error', () => {});
   const valid = await readJson(nomenclaturePath);
   const invalid = structuredClone(valid); invalid.calendar.monthReign.rulers.pop();
@@ -368,100 +374,30 @@ test('missing or invalid nomenclature prevents rendering and shows a localized a
   const invalidYearName = structuredClone(valid); invalidYearName.calendar.yearName = '';
   const invalidLunarCycle = structuredClone(valid); invalidLunarCycle.lunarCycle.name = '';
   for (const replacement of ['missing', invalid, invalidWeekday, invalidYearName, invalidLunarCycle]) {
-    for (const [localeId, message, languageTag] of [
-      ['en', 'Unable to load the application or locale configuration.', 'en'],
-      ['es', 'No se pudo cargar la configuración de la aplicación o del idioma.', 'es']
-    ]) {
-      const documentRoot = configurationErrorDocument();
-      let rendererCreated = false;
-      const result = await bootstrapPage('page-01', () => { rendererCreated = true; }, {
-        documentRoot,
-        locationLike: { href: `http://app.test/calendario.html?locale=${localeId}` },
-        fetchFn: localFetch(new Map([[NOMENCLATURE_PATH, replacement]]))
-      });
-      assert.equal(result, null);
-      assert.equal(rendererCreated, false);
-      assert.equal(documentRoot.documentElement.attributes['aria-busy'], undefined);
-      assert.equal(documentRoot.documentElement.lang, languageTag);
-      assert.equal(documentRoot.body.children[0].attributes.role, 'alert');
-      assert.equal(documentRoot.body.children[0].children[0].textContent, message);
-    }
-  }
-});
-
-test('locale failure uses the minimal emergency English configuration error', async (t) => {
-  t.mock.method(console, 'error', () => {});
-  const documentRoot = configurationErrorDocument();
-  const result = await bootstrapPage('page-01', () => assert.fail('renderer must not start'), {
-    documentRoot,
-    locationLike: { href: 'http://app.test/calendario.html?locale=es' },
-    fetchFn: localFetch(new Map([['/locales/es.json', 'malformed']]))
-  });
-  assert.equal(result, null);
-  assert.equal(documentRoot.documentElement.lang, 'en');
-  assert.equal(documentRoot.body.children[0].children[0].textContent, 'Unable to load application configuration.');
-});
-
-test('locale-only query parsing defaults, resolves Spanish, and ignores all other parameters', () => {
-  assert.deepEqual(requestedPresentationOptions('http://app.test/calendario.html'), { requestedLocaleId: undefined });
-  assert.deepEqual(requestedPresentationOptions('http://app.test/calendario.html?locale=es'), { requestedLocaleId: 'es' });
-  assert.deepEqual(requestedPresentationOptions('http://app.test/calendario.html?universe=other&locale=es&unused=x'), { requestedLocaleId: 'es' });
-});
-
-test('locale loader performs exactly one allowlisted request for default, Spanish, and unknown IDs', async () => {
-  for (const [requestedId, expectedPath, expectedRequestedId, expectedResolvedId] of [
-    [undefined, '/locales/en.json', 'en', 'en'],
-    ['en', '/locales/en.json', 'en', 'en'],
-    ['es', '/locales/es.json', 'es', 'es'],
-    ['unknown', '/locales/en.json', 'unknown', 'en'],
-    ['../config/nomenclature', '/locales/en.json', '../config/nomenclature', 'en']
-  ]) {
-    const requests = [];
-    const result = await loadLocale({
-      requestedId,
-      fetchFn: localFetch(new Map(), requests),
-      baseUrl: 'http://app.test/calendario.html'
+    const documentRoot = configurationErrorDocument();
+    let rendererCreated = false;
+    const result = await bootstrapPage('page-01', () => { rendererCreated = true; }, {
+      documentRoot,
+      locationLike: { href: 'http://app.test/calendario.html?locale=es' },
+      fetchFn: localFetch(new Map([[NOMENCLATURE_PATH, replacement]]))
     });
-    assert.deepEqual(requests, [expectedPath]);
-    assert.equal(result.requestedLocaleId, expectedRequestedId);
-    assert.equal(result.resolvedLocaleId, expectedResolvedId);
-  }
-});
-
-test('locale and nomenclature begin concurrently with exactly two configuration requests', async () => {
-  const localeValues = {
-    en: await readJson(path.join(publicDirectory, 'locales', 'en.json')),
-    es: await readJson(path.join(publicDirectory, 'locales', 'es.json'))
-  };
-  const nomenclature = await readJson(nomenclaturePath);
-  for (const localeId of ['en', 'es']) {
-    const requests = [];
-    const pending = new Map();
-    const fetchFn = (url, options) => {
-      assert.equal(options.cache, 'no-cache');
-      const pathname = new URL(url).pathname;
-      requests.push(pathname);
-      return new Promise((resolve) => pending.set(pathname, resolve));
-    };
-    const contextPromise = loadPresentationContext(
-      `http://app.test/calendario.html?locale=${localeId}`,
-      { fetchFn }
+    assert.equal(result, null);
+    assert.equal(rendererCreated, false);
+    assert.equal(documentRoot.documentElement.attributes['aria-busy'], undefined);
+    assert.equal(documentRoot.documentElement.lang, 'ia');
+    assert.equal(documentRoot.body.children[0].attributes.role, 'alert');
+    assert.equal(
+      documentRoot.body.children[0].children[0].textContent,
+      'Impossibile cargar le configuration del application.'
     );
-    assert.deepEqual(requests.sort(), [`/locales/${localeId}.json`, NOMENCLATURE_PATH].sort());
-    assert.equal(requests.length, 2);
-    assert.equal(requests.includes('/locales/index.json'), false);
-    pending.get(`/locales/${localeId}.json`)({ ok: true, json: async () => structuredClone(localeValues[localeId]) });
-    pending.get(NOMENCLATURE_PATH)({ ok: true, json: async () => structuredClone(nomenclature) });
-    const context = await contextPromise;
-    assert.equal(context.resolvedLocaleId, localeId);
-    assert.equal(context.applicationDisplayName, 'Insidia');
   }
 });
 
-test('app bootstrap delegates presentation-resource loading to the shared orchestrator only', async () => {
+test('app bootstrap loads fixed nomenclature directly without localization infrastructure', async () => {
   const source = await readFile(path.join(publicDirectory, 'app-bootstrap.js'), 'utf8');
-  assert.match(source, /import \{ loadPresentationContext \} from '\.\/presentation-context-loader\.js'/);
-  assert.doesNotMatch(source, /loadLocale|loadNomenclature|createPresentationContext|requestedPresentationOptions/);
+  assert.match(source, /import \{ loadNomenclature \} from '\.\/nomenclature-loader\.js'/);
+  assert.match(source, /import \{ createPresentationContext \} from '\.\/nomenclature\.js'/);
+  assert.doesNotMatch(source, /loadLocale|loadPresentationContext|requestedPresentationOptions/);
 });
 
 test('static bootstrap applies shared presentation without starting a recurring timer', async (t) => {
@@ -496,182 +432,104 @@ test('static bootstrap applies shared presentation without starting a recurring 
     },
     querySelectorAll(selector) { return selectorLists.get(selector) ?? []; }
   };
+  const requests = [];
   const timeoutMock = t.mock.method(globalThis, 'setTimeout', () => assert.fail('static bootstrap must not schedule a timer'));
   const result = await bootstrapStaticPage('page-04', {
     documentRoot,
     locationLike: { href: 'http://app.test/identitate.html?locale=es' },
-    fetchFn: localFetch()
+    fetchFn: localFetch(new Map(), requests)
   });
   assert.ok(result);
   assert.equal(timeoutMock.mock.callCount(), 0);
   assert.equal(documentRoot.documentElement.attributes['aria-busy'], 'false');
-  assert.equal(documentRoot.documentElement.lang, 'es');
+  assert.equal(documentRoot.documentElement.lang, 'ia');
   assert.equal(documentRoot.title, 'Identitate · Insidia');
-  assert.equal(meta.attributes.content, 'Título, nombre, epíteto, memorias y decisiones del personaje para Insidia.');
+  assert.equal(meta.attributes.content, 'Profilo e historia del persona pro Insidia.');
   assert.equal(links[6].textContent, 'Locus');
-  assert.equal(links[6].attributes.href, '/locus.html?locale=es');
+  assert.equal(links[6].attributes.href, '/locus.html');
   assert.equal(pageName.textContent, 'Identitate');
   assert.equal(section.textContent, 'Titulo');
-  assert.equal(message.textContent, 'Ubicación actual');
+  assert.equal(message.textContent, 'Loco actual');
   assert.equal(application.textContent, 'Insidia');
-  assert.equal(version.textContent, 'v8.23');
+  assert.equal(version.textContent, 'v8.24');
   assert.match(epoch.textContent, /1970-01-01 00:00:00 UTC/);
+  assert.deepEqual(requests, [NOMENCLATURE_PATH]);
 });
 
-test('locale schema 13 contains only localized UI language and exact page descriptions', async () => {
-  const english = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'en.json')));
-  const spanish = validateLocale(await readJson(path.join(publicDirectory, 'locales', 'es.json')));
-  assert.equal(english.schemaVersion, 13);
-  assert.equal(spanish.schemaVersion, 13);
-  assert.deepEqual(Object.keys(english).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
-  assert.deepEqual(Object.keys(spanish).sort(), ['id', 'languageTag', 'messages', 'schemaVersion', 'templates']);
-  assert.equal(Object.hasOwn(english, 'outcomeTypes'), false);
-  assert.equal(Object.hasOwn(spanish, 'outcomeTypes'), false);
-  assert.equal(english.messages['label.currentTideProgress'], 'Current Tide Progress');
-  assert.equal(spanish.messages['label.currentTideProgress'], 'Progreso de la marea actual');
-  assert.equal(english.messages['label.currentHour'], 'Current Hour');
-  assert.equal(spanish.messages['label.currentHour'], 'Hora actual');
-  assert.equal(english.messages['label.currentLocation'], 'Current Location');
-  assert.equal(spanish.messages['label.currentLocation'], 'Ubicación actual');
-  assert.deepEqual(
-    [
-      english.messages['label.region'], english.messages['label.elevation'],
-      english.messages['label.localRoutes'], english.messages['label.interRegionalRoutes'],
-      english.messages['label.routesFrom'], english.messages['label.destination'],
-      english.messages['label.destinationRegion'], english.messages['label.exitPoint'],
-      english.messages['label.entryPoint'], english.messages['label.travelTime'],
-      english.messages['label.elevationChange'], english.messages['status.noAvailableLocalRoutes'],
-      english.messages['status.noAvailableInterRegionRoutes'], english.templates['route.fictionalMinutes'],
-      english.templates['route.directionalPoint']
-    ],
-    [
-      'Region', 'Elevation', 'Local routes', 'Inter-regional routes', 'Routes from',
-      'Destination', 'Destination region', 'Exit point', 'Entry point', 'Travel time', 'Elevation change',
-      'No local routes are available.', 'No inter-regional routes are available.',
-      '{value} fictional minutes', '{locationName} ({direction})'
-    ]
-  );
-  assert.deepEqual(
-    [
-      spanish.messages['label.region'], spanish.messages['label.elevation'],
-      spanish.messages['label.localRoutes'], spanish.messages['label.interRegionalRoutes'],
-      spanish.messages['label.routesFrom'], spanish.messages['label.destination'],
-      spanish.messages['label.destinationRegion'], spanish.messages['label.exitPoint'],
-      spanish.messages['label.entryPoint'], spanish.messages['label.travelTime'],
-      spanish.messages['label.elevationChange'], spanish.messages['status.noAvailableLocalRoutes'],
-      spanish.messages['status.noAvailableInterRegionRoutes'], spanish.templates['route.fictionalMinutes'],
-      spanish.templates['route.directionalPoint']
-    ],
-    [
-      'Región', 'Elevación', 'Rutas locales', 'Rutas interregionales', 'Rutas desde',
-      'Destino', 'Región de destino', 'Punto de salida', 'Punto de entrada', 'Tiempo de viaje', 'Cambio de elevación',
-      'No hay rutas locales disponibles.', 'No hay rutas interregionales disponibles.',
-      '{value} minutos ficticios', '{locationName} ({direction})'
-    ]
-  );
-  assert.equal(
-    english.templates['document.page-02Description'],
-    'Live selected outcome, tides, tide progress, pulls, and celestial orbits for {applicationName}.'
-  );
-  assert.equal(
-    spanish.templates['document.page-02Description'],
-    'Resultado seleccionado, mareas, progreso de la marea, fuerzas y órbitas celestes en vivo para {applicationName}.'
-  );
-  assert.equal(MESSAGE_KEYS.includes('label.currentTideProgress'), true);
-  assert.equal(MESSAGE_KEYS.includes('label.currentHour'), true);
-  assert.equal(MESSAGE_KEYS.includes('label.currentLocation'), true);
-  assert.deepEqual(
-    [
-      english.templates['document.page-04Description'],
-      english.templates['document.page-05Description'],
-      english.templates['document.page-06Description'],
-      english.templates['document.page-07Description'],
-      english.templates['document.page-08Description'],
-      english.templates['document.page-09Description']
-    ],
-    [
-      'Character title, name, epithet, memories, and decisions for {applicationName}.',
-      'Character equipment and storage for {applicationName}.',
-      "Champions and minions under the character's command for {applicationName}.",
-      'Current location for {applicationName}.',
-      'Local and inter-regional route information for {applicationName}.',
-      'Exploration observations for {applicationName}.'
-    ]
-  );
-  assert.deepEqual(
-    [
-      spanish.templates['document.page-04Description'],
-      spanish.templates['document.page-05Description'],
-      spanish.templates['document.page-06Description'],
-      spanish.templates['document.page-07Description'],
-      spanish.templates['document.page-08Description'],
-      spanish.templates['document.page-09Description']
-    ],
-    [
-      'Título, nombre, epíteto, memorias y decisiones del personaje para {applicationName}.',
-      'Equipo y depósito del personaje para {applicationName}.',
-      'Campeones y esbirros bajo el mando del personaje para {applicationName}.',
-      'Ubicación actual para {applicationName}.',
-      'Información de rutas locales e interregionales para {applicationName}.',
-      'Observaciones de exploración para {applicationName}.'
-    ]
-  );
-  const calendarTemplates = {
-    'calendar.formattedYear': '{yearName} {yearRoman}',
-    'calendar.firstMonthReign': '{reignName} {rulerName}',
-    'calendar.repeatedMonthReign': '{ordinalName} {reignName} {rulerName}',
-    'calendar.monthPeriod': '{weekdayName} {dayDesignation} · {monthName}',
-    'calendar.interPeriod': '{weekdayName} {dayDesignation} · {interRegnumName}',
-    'calendar.formattedDate': '{formattedYear} · {periodLabel}'
-  };
-  for (const locale of [english, spanish]) {
-    for (const [key, value] of Object.entries(calendarTemplates)) assert.equal(locale.templates[key], value, key);
-    assert.equal(Object.hasOwn(locale.templates, 'calendar.metadata'), false);
-    assert.equal(locale.templates['lunar.summary'], '{phaseName} • {cycleName} {cycleRoman}');
-    assert.equal(Object.hasOwn(locale.templates, 'lunar.metadata'), false);
-    assert.equal(Object.hasOwn(locale.templates, 'outcome.type'), false);
-    for (const key of ['section.lunar', 'label.phase', 'label.lunarDay']) assert.equal(Object.hasOwn(locale.messages, key), false, key);
-    assert.equal(locale.messages['label.cycle'] !== undefined, true);
-    assert.doesNotMatch(JSON.stringify(locale), /Morditura|Cyclus Lunae/);
-    assert.doesNotMatch(JSON.stringify(locale), /Kalendis|Nonis|Idibus|Liminis|Interregis|Primus Interregno/);
-    assert.doesNotMatch(JSON.stringify(locale), /dayRoman/);
-    for (const name of ['Personage','Identitate','Inventario','Subordinatos','Observationes','Decisiones','Equipamento','Deposito','Campiones','Miniones']) {
-      assert.equal(Object.values(locale.messages).includes(name), false, name);
-    }
-  }
-  for (const key of ['section.lunar', 'label.phase', 'label.lunarDay']) assert.equal(MESSAGE_KEYS.includes(key), false, key);
-  assert.equal(MESSAGE_KEYS.includes('label.cycle'), true);
-  assert.equal(TEMPLATE_KEYS.includes('lunar.metadata'), false);
-  assert.equal(TEMPLATE_KEYS.includes('lunar.summary'), true);
-  assert.equal(TEMPLATE_KEYS.includes('outcome.type'), false);
-  for (const key of ['document.page-10Description', 'document.page-11Description']) {
-    assert.equal(TEMPLATE_KEYS.includes(key), false, key);
-    assert.equal(Object.hasOwn(english.templates, key), false, key);
-    assert.equal(Object.hasOwn(spanish.templates, key), false, key);
-  }
-  for (const locale of [english, spanish]) {
-    for (const key of ['nav.calendar','nav.outcome','nav.weather','page.calendar','page.outcome','page.weather','label.outcome']) {
-      assert.equal(Object.hasOwn(locale.messages, key), false, key);
-    }
-  }
-  for (const mutate of [
-    (locale) => { locale.outcomeTypes = {}; },
-    (locale) => { locale.extra = true; },
-    (locale) => { delete locale.messages['label.currentLocation']; },
-    (locale) => { locale.templates['outcome.type'] = '{name}'; },
-    (locale) => { locale.templates['document.page-10Description'] = 'Unexpected'; },
-    (locale) => { locale.templates['document.page-11Description'] = 'Unexpected'; },
-    (locale) => { locale.schemaVersion = 10; }
+test('fixed interface exports exactly the production-used Interlingua keys', () => {
+  const expectedMessageKeys = [
+    'nav.aria', 'section.time', 'section.season', 'section.tide', 'section.pulls',
+    'section.orbits', 'section.progress', 'label.day', 'label.hour', 'label.cycle',
+    'label.orbit', 'label.seasonalDay', 'label.next', 'label.progress',
+    'label.currentFictionalTime', 'label.currentLunarTime', 'label.currentLunarDay',
+    'label.currentDay', 'label.currentHour', 'label.currentTideProgress',
+    'label.attemptsUntilRare', 'label.orbitalProgress', 'label.circularSpan',
+    'label.alignment', 'label.currentLocation', 'label.region', 'label.elevation',
+    'label.localRoutes', 'label.interRegionalRoutes', 'label.routesFrom',
+    'label.destination', 'label.destinationRegion', 'label.exitPoint', 'label.entryPoint',
+    'label.travelTime', 'label.elevationChange', 'label.epoch', 'status.tieBreakApplied',
+    'status.noAvailableLocalRoutes', 'status.noAvailableInterRegionRoutes',
+    'selection.selection-rule-01', 'selection.selection-rule-02', 'selection.selection-rule-03',
+    'clarification.pulls', 'accessibility.applicationVersion',
+    'accessibility.seasonProgress', 'error.configuration'
+  ];
+  const expectedTemplateKeys = [
+    'document.title', 'document.page-01Description', 'document.page-02Description',
+    'document.page-03Description', 'document.page-04Description',
+    'document.page-05Description', 'document.page-06Description',
+    'document.page-07Description', 'document.page-08Description',
+    'document.page-09Description', 'accessibility.version',
+    'accessibility.orbitProgress', 'calendar.formattedYear',
+    'calendar.firstMonthReign', 'calendar.repeatedMonthReign',
+    'calendar.monthPeriod', 'calendar.interPeriod', 'calendar.formattedDate',
+    'lunar.summary', 'season.metadata', 'season.cycle', 'season.next',
+    'season.progress', 'tide.metadata', 'tide.time', 'outcome.attempts',
+    'outcome.source', 'outcome.progress', 'orbit.calendarPeriod',
+    'orbit.lunarPeriod', 'orbit.metadata', 'pull.span', 'pull.alignment',
+    'pull.tie', 'pull.noTie', 'route.fictionalMinutes', 'route.directionalPoint',
+    'footer.epoch'
+  ];
+  assert.deepEqual(Object.keys(INTERFACE_MESSAGES), expectedMessageKeys);
+  assert.deepEqual(Object.keys(INTERFACE_TEMPLATES), expectedTemplateKeys);
+  assert.equal(INTERFACE_MESSAGES['nav.aria'], 'Navigation principal');
+  assert.equal(INTERFACE_MESSAGES['label.currentLocation'], 'Loco actual');
+  assert.equal(INTERFACE_TEMPLATES['route.fictionalMinutes'], '{value} minutas fictional');
+  for (const removedKey of [
+    'section.json', 'label.copyJson', 'status.copied', 'status.copyFailure',
+    'accessibility.copyStatus', 'label.year', 'label.month', 'label.week', 'pull.members'
   ]) {
-    const invalid = structuredClone(spanish);
-    mutate(invalid);
-    await assert.rejects(() => loadLocale({ requestedId: 'es', fetchFn: localFetch(new Map([['/locales/es.json', invalid]])), baseUrl: 'http://app.test/' }));
+    assert.equal(Object.hasOwn(INTERFACE_MESSAGES, removedKey), false, removedKey);
+    assert.equal(Object.hasOwn(INTERFACE_TEMPLATES, removedKey), false, removedKey);
   }
-  const mismatched = structuredClone(spanish); mismatched.id = 'en';
-  await assert.rejects(
-    () => loadLocale({ requestedId: 'es', fetchFn: localFetch(new Map([['/locales/es.json', mismatched]])), baseUrl: 'http://app.test/' }),
-    /Locale ID does not match registry/
-  );
+  assert.doesNotMatch(JSON.stringify({ INTERFACE_MESSAGES, INTERFACE_TEMPLATES }), /Morditura|Cyclus Lunae|Kalendis|Interregis/);
+});
+
+test('fixed interface values contain no nomenclature- or world-owned visible terms', async () => {
+  const nomenclature = await readJson(nomenclaturePath);
+  const world = await readJson(path.join(publicDirectory, 'regions', 'world.json'));
+  const interfaceValues = Object.values({ ...INTERFACE_MESSAGES, ...INTERFACE_TEMPLATES }).join('\n');
+  const visibleTerms = [
+    nomenclature.application.displayName,
+    nomenclature.calendar.yearName,
+    nomenclature.calendar.monthReign.name,
+    nomenclature.lunarCycle.name,
+    ...[
+      'pages', 'navigationGroups', 'pageSections', 'outcomeTypes', 'seasons',
+      'lunarPhases', 'tides', 'celestialBodies', 'pulls'
+    ].flatMap((key) => nomenclature[key].flatMap(({ name, symbol }) => [name, symbol].filter(Boolean))),
+    ...['rulers', 'ordinals'].flatMap((key) => nomenclature.calendar.monthReign[key].map(({ name }) => name)),
+    ...['weekdays', 'namedDays', 'interRegna'].flatMap((key) => nomenclature.calendar[key].map(({ name }) => name)),
+    ...Object.values(world.regions).flatMap((region) => [
+      region.regionName,
+      region.description,
+      ...Object.values(region.locations).flatMap(({ name, description }) => [name, description]),
+      ...region.routes.map(({ name }) => name)
+    ]),
+    ...world.interRegionRoutes.map(({ routeName }) => routeName)
+  ];
+  for (const term of visibleTerms) {
+    assert.equal(interfaceValues.includes(term), false, term);
+  }
 });
 
 test('template formatter replaces named values and rejects missing values', () => {

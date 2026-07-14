@@ -5,10 +5,9 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { bootstrapStaticPage as bootstrapCommonStaticPage } from '../public/app-bootstrap.js';
 import { bootstrapStaticPage as bootstrapLocationPage } from '../public/location-bootstrap.js';
-import { renderLocus, renderRutas } from '../public/location-renderers.js';
+import { formatMeters, renderLocus, renderRutas } from '../public/location-renderers.js';
 import { INITIAL_LOCATION_STATE } from '../public/location-state.js';
 import { createLocationContext } from '../public/location.js';
-import { validateLocale } from '../public/locale-loader.js';
 import { validateNomenclature } from '../public/nomenclature-loader.js';
 import { createPresentationContext } from '../public/nomenclature.js';
 import {
@@ -38,21 +37,11 @@ async function worldResult() {
   };
 }
 
-async function presentationContext(localeId = 'en') {
-  const [nomenclatureSource, localeSource] = await Promise.all([
-    readJson(nomenclaturePath),
-    readJson(path.join(publicDirectory, 'locales', `${localeId}.json`))
-  ]);
+async function presentationContext() {
+  const nomenclatureSource = await readJson(nomenclaturePath);
   const nomenclature = validateNomenclature(nomenclatureSource);
-  const locale = validateLocale(localeSource);
   return createPresentationContext({
-    nomenclatureResult: { schemaVersion: nomenclature.schemaVersion, nomenclature },
-    localeResult: {
-      requestedLocaleId: localeId,
-      resolvedLocaleId: localeId,
-      schemaVersion: locale.schemaVersion,
-      locale
-    }
+    nomenclatureResult: { schemaVersion: nomenclature.schemaVersion, nomenclature }
   });
 }
 
@@ -159,7 +148,7 @@ function makeBootstrapDocument(pageId) {
     },
     querySelectorAll(selector) { return selectorLists.get(selector) ?? []; }
   };
-  return { documentRoot, specific };
+  return { documentRoot, specific, links };
 }
 
 function rendererRoot(selectors) {
@@ -627,28 +616,24 @@ test('location context keeps inter-region routes distinct and resolves symmetric
   assert.equal(context.getInterRegionRoutes().includes(context.getRoutes('sheol')[0]), false);
 });
 
-test('Locus and Rutas start locale, nomenclature, and world requests concurrently without timers', async (t) => {
-  const [nomenclature, world, english, spanish] = await Promise.all([
+test('Locus and Rutas start nomenclature and world requests concurrently without timers', async (t) => {
+  const [nomenclature, world] = await Promise.all([
     readJson(nomenclaturePath),
-    productionWorld(),
-    readJson(path.join(publicDirectory, 'locales', 'en.json')),
-    readJson(path.join(publicDirectory, 'locales', 'es.json'))
+    productionWorld()
   ]);
   const values = new Map([
     ['/config/nomenclature.json', nomenclature],
-    ['/regions/world.json', world],
-    ['/locales/en.json', english],
-    ['/locales/es.json', spanish]
+    ['/regions/world.json', world]
   ]);
   const timeoutMock = t.mock.method(globalThis, 'setTimeout', () => assert.fail('location pages must not schedule timers'));
 
-  for (const [pageId, pathname, localeId] of [
-    ['page-07', '/locus.html', 'en'],
-    ['page-08', '/rutas.html', 'es']
+  for (const [pageId, pathname] of [
+    ['page-07', '/locus.html'],
+    ['page-08', '/rutas.html']
   ]) {
     const requests = [];
     const pending = new Map();
-    const { documentRoot, specific } = makeBootstrapDocument(pageId);
+    const { documentRoot, specific, links } = makeBootstrapDocument(pageId);
     const fetchFn = (url, options) => {
       assert.equal(options.cache, 'no-cache');
       const requestPath = new URL(url).pathname;
@@ -657,21 +642,22 @@ test('Locus and Rutas start locale, nomenclature, and world requests concurrentl
     };
     const bootstrapPromise = bootstrapLocationPage(pageId, {
       documentRoot,
-      locationLike: { href: `https://app.test${pathname}?locale=${localeId}` },
+      locationLike: { href: `https://app.test${pathname}?locale=es` },
       fetchFn
     });
     assert.deepEqual(requests.sort(), [
-      `/locales/${localeId}.json`,
       '/config/nomenclature.json',
       '/regions/world.json'
     ].sort());
-    assert.equal(requests.length, 3);
+    assert.equal(requests.length, 2);
     for (const requestPath of requests) {
       pending.get(requestPath)(response(values.get(requestPath), `https://app.test${requestPath}`));
     }
     const context = await bootstrapPromise;
     assert.equal(context.currentLocationId, INITIAL_LOCATION_STATE.locationId);
     assert.equal(documentRoot.documentElement.attributes['aria-busy'], 'false');
+    assert.equal(documentRoot.documentElement.lang, 'ia');
+    assert.equal(links.every((link) => !link.attributes.href.includes('?')), true);
     if (pageId === 'page-07') {
       assert.equal(specific.get('[data-region-name]').textContent, 'Sheol');
     } else {
@@ -682,15 +668,9 @@ test('Locus and Rutas start locale, nomenclature, and world requests concurrentl
   assert.equal(timeoutMock.mock.callCount(), 0);
 });
 
-test('ordinary static pages still load only locale and nomenclature resources', async () => {
-  const [nomenclature, english] = await Promise.all([
-    readJson(nomenclaturePath),
-    readJson(path.join(publicDirectory, 'locales', 'en.json'))
-  ]);
-  const values = new Map([
-    ['/config/nomenclature.json', nomenclature],
-    ['/locales/en.json', english]
-  ]);
+test('ordinary static pages load only nomenclature even when a locale query is present', async () => {
+  const nomenclature = await readJson(nomenclaturePath);
+  const values = new Map([['/config/nomenclature.json', nomenclature]]);
   const requests = [];
   const pending = new Map();
   const { documentRoot } = makeBootstrapDocument('page-09');
@@ -704,7 +684,7 @@ test('ordinary static pages still load only locale and nomenclature resources', 
       return new Promise((resolve) => pending.set(requestPath, resolve));
     }
   });
-  assert.deepEqual(requests.sort(), ['/locales/en.json', '/config/nomenclature.json'].sort());
+  assert.deepEqual(requests, ['/config/nomenclature.json']);
   assert.equal(requests.includes('/regions/world.json'), false);
   for (const requestPath of requests) {
     pending.get(requestPath)(response(values.get(requestPath), `https://app.test${requestPath}`));
@@ -713,12 +693,9 @@ test('ordinary static pages still load only locale and nomenclature resources', 
   assert.equal(context.applicationDisplayName, 'Insidia');
 });
 
-test('world configuration failures use the resolved localized error and never render partial UI', async (t) => {
+test('world configuration failures use the fixed Interlingua error and never render partial UI', async (t) => {
   t.mock.method(console, 'error', () => {});
-  const [nomenclature, spanish] = await Promise.all([
-    readJson(nomenclaturePath),
-    readJson(path.join(publicDirectory, 'locales', 'es.json'))
-  ]);
+  const nomenclature = await readJson(nomenclaturePath);
   const { documentRoot, specific } = makeBootstrapDocument('page-07');
   const result = await bootstrapLocationPage('page-07', {
     documentRoot,
@@ -726,114 +703,113 @@ test('world configuration failures use the resolved localized error and never re
     fetchFn: async (url) => {
       const pathname = new URL(url).pathname;
       if (pathname === '/regions/world.json') return { ok: false, json: async () => null };
-      return response(pathname === '/locales/es.json' ? spanish : nomenclature, `https://app.test${pathname}`);
+      return response(nomenclature, `https://app.test${pathname}`);
     }
   });
   assert.equal(result, null);
-  assert.equal(documentRoot.documentElement.lang, 'es');
+  assert.equal(documentRoot.documentElement.lang, 'ia');
   assert.equal(documentRoot.body.children[0].attributes.role, 'alert');
   assert.equal(
     documentRoot.body.children[0].children[0].textContent,
-    'No se pudo cargar la configuración de la aplicación o del idioma.'
+    'Impossibile cargar le configuration del application.'
   );
   assert.equal(specific.get('[data-region-name]').textContent, '');
 });
 
-test('Locus renders initial Sheol data without coordinates in both locales', async () => {
+test('Locus renders initial Sheol data with deterministic Interlingua meters and no coordinates', async () => {
   const locationContext = createLocationContext({ worldResult: await worldResult() });
   const selectors = [
     '[data-region-name]', '[data-region-description]', '[data-location-name]',
     '[data-location-description]', '[data-location-elevation]'
   ];
-  const visibleByLocale = {};
-  for (const localeId of ['en', 'es']) {
-    const rootElement = rendererRoot(selectors);
-    renderLocus(rootElement, await presentationContext(localeId), locationContext);
-    visibleByLocale[localeId] = Object.fromEntries(
-      [...rootElement.elements].map(([selector, element]) => [selector, element.textContent])
-    );
-  }
-  for (const localeId of ['en', 'es']) {
-    assert.equal(visibleByLocale[localeId]['[data-region-name]'], 'Sheol');
-    assert.equal(visibleByLocale[localeId]['[data-region-description]'], 'Le integre regno occultate sub le superficie.');
-    assert.equal(visibleByLocale[localeId]['[data-location-name]'], 'Le Bucca de Sheol');
-    assert.equal(
-      visibleByLocale[localeId]['[data-location-description]'],
-      'Le entrata ceremonial principal ab le mundo del vivos.'
-    );
-  }
-  assert.equal(visibleByLocale.en['[data-location-elevation]'], '1 meter');
-  assert.equal(visibleByLocale.es['[data-location-elevation]'], '1 metro');
-  assert.doesNotMatch(JSON.stringify(visibleByLocale), /40\.838737|14\.076167/);
+  const rootElement = rendererRoot(selectors);
+  renderLocus(rootElement, await presentationContext(), locationContext);
+  const visible = Object.fromEntries(
+    [...rootElement.elements].map(([selector, element]) => [selector, element.textContent])
+  );
+  assert.equal(visible['[data-region-name]'], 'Sheol');
+  assert.equal(visible['[data-region-description]'], 'Le integre regno occultate sub le superficie.');
+  assert.equal(visible['[data-location-name]'], 'Le Bucca de Sheol');
+  assert.equal(visible['[data-location-description]'], 'Le entrata ceremonial principal ab le mundo del vivos.');
+  assert.equal(visible['[data-location-elevation]'], '1 metro');
+  assert.equal(formatMeters(1), '1 metro');
+  assert.equal(formatMeters(1.25), '1.25 metros');
+  assert.equal(formatMeters(-0.5), '-0.5 metros');
+  assert.doesNotMatch(JSON.stringify(visible), /40\.838737|14\.076167/);
 });
 
-test('Rutas renders separate direct local and inter-regional routes in both locales', async () => {
+test('Rutas renders exact fixed Interlingua local and inter-regional route prose', async () => {
   const locationContext = createLocationContext({ worldResult: await worldResult() });
   const selectors = [
     '[data-route-origin]', '[data-local-route-list]', '[data-local-route-empty]',
     '[data-inter-region-route-list]', '[data-inter-region-route-empty]'
   ];
-  const snapshots = {};
-  for (const localeId of ['en', 'es']) {
-    const rootElement = rendererRoot(selectors);
-    renderRutas(rootElement, await presentationContext(localeId), locationContext);
-    const localCards = rootElement.elements.get('[data-local-route-list]').children;
-    const interRegionCards = rootElement.elements.get('[data-inter-region-route-list]').children;
-    assert.equal(localCards.length, 3);
-    assert.equal(interRegionCards.length, 1);
-    assert.equal(rootElement.elements.get('[data-local-route-empty]').hidden, true);
-    assert.equal(rootElement.elements.get('[data-inter-region-route-empty]').hidden, true);
-    snapshots[localeId] = {
-      origin: rootElement.elements.get('[data-route-origin]').textContent,
-      local: localCards.map((card) => card.children.map(({ textContent }) => textContent)),
-      interRegion: interRegionCards[0].children.map(({ textContent }) => textContent)
-    };
-  }
-  assert.equal(snapshots.en.origin, 'Le Bucca de Sheol');
-  assert.equal(snapshots.es.origin, snapshots.en.origin);
-  assert.deepEqual(snapshots.en.local, [
+  const rootElement = rendererRoot(selectors);
+  renderRutas(rootElement, await presentationContext(), locationContext);
+  const localCards = rootElement.elements.get('[data-local-route-list]').children;
+  const interRegionCards = rootElement.elements.get('[data-inter-region-route-list]').children;
+  assert.equal(localCards.length, 3);
+  assert.equal(interRegionCards.length, 1);
+  assert.equal(rootElement.elements.get('[data-local-route-empty]').hidden, true);
+  assert.equal(rootElement.elements.get('[data-inter-region-route-empty]').hidden, true);
+  const snapshot = {
+    origin: rootElement.elements.get('[data-route-origin]').textContent,
+    local: localCards.map((card) => card.children.map(({ textContent }) => textContent)),
+    interRegion: interRegionCards[0].children.map(({ textContent }) => textContent)
+  };
+  assert.equal(snapshot.origin, 'Le Bucca de Sheol');
+  assert.deepEqual(snapshot.local, [
     [
       'Le Via del Sibylla',
       'Destination: Le Descenso del Sibylla',
       'Le corridor ritual per le qual le cavernas natural deveni le architectura de Sheol.',
-      'Travel time: 70 fictional minutes',
-      'Elevation change: 16 meters'
+      'Duration del viage: 70 minutas fictional',
+      'Cambio de elevation: 16 metros'
     ],
     [
       'Le Via del Desiro',
       'Destination: Le Cais del Desiro',
       'Un chantier naval submergite ubi le desiro es discargate, inventariate e consumite.',
-      'Travel time: 60 fictional minutes',
-      'Elevation change: 5 meters'
+      'Duration del viage: 60 minutas fictional',
+      'Cambio de elevation: 5 metros'
     ],
     [
       'Le Passage Submergite',
       'Destination: Le Cortes Submergite',
       'Le palatios, thermas, jardines e tribunales submergite del mortos plen de desiro.',
-      'Travel time: 100 fictional minutes',
-      'Elevation change: 10 meters'
+      'Duration del viage: 100 minutas fictional',
+      'Cambio de elevation: 10 metros'
     ]
   ]);
-  assert.deepEqual(snapshots.en.interRegion, [
+  assert.deepEqual(snapshot.interRegion, [
     'Le Via del Obolo Nigre',
-    'Destination region: Mercato Nigre',
-    'Exit point: Le Campo del Ultime Pensamentos (N)',
-    'Entry point: Le Porta del Mercatores (S)',
-    'Travel time: 1800 fictional minutes'
+    'Region de destination: Mercato Nigre',
+    'Puncto de exito: Le Campo del Ultime Pensamentos (N)',
+    'Puncto de entrata: Le Porta del Mercatores (S)',
+    'Duration del viage: 1800 minutas fictional'
   ]);
-  assert.deepEqual(snapshots.es.interRegion, [
-    'Le Via del Obolo Nigre',
-    'Región de destino: Mercato Nigre',
-    'Punto de salida: Le Campo del Ultime Pensamentos (N)',
-    'Punto de entrada: Le Porta del Mercatores (S)',
-    'Tiempo de viaje: 1800 minutos ficticios'
+  assert.doesNotMatch(JSON.stringify(snapshot), /Le Via del Signos Celestial|Observatorio del Prophetias|40\.8479|14\.0532/);
+});
+
+test('Rutas renders fixed Interlingua empty states', async () => {
+  const rootElement = rendererRoot([
+    '[data-route-origin]', '[data-local-route-list]', '[data-local-route-empty]',
+    '[data-inter-region-route-list]', '[data-inter-region-route-empty]'
   ]);
-  assert.deepEqual(snapshots.es.local.map((card) => card[3]), [
-    'Tiempo de viaje: 70 minutos ficticios',
-    'Tiempo de viaje: 60 minutos ficticios',
-    'Tiempo de viaje: 100 minutos ficticios'
-  ]);
-  assert.doesNotMatch(JSON.stringify(snapshots), /Le Via del Signos Celestial|Observatorio del Prophetias|40\.8479|14\.0532/);
+  renderRutas(rootElement, await presentationContext(), {
+    currentLocation: { id: 'origin', name: 'Origine' },
+    currentLocationId: 'origin',
+    currentRegionId: 'region',
+    getRoutesFrom: () => [],
+    getInterRegionRoutesFrom: () => []
+  });
+  assert.equal(rootElement.elements.get('[data-local-route-empty]').hidden, false);
+  assert.equal(rootElement.elements.get('[data-local-route-empty]').textContent, 'Nulle ruta local es disponibile.');
+  assert.equal(rootElement.elements.get('[data-inter-region-route-empty]').hidden, false);
+  assert.equal(
+    rootElement.elements.get('[data-inter-region-route-empty]').textContent,
+    'Nulle ruta interregional es disponibile.'
+  );
 });
 
 test('location production has one world source and remains read-only and free of prohibited integrations', async () => {
@@ -851,6 +827,7 @@ test('location production has one world source and remains read-only and free of
   assert.doesNotMatch(locationSource, /shortest.?path|route.?planning|arrival.?time|countdown|discovery.?state/i);
   assert.doesNotMatch(locationSource, /[?&]travel=|searchParams\.get\(['"]travel|data-travel|travel-button/i);
   assert.doesNotMatch(locationSource, /startLiveState|setTimeout|setInterval/);
+  assert.doesNotMatch(locationSource, /Intl\.NumberFormat|unitDisplay|languageTag/);
   assert.doesNotMatch(await readFile(path.join(publicDirectory, 'location-renderers.js'), 'utf8'), /innerHTML/);
   for (const htmlFile of ['locus.html', 'rutas.html']) {
     const html = await readFile(path.join(publicDirectory, htmlFile), 'utf8');

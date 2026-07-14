@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
+import { mkdtemp, rm, symlink } from 'node:fs/promises';
 import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import { createStaticEtag, createStaticServer, installGracefulShutdown, parsePort } from '../server.js';
 
@@ -38,15 +41,15 @@ function assertSecurityHeaders(headers) {
   assert.doesNotMatch(headers['content-security-policy'], /unsafe-inline|unsafe-eval/);
 }
 
-test('root redirect preserves only a non-empty locale for GET and HEAD', async () => {
+test('root redirect always uses the fixed Calendario route for GET and HEAD', async () => {
   const server = await start();
   const cases = [
     ['/', '/calendario.html'],
-    ['/?locale=es', '/calendario.html?locale=es'],
-    ['/?universe=other&locale=es', '/calendario.html?locale=es'],
+    ['/?locale=es', '/calendario.html'],
+    ['/?universe=other&locale=es', '/calendario.html'],
     ['/?universe=other', '/calendario.html'],
-    ['/?locale=es&unused=value', '/calendario.html?locale=es'],
-    ['/?unused=value&locale=en', '/calendario.html?locale=en'],
+    ['/?locale=es&unused=value', '/calendario.html'],
+    ['/?unused=value&locale=en', '/calendario.html'],
     ['/?locale=', '/calendario.html']
   ];
   try {
@@ -73,7 +76,7 @@ test('canonical HTTPS redirect takes precedence and preserves the original reque
   } finally { await stop(server); }
 });
 
-test('health reports v8.23 JSON for GET and HEAD', async () => {
+test('health reports v8.24 JSON for GET and HEAD', async () => {
   const server = await start();
   try {
     const get = await request(server, '/health');
@@ -81,7 +84,7 @@ test('health reports v8.23 JSON for GET and HEAD', async () => {
     assert.equal(get.status, 200);
     assert.equal(get.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(get.headers['cache-control'], 'no-store');
-    assert.equal(get.body, '{"ok":true,"version":"v8.23"}');
+    assert.equal(get.body, '{"ok":true,"version":"v8.24"}');
     assert.equal(head.status, 200);
     assert.equal(head.body, '');
     assertSecurityHeaders(get.headers);
@@ -131,9 +134,9 @@ test('successful static files include MIME, caching, validators, and security he
       ['/location-state.js', 'text/javascript; charset=utf-8'],
       ['/location.js', 'text/javascript; charset=utf-8'],
       ['/world-loader.js', 'text/javascript; charset=utf-8'],
+      ['/interface-text.js', 'text/javascript; charset=utf-8'],
       ['/styles.css', 'text/css; charset=utf-8'],
       ['/core/mechanics.js', 'text/javascript; charset=utf-8'],
-      ['/locales/en.json', 'application/json; charset=utf-8'],
       ['/config/nomenclature.json', 'application/json; charset=utf-8'],
       ['/regions/world.json', 'application/json; charset=utf-8']
     ]) {
@@ -248,7 +251,7 @@ test('conditional headers do not revalidate dynamic, redirect, or error response
   } finally { await stop(server); }
 });
 
-test('former HTML routes and page modules are ordinary generic 404s for GET and HEAD', async () => {
+test('former routes, modules, and localization resources are ordinary Interlingua 404s for GET and HEAD', async () => {
   const server = await start();
   const oldPaths = [
     '/calendar.html','/outcome.html','/weather.html',
@@ -259,14 +262,15 @@ test('former HTML routes and page modules are ordinary generic 404s for GET and 
     '/mappa.html','/mappa-page.js','/location.html',
     '/investigationes.html','/ordines.html',
     '/observationes.html','/observationes-page.js',
-    '/decisiones.html','/decisiones-page.js'
+    '/decisiones.html','/decisiones-page.js',
+    '/locales/en.json','/locales/es.json','/locale-loader.js','/presentation-context-loader.js'
   ];
   try {
     for (const requestPath of oldPaths) {
       const get = await request(server, requestPath);
       const head = await request(server, requestPath, { method: 'HEAD' });
       assert.equal(get.status, 404, requestPath);
-      assert.equal(get.body, 'Not Found', requestPath);
+      assert.equal(get.body, 'Non trovate', requestPath);
       assert.equal(get.headers['cache-control'], 'no-store');
       assertSecurityHeaders(get.headers);
       assert.equal(head.status, 404, requestPath);
@@ -283,9 +287,11 @@ test('unknown, dotfile, malformed, and traversal paths fail safely', async () =>
     for (const requestPath of ['/missing','/%2e%2e/package.json','/.git/config','/%252e%252e%252fserver.js']) {
       const response = await request(server, requestPath);
       assert.equal(response.status, 404, requestPath);
-      assert.equal(response.body, 'Not Found');
+      assert.equal(response.body, 'Non trovate');
     }
-    assert.equal((await request(server, '/%')).status, 400);
+    const malformed = await request(server, '/%');
+    assert.equal(malformed.status, 400);
+    assert.equal(malformed.body, 'Requesta invalide');
   } finally { await stop(server); }
 });
 
@@ -295,8 +301,24 @@ test('unsupported methods return 405', async () => {
     const response = await request(server, '/', { method: 'POST' });
     assert.equal(response.status, 405);
     assert.equal(response.headers.allow, 'GET, HEAD');
+    assert.equal(response.body, 'Methodo non permittite');
     assertSecurityHeaders(response.headers);
   } finally { await stop(server); }
+});
+
+test('unexpected static-file failures return a fixed Interlingua 500 body', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const publicDirectory = await mkdtemp(path.join(os.tmpdir(), 'insidia-server-'));
+  await symlink('loop', path.join(publicDirectory, 'loop'));
+  const server = await start({ publicDirectory });
+  try {
+    const response = await request(server, '/loop');
+    assert.equal(response.status, 500);
+    assert.equal(response.body, 'Error interne del servitor');
+  } finally {
+    await stop(server);
+    await rm(publicDirectory, { recursive: true, force: true });
+  }
 });
 
 test('PORT parser defaults and validates', () => {

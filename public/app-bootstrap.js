@@ -1,8 +1,10 @@
 import { getPageDefinition } from './page-definitions.js';
-import { loadPresentationContext } from './presentation-context-loader.js';
+import { INTERFACE_LANGUAGE_TAG, INTERFACE_MESSAGES } from './interface-text.js';
+import { loadNomenclature } from './nomenclature-loader.js';
+import { createPresentationContext } from './nomenclature.js';
 import { startLiveState } from './live-state.js';
 
-const APPLICATION_VERSION = '8.23';
+export const APPLICATION_VERSION = '8.24';
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
 
 function parsePageIdList(value) {
@@ -29,19 +31,18 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
   }
   const nav = documentRoot.querySelector('.primary-nav');
   nav.setAttribute('aria-label', context.message('nav.aria'));
-  const query = new URLSearchParams({ locale: context.resolvedLocaleId }).toString();
   for (const link of documentRoot.querySelectorAll('[data-page-id]')) {
     const targetPageId = link.dataset.pageId;
     const targetPage = context.getPage(targetPageId);
     const targetDefinition = getPageDefinition(targetPageId);
     link.textContent = targetPage.name;
-    link.setAttribute('href', `${targetDefinition.route}?${query}`);
+    link.setAttribute('href', targetDefinition.route);
   }
   for (const link of documentRoot.querySelectorAll('[data-navigation-group-id]')) {
     const navigationGroup = context.getNavigationGroup(link.dataset.navigationGroupId);
     const targetDefinition = getPageDefinition(link.dataset.navigationTargetPageId);
     link.textContent = navigationGroup.name;
-    link.setAttribute('href', `${targetDefinition.route}?${query}`);
+    link.setAttribute('href', targetDefinition.route);
   }
   for (const element of documentRoot.querySelectorAll('[data-navigation-category-pages]')) {
     if (parsePageIdList(element.dataset.navigationCategoryPages).includes(pageId)) {
@@ -66,7 +67,7 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
     element.textContent = context.applicationDisplayName;
   }
   for (const element of documentRoot.querySelectorAll('[data-version]')) {
-    element.textContent = 'v8.23';
+    element.textContent = `v${APPLICATION_VERSION}`;
     element.setAttribute('aria-label', context.format('accessibility.version', {
       label: context.message('accessibility.applicationVersion'),
       version: APPLICATION_VERSION
@@ -82,15 +83,15 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
   }
 }
 
-function renderConfigurationError(documentRoot, message, languageTag = 'en') {
-  documentRoot.documentElement.lang = languageTag;
+function renderConfigurationError(documentRoot) {
+  documentRoot.documentElement.lang = INTERFACE_LANGUAGE_TAG;
   documentRoot.documentElement.removeAttribute('aria-busy');
   documentRoot.body.textContent = '';
   const main = documentRoot.createElement('main');
   main.className = 'configuration-error';
   main.setAttribute('role', 'alert');
   const paragraph = documentRoot.createElement('p');
-  paragraph.textContent = message;
+  paragraph.textContent = INTERFACE_MESSAGES['error.configuration'];
   main.append(paragraph);
   documentRoot.body.append(main);
 }
@@ -100,10 +101,9 @@ async function bootstrapDocument(pageId, options, complete, loadConfiguredContex
   const locationLike = options.locationLike ?? window.location;
   const fetchFn = options.fetchFn ?? window.fetch.bind(window);
   const baseUrl = locationLike.href ?? String(locationLike);
-  let resolvedPresentationContext;
   documentRoot.documentElement.setAttribute('aria-busy', 'true');
   try {
-    const presentationPromise = loadPresentationContext(locationLike, { fetchFn });
+    const nomenclaturePromise = loadNomenclature({ fetchFn, baseUrl });
     let configuredContextPromise;
     try {
       configuredContextPromise = loadConfiguredContext
@@ -112,38 +112,17 @@ async function bootstrapDocument(pageId, options, complete, loadConfiguredContex
     } catch (error) {
       configuredContextPromise = Promise.reject(error);
     }
-    const [presentationSettlement, configuredContextSettlement] = await Promise.allSettled([
-      presentationPromise,
+    const [nomenclatureResult, configuredContext] = await Promise.all([
+      nomenclaturePromise,
       configuredContextPromise
     ]);
-    if (presentationSettlement.status === 'rejected' || configuredContextSettlement.status === 'rejected') {
-      const cause = presentationSettlement.status === 'rejected'
-        ? presentationSettlement.reason
-        : configuredContextSettlement.reason;
-      const error = new Error('Unable to load page configuration.', { cause });
-      error.localeResult = presentationSettlement.status === 'rejected'
-        ? presentationSettlement.reason?.localeResult
-        : undefined;
-      error.presentationContext = presentationSettlement.status === 'fulfilled'
-        ? presentationSettlement.value
-        : undefined;
-      throw error;
-    }
-    const context = presentationSettlement.value;
-    resolvedPresentationContext = context;
-    const configuredContext = configuredContextSettlement.value;
+    const context = createPresentationContext({ nomenclatureResult });
     applyCommonDocumentPresentation(documentRoot, pageId, context);
     const completionValue = complete(context, documentRoot, configuredContext);
     documentRoot.documentElement.setAttribute('aria-busy', 'false');
     return completionValue;
   } catch (error) {
-    const localeResult = error?.localeResult;
-    const presentationContext = error?.presentationContext ?? resolvedPresentationContext;
-    const message = presentationContext?.message('error.configuration')
-      ?? localeResult?.locale?.messages?.['error.configuration']
-      ?? 'Unable to load application configuration.';
-    const languageTag = presentationContext?.languageTag ?? localeResult?.locale?.languageTag ?? 'en';
-    renderConfigurationError(documentRoot, message, languageTag);
+    renderConfigurationError(documentRoot);
     console.error('Application configuration failed.', error);
     return null;
   }

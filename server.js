@@ -136,21 +136,21 @@ function sendNotFound(response, method, environment) {
   sendResponse(response, method, environment, 404, {
     'Cache-Control': 'no-store',
     'Content-Type': 'text/plain; charset=utf-8'
-  }, 'Not Found');
+  }, 'Non trovate');
 }
 
 function sendBadRequest(response, method, environment) {
   sendResponse(response, method, environment, 400, {
     'Cache-Control': 'no-store',
     'Content-Type': 'text/plain; charset=utf-8'
-  }, 'Bad Request');
+  }, 'Requesta invalide');
 }
 
 function sendInternalServerError(response, method, environment) {
   sendResponse(response, method, environment, 500, {
     'Cache-Control': 'no-store',
     'Content-Type': 'text/plain; charset=utf-8'
-  }, 'Internal Server Error');
+  }, 'Error interne del servitor');
 }
 
 function isMissingFileError(error) {
@@ -223,12 +223,8 @@ function createCanonicalLocation(canonicalOrigin, requestUrl) {
   return canonicalUrl.toString();
 }
 
-function createRootRedirectLocation(requestUrl) {
-  const parameters = new URLSearchParams();
-  const locale = requestUrl.searchParams.get('locale');
-  if (locale) parameters.set('locale', locale);
-  const query = parameters.toString();
-  return `/calendario.html${query ? `?${query}` : ''}`;
+function createRootRedirectLocation() {
+  return '/calendario.html';
 }
 
 function writeClientError(socket, environment) {
@@ -237,7 +233,7 @@ function writeClientError(socket, environment) {
     return;
   }
 
-  const body = 'Bad Request';
+  const body = 'Requesta invalide';
   const headers = createHeaders(environment, {
     Connection: 'close',
     'Cache-Control': 'no-store',
@@ -316,7 +312,7 @@ export function createStaticServer(options = {}) {
         Allow: 'GET, HEAD',
         'Cache-Control': 'no-store',
         'Content-Type': 'text/plain; charset=utf-8'
-      }, 'Method Not Allowed');
+      }, 'Methodo non permittite');
       return;
     }
 
@@ -343,7 +339,7 @@ export function createStaticServer(options = {}) {
     if (requestUrl.pathname === '/') {
       sendResponse(response, method, environment, 302, {
         'Cache-Control': 'no-store',
-        Location: createRootRedirectLocation(requestUrl)
+        Location: createRootRedirectLocation()
       });
       return;
     }
@@ -352,7 +348,7 @@ export function createStaticServer(options = {}) {
       sendResponse(response, method, environment, 200, {
         'Cache-Control': 'no-store',
         'Content-Type': 'application/json; charset=utf-8'
-      }, JSON.stringify({ ok: true, version: 'v8.23' }));
+      }, JSON.stringify({ ok: true, version: 'v8.24' }));
       return;
     }
 
