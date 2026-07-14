@@ -3,8 +3,10 @@ export const MESSAGE_KEYS = Object.freeze([
   'section.time', 'section.season', 'section.tide', 'section.pulls', 'section.orbits', 'section.progress', 'section.json',
   'label.year', 'label.month', 'label.week', 'label.day', 'label.hour', 'label.cycle', 'label.orbit', 'label.seasonalDay', 'label.next', 'label.progress',
   'label.currentFictionalTime', 'label.currentLunarTime', 'label.currentLunarDay', 'label.currentDay', 'label.currentHour', 'label.currentTideProgress',
-  'label.attemptsUntilRare', 'label.orbitalProgress', 'label.circularSpan', 'label.alignment', 'label.currentLocation', 'label.epoch', 'label.copyJson',
-  'status.copied', 'status.copyFailure', 'status.tieBreakApplied',
+  'label.attemptsUntilRare', 'label.orbitalProgress', 'label.circularSpan', 'label.alignment', 'label.currentLocation',
+  'label.region', 'label.elevation', 'label.routesFrom', 'label.destination', 'label.walkingTime', 'label.elevationChange',
+  'label.epoch', 'label.copyJson',
+  'status.copied', 'status.copyFailure', 'status.tieBreakApplied', 'status.noAvailableRoutes',
   'selection.selection-rule-01', 'selection.selection-rule-02', 'selection.selection-rule-03',
   'clarification.pulls', 'accessibility.applicationVersion', 'accessibility.seasonProgress', 'accessibility.copyStatus', 'error.configuration'
 ]);
@@ -50,7 +52,7 @@ function assertExactObjectKeys(value, expected, label) {
 
 export function validateLocale(locale) {
   assertExactObjectKeys(locale, ['schemaVersion', 'id', 'languageTag', 'messages', 'templates'], 'locale');
-  if (locale.schemaVersion !== 10) throw new Error('locale schemaVersion must be 10');
+  if (locale.schemaVersion !== 11) throw new Error('locale schemaVersion must be 11');
   assertNonEmpty(locale.id, 'locale.id');
   assertNonEmpty(locale.languageTag, 'locale.languageTag');
   assertExactKeys(locale.messages, MESSAGE_KEYS, 'locale.messages');

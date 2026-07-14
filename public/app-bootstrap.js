@@ -2,7 +2,7 @@ import { getPageDefinition } from './page-definitions.js';
 import { loadPresentationContext } from './presentation-context-loader.js';
 import { startLiveState } from './live-state.js';
 
-const APPLICATION_VERSION = '8.20';
+const APPLICATION_VERSION = '8.21';
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
 
 function parsePageIdList(value) {
@@ -59,9 +59,6 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
   for (const element of documentRoot.querySelectorAll('[data-page-section-id]')) {
     element.textContent = context.getPageSection(element.dataset.pageSectionId).name;
   }
-  for (const element of documentRoot.querySelectorAll('[data-current-location]')) {
-    element.textContent = context.currentLocation.name;
-  }
   for (const element of documentRoot.querySelectorAll('[data-message-key]')) {
     element.textContent = context.message(element.dataset.messageKey);
   }
@@ -69,7 +66,7 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
     element.textContent = context.applicationDisplayName;
   }
   for (const element of documentRoot.querySelectorAll('[data-version]')) {
-    element.textContent = 'v8.20';
+    element.textContent = 'v8.21';
     element.setAttribute('aria-label', context.format('accessibility.version', {
       label: context.message('accessibility.applicationVersion'),
       version: APPLICATION_VERSION
@@ -98,22 +95,55 @@ function renderConfigurationError(documentRoot, message, languageTag = 'en') {
   documentRoot.body.append(main);
 }
 
-async function bootstrapDocument(pageId, options, complete) {
+async function bootstrapDocument(pageId, options, complete, loadConfiguredContext) {
   const documentRoot = options.documentRoot ?? document;
   const locationLike = options.locationLike ?? window.location;
   const fetchFn = options.fetchFn ?? window.fetch.bind(window);
+  const baseUrl = locationLike.href ?? String(locationLike);
+  let resolvedPresentationContext;
   documentRoot.documentElement.setAttribute('aria-busy', 'true');
   try {
-    const context = await loadPresentationContext(locationLike, { fetchFn });
+    const presentationPromise = loadPresentationContext(locationLike, { fetchFn });
+    let configuredContextPromise;
+    try {
+      configuredContextPromise = loadConfiguredContext
+        ? loadConfiguredContext({ fetchFn, baseUrl })
+        : Promise.resolve(undefined);
+    } catch (error) {
+      configuredContextPromise = Promise.reject(error);
+    }
+    const [presentationSettlement, configuredContextSettlement] = await Promise.allSettled([
+      presentationPromise,
+      configuredContextPromise
+    ]);
+    if (presentationSettlement.status === 'rejected' || configuredContextSettlement.status === 'rejected') {
+      const cause = presentationSettlement.status === 'rejected'
+        ? presentationSettlement.reason
+        : configuredContextSettlement.reason;
+      const error = new Error('Unable to load page configuration.', { cause });
+      error.localeResult = presentationSettlement.status === 'rejected'
+        ? presentationSettlement.reason?.localeResult
+        : undefined;
+      error.presentationContext = presentationSettlement.status === 'fulfilled'
+        ? presentationSettlement.value
+        : undefined;
+      throw error;
+    }
+    const context = presentationSettlement.value;
+    resolvedPresentationContext = context;
+    const configuredContext = configuredContextSettlement.value;
     applyCommonDocumentPresentation(documentRoot, pageId, context);
-    const completionValue = complete(context, documentRoot);
+    const completionValue = complete(context, documentRoot, configuredContext);
     documentRoot.documentElement.setAttribute('aria-busy', 'false');
     return completionValue;
   } catch (error) {
     const localeResult = error?.localeResult;
-    const message = localeResult?.locale?.messages?.['error.configuration']
+    const presentationContext = error?.presentationContext ?? resolvedPresentationContext;
+    const message = presentationContext?.message('error.configuration')
+      ?? localeResult?.locale?.messages?.['error.configuration']
       ?? 'Unable to load application configuration.';
-    renderConfigurationError(documentRoot, message, localeResult?.locale?.languageTag ?? 'en');
+    const languageTag = presentationContext?.languageTag ?? localeResult?.locale?.languageTag ?? 'en';
+    renderConfigurationError(documentRoot, message, languageTag);
     console.error('Application configuration failed.', error);
     return null;
   }
@@ -128,4 +158,22 @@ export function bootstrapPage(pageId, createRenderer, options = {}) {
 
 export function bootstrapStaticPage(pageId, options = {}) {
   return bootstrapDocument(pageId, options, (context) => context);
+}
+
+export function bootstrapConfiguredStaticPage(
+  pageId,
+  loadConfiguredContext,
+  renderConfiguredPage,
+  options = {}
+) {
+  if (typeof loadConfiguredContext !== 'function') {
+    throw new TypeError('loadConfiguredContext must be a function');
+  }
+  if (typeof renderConfiguredPage !== 'function') {
+    throw new TypeError('renderConfiguredPage must be a function');
+  }
+  return bootstrapDocument(pageId, options, (context, documentRoot, configuredContext) => {
+    const renderResult = renderConfiguredPage(documentRoot, context, configuredContext);
+    return renderResult === undefined ? configuredContext : renderResult;
+  }, loadConfiguredContext);
 }

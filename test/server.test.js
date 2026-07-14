@@ -73,7 +73,7 @@ test('canonical HTTPS redirect takes precedence and preserves the original reque
   } finally { await stop(server); }
 });
 
-test('health reports v8.20 JSON for GET and HEAD', async () => {
+test('health reports v8.21 JSON for GET and HEAD', async () => {
   const server = await start();
   try {
     const get = await request(server, '/health');
@@ -81,7 +81,7 @@ test('health reports v8.20 JSON for GET and HEAD', async () => {
     assert.equal(get.status, 200);
     assert.equal(get.headers['content-type'], 'application/json; charset=utf-8');
     assert.equal(get.headers['cache-control'], 'no-store');
-    assert.equal(get.body, '{"ok":true,"version":"v8.20"}');
+    assert.equal(get.body, '{"ok":true,"version":"v8.21"}');
     assert.equal(head.status, 200);
     assert.equal(head.body, '');
     assertSecurityHeaders(get.headers);
@@ -126,10 +126,16 @@ test('successful static files include MIME, caching, validators, and security he
       ['/locus-page.js', 'text/javascript; charset=utf-8'],
       ['/rutas-page.js', 'text/javascript; charset=utf-8'],
       ['/explorar-page.js', 'text/javascript; charset=utf-8'],
+      ['/location-bootstrap.js', 'text/javascript; charset=utf-8'],
+      ['/location-renderers.js', 'text/javascript; charset=utf-8'],
+      ['/location-state.js', 'text/javascript; charset=utf-8'],
+      ['/location.js', 'text/javascript; charset=utf-8'],
+      ['/region-loader.js', 'text/javascript; charset=utf-8'],
       ['/styles.css', 'text/css; charset=utf-8'],
       ['/core/mechanics.js', 'text/javascript; charset=utf-8'],
       ['/locales/en.json', 'application/json; charset=utf-8'],
-      ['/config/nomenclature.json', 'application/json; charset=utf-8']
+      ['/config/nomenclature.json', 'application/json; charset=utf-8'],
+      ['/regions/sheol.json', 'application/json; charset=utf-8']
     ]) {
       const response = await request(server, file);
       const head = await request(server, file, { method: 'HEAD' });

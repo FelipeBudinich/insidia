@@ -59,15 +59,15 @@ async function listSourceFiles(directory) {
   return nested.flat();
 }
 
-test('package and visible application versions are v8.20', async () => {
+test('package and visible application versions are v8.21', async () => {
   const [packageJson, packageLock, bootstrap] = await Promise.all([
     readFile(path.join(root, 'package.json'), 'utf8'),
     readFile(path.join(root, 'package-lock.json'), 'utf8'),
     readPublic('app-bootstrap.js')
   ]);
-  assert.equal(JSON.parse(packageJson).version, '8.20.0');
-  assert.equal(JSON.parse(packageLock).version, '8.20.0');
-  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.20'/);
+  assert.equal(JSON.parse(packageJson).version, '8.21.0');
+  assert.equal(JSON.parse(packageLock).version, '8.21.0');
+  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.21'/);
 });
 
 test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async () => {
@@ -204,14 +204,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each configured page has one localized v8.20 footer version', async () => {
+test('each configured page has one localized v8.21 footer version', async () => {
   for (const [file] of PAGE_SHELLS) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.20/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.21/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -313,10 +313,14 @@ test('static page shells contain only their exact configured sections', async ()
   assert.doesNotMatch(identitateHtml, /page-section-(?:06|08|10)/);
 
   const [rutasHtml, rutasScript] = await Promise.all([readPublic('rutas.html'), readPublic('rutas-page.js')]);
-  assert.equal((rutasHtml.match(/class="content-section"/g) ?? []).length, 1);
-  assert.match(rutasHtml, /<section class="content-section" aria-labelledby="rutas-content-heading">\s*<h2 id="rutas-content-heading" class="content-section-title" data-page-name><\/h2>/);
+  assert.equal((rutasHtml.match(/class="route-section"/g) ?? []).length, 1);
+  for (const selector of ['data-route-origin', 'data-route-list', 'data-route-empty', 'data-message-key="label.routesFrom"']) {
+    assert.match(rutasHtml, new RegExp(selector));
+  }
   assert.equal((rutasHtml.match(/data-page-section-id/g) ?? []).length, 0);
+  assert.equal((rutasHtml.match(/data-page-name/g) ?? []).length, 1);
   assert.match(rutasScript, /bootstrapStaticPage\('page-08'\)/);
+  assert.match(rutasScript, /from '\.\/location-bootstrap\.js'/);
   assert.doesNotMatch(rutasScript, /bootstrapPage|startLiveState|calculateCalendarState/);
 
   const [explorarHtml, explorarScript] = await Promise.all([readPublic('explorar.html'), readPublic('explorar-page.js')]);
@@ -330,10 +334,15 @@ test('static page shells contain only their exact configured sections', async ()
 
   const [locusHtml, locusScript] = await Promise.all([readPublic('locus.html'), readPublic('locus-page.js')]);
   assert.equal((locusHtml.match(/class="location-section"/g) ?? []).length, 1);
-  assert.equal((locusHtml.match(/data-current-location/g) ?? []).length, 1);
-  assert.match(locusHtml, /<section class="location-section" aria-labelledby="current-location-heading">[^]*id="current-location-heading"[^]*data-message-key="label\.currentLocation"[^]*class="location-name" data-current-location/);
+  for (const selector of [
+    'data-region-name', 'data-region-description', 'data-location-name',
+    'data-location-description', 'data-location-elevation',
+    'data-message-key="label.region"', 'data-message-key="label.currentLocation"',
+    'data-message-key="label.elevation"'
+  ]) assert.match(locusHtml, new RegExp(selector));
   assert.doesNotMatch(locusHtml, /Santiago|coordinates|iframe|img|geolocation/);
   assert.match(locusScript, /bootstrapStaticPage\('page-07'\)/);
+  assert.match(locusScript, /from '\.\/location-bootstrap\.js'/);
   assert.doesNotMatch(locusScript, /bootstrapPage|startLiveState|calculateCalendarState/);
   assert.match(locusHtml, /data-navigation-submenu-pages="page-07 page-08 page-09"/);
   const productionSource = (await Promise.all((await listSourceFiles(path.join(root, 'public'))).map((file) => readFile(file, 'utf8')))).join('\n');
@@ -373,7 +382,11 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   assert.doesNotMatch(css, /\.tertiary-nav|\.navigation-subcategory-link/);
   assert.match(css, /\.navigation-category-link\[data-active-section="true"\]/);
   assert.doesNotMatch(css, /\.primary-nav a \+ a/);
-  for (const selector of ['.content-section', '.location-section', '.content-section-title', '.location-name']) {
+  for (const selector of [
+    '.content-section', '.location-section', '.route-section', '.content-section-title',
+    '.region-name', '.location-name', '.route-list', '.route-card', '.route-name',
+    '.route-destination', '.route-description', '.route-metadata', '.route-empty'
+  ]) {
     assert.ok(css.includes(selector), selector);
   }
   for (const preserved of [

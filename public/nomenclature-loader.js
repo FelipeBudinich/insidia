@@ -16,7 +16,7 @@ import { NAVIGATION_GROUP_IDS, PAGE_IDS, PAGE_SECTION_IDS } from './page-definit
 export const NOMENCLATURE_PATH = '/config/nomenclature.json';
 
 const TOP_LEVEL_KEYS = Object.freeze([
-  'schemaVersion', 'application', 'pages', 'navigationGroups', 'pageSections', 'outcomeTypes', 'location',
+  'schemaVersion', 'application', 'pages', 'navigationGroups', 'pageSections', 'outcomeTypes',
   'calendar', 'seasons', 'lunarPhases', 'lunarCycle', 'tides', 'celestialBodies', 'pulls'
 ]);
 
@@ -76,19 +76,13 @@ function validateEntities(items, expectedIds, label, entityKeys) {
 
 export function validateNomenclature(nomenclature) {
   assertExactKeys(nomenclature, TOP_LEVEL_KEYS, 'nomenclature');
-  if (nomenclature.schemaVersion !== 11) throw new Error('nomenclature schemaVersion must be 11');
+  if (nomenclature.schemaVersion !== 12) throw new Error('nomenclature schemaVersion must be 12');
   assertExactKeys(nomenclature.application, ['displayName'], 'nomenclature.application');
   assertNonEmptyString(nomenclature.application.displayName, 'nomenclature.application.displayName');
   validateEntities(nomenclature.pages, PAGE_IDS, 'nomenclature.pages', ['id', 'name']);
   validateEntities(nomenclature.navigationGroups, NAVIGATION_GROUP_IDS, 'nomenclature.navigationGroups', ['id', 'name']);
   validateEntities(nomenclature.pageSections, PAGE_SECTION_IDS, 'nomenclature.pageSections', ['id', 'name']);
   validateEntities(nomenclature.outcomeTypes, OUTCOME_TYPE_RULES.map(({ id }) => id), 'nomenclature.outcomeTypes', ['id', 'name']);
-  assertExactKeys(nomenclature.location, ['currentLocation'], 'nomenclature.location');
-  assertExactKeys(nomenclature.location.currentLocation, ['id', 'name'], 'nomenclature.location.currentLocation');
-  if (nomenclature.location.currentLocation.id !== 'location-01') {
-    throw new Error('nomenclature.location.currentLocation.id must be location-01');
-  }
-  assertNonEmptyString(nomenclature.location.currentLocation.name, 'nomenclature.location.currentLocation.name');
   assertExactKeys(nomenclature.calendar, ['yearName', 'monthReign', 'weekdays', 'namedDays', 'interRegna'], 'nomenclature.calendar');
   assertNonEmptyString(nomenclature.calendar.yearName, 'nomenclature.calendar.yearName');
   assertExactKeys(nomenclature.calendar.monthReign, ['name', 'rulers', 'ordinals'], 'nomenclature.calendar.monthReign');
