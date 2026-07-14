@@ -1,5 +1,7 @@
 import { INITIAL_LOCATION_STATE } from './location-state.js';
-import { WORLD_SCHEMA_VERSION } from './world-loader.js';
+import { CARDINAL_DIRECTIONS, WORLD_SCHEMA_VERSION } from './world-loader.js';
+
+const DIRECTION_SET = new Set(CARDINAL_DIRECTIONS);
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -69,6 +71,7 @@ export function createLocationContext({
       id: regionId,
       regionName: sourceRegion.regionName,
       description: sourceRegion.description,
+      entryExitPoints: { ...sourceRegion.entryExitPoints },
       locations: Object.fromEntries(locationEntries),
       routes
     });
@@ -91,12 +94,28 @@ export function createLocationContext({
   const regions = Object.freeze([...regionsById.values()]);
   const interRegionRoutes = Object.freeze(worldResult.world.interRegionRoutes.map((route) => deepFreeze({
     ...route,
-    between: [...route.between]
+    between: [...route.between],
+    directions: { ...route.directions }
   })));
   const interRegionRouteSet = new Set(interRegionRoutes);
   const interRegionRoutesByRegion = new Map(regions.map(({ id }) => [id, []]));
+  const interRegionEndpointsByRoute = new Map();
   for (const route of interRegionRoutes) {
+    const endpointsByRegion = new Map();
     for (const regionId of route.between) interRegionRoutesByRegion.get(regionId).push(route);
+    for (const regionId of route.between) {
+      const region = regionsById.get(regionId);
+      const direction = route.directions[regionId];
+      const locationId = region.entryExitPoints[direction];
+      endpointsByRegion.set(regionId, deepFreeze({
+        regionId,
+        direction,
+        locationId,
+        region,
+        location: locationsByRegionId.get(regionId).get(locationId)
+      }));
+    }
+    interRegionEndpointsByRoute.set(route, endpointsByRegion);
   }
   for (const [regionId, routes] of interRegionRoutesByRegion) {
     interRegionRoutesByRegion.set(regionId, Object.freeze([...routes]));
@@ -123,6 +142,31 @@ export function createLocationContext({
     return requireMapped(locationsByRegionId.get(regionId), locationId, `location in region ${regionId}`);
   }
 
+  function requireInterRegionRoute(route) {
+    if (!interRegionRouteSet.has(route)) throw new Error('Unknown inter-region route');
+    return route;
+  }
+
+  function getEntryExitPoint(regionId, direction) {
+    const region = getRegion(regionId);
+    if (!DIRECTION_SET.has(direction)) throw new Error(`Unknown direction ID: ${direction}`);
+    return getLocation(regionId, region.entryExitPoints[direction]);
+  }
+
+  function getInterRegionDirection(route, regionId) {
+    getRegion(regionId);
+    requireInterRegionRoute(route);
+    if (!route.between.includes(regionId)) {
+      throw new Error(`Inter-region route does not connect region: ${regionId}`);
+    }
+    return route.directions[regionId];
+  }
+
+  function getInterRegionEndpoint(route, regionId) {
+    getInterRegionDirection(route, regionId);
+    return interRegionEndpointsByRoute.get(route).get(regionId);
+  }
+
   const context = {
     world,
     worldSchemaVersion: worldResult.schemaVersion,
@@ -140,6 +184,7 @@ export function createLocationContext({
     getRegion,
     getRegions: () => regions,
     getLocation,
+    getEntryExitPoint,
     getLocations(regionId) {
       getRegion(regionId);
       return locationListsByRegionId.get(regionId);
@@ -166,11 +211,13 @@ export function createLocationContext({
     },
     getInterRegionDestination(route, originRegionId) {
       getRegion(originRegionId);
-      if (!interRegionRouteSet.has(route)) throw new Error('Unknown inter-region route');
+      requireInterRegionRoute(route);
       if (route.between[0] === originRegionId) return getRegion(route.between[1]);
       if (route.between[1] === originRegionId) return getRegion(route.between[0]);
       throw new Error(`Inter-region route does not connect region: ${originRegionId}`);
-    }
+    },
+    getInterRegionDirection,
+    getInterRegionEndpoint
   };
 
   return Object.freeze(context);

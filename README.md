@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.22 is a browser-calculated fictional calendar and world-state interface. It has three live pages, four generic static pages, and two read-only location pages backed by one three-region world configuration. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time or location calculations.
+Insidia v8.23 is a browser-calculated fictional calendar and world-state interface. It has three live pages, four generic static pages, and two read-only location pages backed by one three-region world configuration. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time or location calculations.
 
 ## Run locally
 
@@ -60,8 +60,8 @@ The static section shells are intentionally empty apart from their configured he
 - Identitate: Titulo, Nomine, Epitheto, Memorias, Decisiones
 - Inventario: Equipamento, Deposito
 - Subordinatos: Campiones, Miniones
-- Locus: Sheol and the current configured location, Le Campo del Ultime Pensamentos
-- Rutas: separate local and inter-regional sections; initially Le Sentiero del Ultime Pensamentos and Le Via del Obolo Nigre
+- Locus: Sheol and the initial configured location, Le Bucca de Sheol
+- Rutas: three local routes from Bucca plus the region-level Le Via del Obolo Nigre information
 - Explorar: Observationes
 
 Mappa, Pensamentos, Commandamento, Investigationes, and Ordines were removed. Observationes and Decisiones now exist only as sections on Explorar and Identitate respectively. Their former HTML routes and page modules, `/mappa.html`, `/mappa-page.js`, `/location.html`, the former Personage route, and the other legacy routes have no redirects, aliases, or compatibility files and return ordinary static 404 responses.
@@ -72,7 +72,7 @@ The four generic static pages use `bootstrapStaticPage()`. Locus and Rutas use t
 
 ## World and location graphs
 
-`public/regions/world.json` is the sole production geography source. Loader schema version 2 contains three stable region IDs: `sheol`, `mercato-nigre`, and `observatorio-del-prophetias`. Region-owned locations and walking routes are distinct from the top-level inter-region route graph:
+`public/regions/world.json` is the sole production geography source. Loader schema version 3 contains three stable region IDs: `sheol`, `mercato-nigre`, and `observatorio-del-prophetias`. Region-owned locations and local routes are distinct from the top-level inter-region route graph:
 
 ```json
 {
@@ -80,6 +80,16 @@ The four generic static pages use `bootstrapStaticPage()`. Locus and Rutas use t
     "region-id": {
       "regionName": "Visible name",
       "description": "Visible description",
+      "entryExitPoints": {
+        "N": "location-id",
+        "NE": "location-id",
+        "E": "location-id",
+        "SE": "location-id",
+        "S": "location-id",
+        "SW": "location-id",
+        "W": "location-id",
+        "NW": "location-id"
+      },
       "locations": {
         "location-id": {
           "name": "Visible name",
@@ -93,7 +103,7 @@ The four generic static pages use `bootstrapStaticPage()`. Locus and Rutas use t
         {
           "name": "Visible route name",
           "between": ["location-a", "location-b"],
-          "walkingTime": 10,
+          "travelTime": 10,
           "elevationChangeMeters": 5
         }
       ]
@@ -103,17 +113,46 @@ The four generic static pages use `bootstrapStaticPage()`. Locus and Rutas use t
     {
       "routeName": "Visible route name",
       "between": ["region-a", "region-b"],
-      "walkTime": 1800
+      "directions": {
+        "region-a": "N",
+        "region-b": "S"
+      },
+      "travelTime": 1800
     }
   ]
 }
 ```
 
-Validation is generic rather than region-specific. It requires exact keys, lowercase kebab-case IDs, unique region display names, finite coordinates and elevations, positive safe-integer walking times, non-negative finite local elevation changes, valid endpoint references, no self-routes or reverse duplicates, a connected local graph within every region, and one connected global region graph. Location IDs are scoped to their containing region. The loader accepts only `fetchFn` and `baseUrl`, always requests the fixed same-origin `/regions/world.json` URL with `no-cache`, and rejects non-HTTP bases, cross-origin redirects, missing or malformed JSON, and unsupported source overrides.
+The canonical directions are `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, and `NW`. Every region maps exactly those eight directions to location IDs it owns. Values need not be unique: one location may serve several directions, and a region may use one location for all eight. Inter-regional `directions` keys exactly match the two region IDs in `between`; an endpoint resolves as `route.directions[regionId]` → `region.entryExitPoints[direction]` → `region.locations[locationId]`. The route never duplicates endpoint location IDs.
 
-The immutable initial state is `{ regionId: "sheol", locationId: "campo-del-ultime-pensamentos" }`. Locus therefore continues to display Sheol, its description, Le Campo del Ultime Pensamentos, and the authored elevation. Rutas filters Sheol's local graph to the one directly connected local route, Le Sentiero del Ultime Pensamentos to Le Descenso del Sibylla: 10 fictional minutes and 5 meters of authored elevation change. Its separate inter-regional section shows only Le Via del Obolo Nigre to Mercato Nigre at 1800 fictional minutes. Le Via del Signos Celestial connects Mercato Nigre to Observatorio del Prophetias and is not displayed from Sheol; there is no direct Sheol–Observatorio route.
+The authored entry/exit mappings are:
 
-Latitude and longitude remain available in configuration and the immutable browser runtime context but are intentionally not rendered. Inter-region routes are abstract region-to-region facts: they do not create gateway locations or attach to local location nodes. Both graphs are read-only. There are no travel controls, movement APIs, arrival times, countdowns, persistence, discovery state, route planning, shortest-path calculations, graphical maps, or inferred gateways.
+```text
+Sheol
+N  Campo del Ultime Pensamentos   NE Halito de Sheol
+E  Halito de Sheol                SE Costa Final
+S  Costa Final                    SW Costa Final
+W  Descenso del Sibylla           NW Descenso del Sibylla
+
+Mercato Nigre
+N, NE, E, SE, S, SW, W, NW → Porta del Mercatores
+
+Observatorio del Prophetias
+N  Oculo del Zenith               NE Porta del Celo
+E  Porta del Celo                 SE Turre del Polo
+S  Turre del Polo                 SW Circulo del Horizonte
+W  Oculo del Zenith               NW Oculo del Zenith
+```
+
+Sheol and Observatorio use coordinate-authoritative authored mappings. They are not recalculated at runtime or influenced by elevation. Mercato Nigre intentionally overrides coordinate extrema: Porta del Mercatores is its controlled universal gateway. The validator has no Mercato-specific branch; repeated values are valid configuration everywhere.
+
+Validation remains generic. It requires exact shapes, lowercase kebab-case IDs, unique region display names, exact canonical directions, finite coordinates and elevations, positive safe-integer `travelTime` values, non-negative finite local elevation changes, valid endpoint references, no self-routes or reverse duplicates, a connected local graph within every region, and one connected global region graph. Location IDs remain scoped to their region. The loader accepts only `fetchFn` and `baseUrl`, always requests fixed same-origin `/regions/world.json` with `no-cache`, and rejects non-HTTP bases, cross-origin redirects, missing or malformed JSON, and unsupported source overrides.
+
+The immutable initial state is `{ regionId: "sheol", locationId: "bucca-de-sheol" }`. Locus displays Sheol, Le Bucca de Sheol, its existing world-of-the-living entrance description, and elevation 1 meter. Bucca is not present in Sheol's `entryExitPoints`; it is a normal local location and is not a gateway to another configured region. The world of the living has no region, route, or special movement mechanic.
+
+Rutas initially lists the three local routes connected to Bucca, in configured order: Le Via del Sibylla, Le Via del Desiro, and Le Passage Submergite. Each card uses the unified `travelTime` property and localized Travel time / Tiempo de viaje label with fictional-minute units. The inter-regional section still shows Le Via del Obolo Nigre even though Bucca is not its gateway: its Sheol exit is Le Campo del Ultime Pensamentos (N), and its Mercato entry is Le Porta del Mercatores (S). Le Via del Signos Celestial resolves from Le Porta del Mercatores (N) to Le Turre del Polo (S), but is not displayed from Sheol. There remains no direct Sheol–Observatorio route.
+
+Latitude and longitude remain available in configuration and the immutable browser runtime context but are intentionally not rendered. Both graphs are read-only. There are no travel controls, movement APIs, arrival times, countdowns, persistence, discovery state, route availability, route planning, shortest-path calculations, graphical maps, or inferred gateways.
 
 ## Locale selection
 
@@ -129,7 +168,7 @@ Locale is the only presentation option accepted through the query string:
 
 English is the default. English and Spanish paths are allowlisted in `public/locale-loader.js`. Unknown IDs resolve safely to English; a known malformed locale stops bootstrap visibly. Query values never become file paths. There is no runtime universe selector, alternate world configuration, cookie, local-storage setting, header, route, or configurable frontend path for changing in-game nomenclature.
 
-Locale schema 12 contains exactly `schemaVersion`, `id`, `languageTag`, `messages`, and `templates`. Locale files own generic language such as Current Location / Ubicación actual, Local routes / Rutas locales, Inter-regional routes / Rutas interregionales, destination and walking-time labels, localized page descriptions, and surrounding prose. They do not own page names, navigation-group names, page-section names, region/location/route names or descriptions, Outcome-type names, or other fixed in-universe terms.
+Locale schema 13 contains exactly `schemaVersion`, `id`, `languageTag`, `messages`, and `templates`. Locale files own generic language such as Current Location / Ubicación actual, Local routes / Rutas locales, Inter-regional routes / Rutas interregionales, destination, entry/exit-point, and travel-time labels, localized page descriptions, and surrounding prose. They do not own page names, navigation-group names, page-section names, region/location/route names or descriptions, Outcome-type names, direction IDs, or other fixed in-universe terms.
 
 ## Fixed nomenclature
 
@@ -158,7 +197,7 @@ The active configured terms include:
 
 These terms are fixed in-universe nomenclature and remain identical in English and Spanish. Validation requires every canonical ID in canonical order and exact entity shapes. It rejects missing, duplicate, unknown, reordered, empty, non-string, extra, localized, and mechanical fields. Page routes and navigation hierarchy remain fixed application infrastructure; visible page and navigation-group names come from nomenclature and never generate routes.
 
-The presentation context clones and deeply freezes nomenclature entities and exposes stable getters for navigation groups, pages, page sections, outcome types, calendar entities, seasons, lunar phases, tides, celestial bodies, and Pulls. The separate location context clones and deeply freezes the world, state, regions, locations, local routes, and inter-region routes; its private Maps and Sets are not exposed. The API requires explicit region IDs for local lookups, rejects foreign route objects, resolves local and inter-region destinations symmetrically, and never mutates the authored JSON.
+The presentation context clones and deeply freezes nomenclature entities and exposes stable getters for navigation groups, pages, page sections, outcome types, calendar entities, seasons, lunar phases, tides, celestial bodies, and Pulls. The separate location context clones and deeply freezes the world, state, regions, entry/exit maps, locations, local routes, inter-region directions, and resolved endpoint objects; its private Maps and Sets are not exposed. The API requires explicit region IDs, validates canonical directions, rejects cloned or foreign route objects, resolves local destinations and physical inter-region endpoints symmetrically, and never mutates the authored JSON.
 
 ## Calendario presentation
 
@@ -218,7 +257,7 @@ All mechanics are deterministic browser-side calculations. Calendar and lunar el
 
 1. `public/core/` contains immutable numeric rules and presentation-neutral mechanics.
 2. `public/config/nomenclature.json` contains the single schema-12 in-game vocabulary, excluding locations.
-3. `public/locales/` contains schema-12 generic UI messages and templates.
+3. `public/locales/` contains schema-13 generic UI messages and templates.
 4. `public/presentation-context-loader.js` starts exactly one locale request and one nomenclature request concurrently.
 5. `public/nomenclature.js` builds the frozen presentation context.
 6. `public/world-loader.js` validates the fixed same-origin `/regions/world.json` local and global graphs.
@@ -235,7 +274,7 @@ The project has no frontend framework, build system, runtime dependency, databas
 
 - `calendarVersion: "v19"`
 - `nomenclature`: schema version 12 and application display name
-- `locale`: requested/resolved IDs, language tag, and schema version 12
+- `locale`: requested/resolved IDs, language tag, and schema version 13
 - `source`: Unix milliseconds and ISO UTC
 - `state`: raw canonical IDs and numeric mechanics without configured names or symbols
 - `display`: configured entities, localized prose, and formatted values
@@ -251,7 +290,7 @@ English and Spanish JSON snapshots have identical raw state and identical `displ
 | `/config/nomenclature.json` | Single read-only nomenclature configuration |
 | `/regions/world.json` | Sole read-only three-region world and route graph |
 | `/locales/en.json`, `/locales/es.json` | Allowlisted locale files |
-| `/health` | `{"ok":true,"version":"v8.22"}` |
+| `/health` | `{"ok":true,"version":"v8.23"}` |
 
 The built-in-module Node server supports GET and HEAD, explicit MIME types, `Cache-Control: no-cache` for HTML/CSS/JavaScript/JSON, deterministic weak ETags, Last-Modified validation, bodyless 304 responses, CSP and related security headers, safe traversal/dotfile rejection, generic errors, canonical HTTPS redirects, and graceful shutdown. Static page additions and removals require no route-specific handlers.
 
@@ -259,9 +298,9 @@ The built-in-module Node server supports GET and HEAD, explicit MIME types, `Cac
 
 When editing nomenclature, retain schema 12, all canonical IDs, canonical ordering, and exact entity shapes. Keep translations, UI templates, location data, routes, submenu membership, durations, orbital periods, thresholds, priorities, and other mechanics out of the file.
 
-When adding a locale, translate every required message and template, retain the exact schema-12 top-level shape, add its fixed same-origin path to `LOCALE_FILES`, and do not duplicate nomenclature- or world-owned names.
+When adding a locale, translate every required message and template, retain the exact schema-13 top-level shape, add its fixed same-origin path to `LOCALE_FILES`, and do not duplicate nomenclature- or world-owned names.
 
-When editing `world.json`, retain the exact schema above and validate both levels independently: every region's location graph must remain connected, and the inter-region graph must keep all regions connected. Inter-region endpoints are region IDs only; do not add gateway locations or encode movement state.
+When editing `world.json`, retain the exact schema above and validate both levels independently: every region must keep all eight entry/exit directions and a connected location graph, while the inter-region graph must keep all regions connected. Direction values resolve through the owning region; do not duplicate endpoint IDs on inter-region routes or encode movement state.
 
 Run `npm test` before deployment.
 

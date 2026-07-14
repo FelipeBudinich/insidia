@@ -73,8 +73,8 @@ function renderLocalRoutes(documentRoot, presentationContext, locationContext) {
       documentRoot,
       card,
       'route-metadata',
-      presentationContext.message('label.walkingTime'),
-      formatUnit(route.walkingTime, presentationContext.languageTag, 'minute')
+      presentationContext.message('label.travelTime'),
+      presentationContext.format('route.fictionalMinutes', { value: route.travelTime })
     );
     appendLabeledText(
       documentRoot,
@@ -97,6 +97,8 @@ function renderInterRegionRoutes(documentRoot, presentationContext, locationCont
 
   for (const route of routes) {
     const destination = locationContext.getInterRegionDestination(route, locationContext.currentRegionId);
+    const exitPoint = locationContext.getInterRegionEndpoint(route, locationContext.currentRegionId);
+    const entryPoint = locationContext.getInterRegionEndpoint(route, destination.id);
     const card = documentRoot.createElement('article');
     card.className = 'route-card inter-region-route-card';
     appendTextElement(documentRoot, card, 'h3', 'route-name', route.routeName);
@@ -111,8 +113,28 @@ function renderInterRegionRoutes(documentRoot, presentationContext, locationCont
       documentRoot,
       card,
       'route-metadata',
-      presentationContext.message('label.walkingTime'),
-      presentationContext.format('route.fictionalMinutes', { value: route.walkTime })
+      presentationContext.message('label.exitPoint'),
+      presentationContext.format('route.directionalPoint', {
+        locationName: exitPoint.location.name,
+        direction: exitPoint.direction
+      })
+    );
+    appendLabeledText(
+      documentRoot,
+      card,
+      'route-metadata',
+      presentationContext.message('label.entryPoint'),
+      presentationContext.format('route.directionalPoint', {
+        locationName: entryPoint.location.name,
+        direction: entryPoint.direction
+      })
+    );
+    appendLabeledText(
+      documentRoot,
+      card,
+      'route-metadata',
+      presentationContext.message('label.travelTime'),
+      presentationContext.format('route.fictionalMinutes', { value: route.travelTime })
     );
     routeList.append(card);
   }

@@ -1,8 +1,24 @@
 export const WORLD_PATH = '/regions/world.json';
-export const WORLD_SCHEMA_VERSION = 2;
+export const WORLD_SCHEMA_VERSION = 3;
+export const CARDINAL_DIRECTIONS = Object.freeze([
+  'N',
+  'NE',
+  'E',
+  'SE',
+  'S',
+  'SW',
+  'W',
+  'NW'
+]);
 
 const WORLD_KEYS = Object.freeze(['regions', 'interRegionRoutes']);
-const REGION_KEYS = Object.freeze(['regionName', 'description', 'locations', 'routes']);
+const REGION_KEYS = Object.freeze([
+  'regionName',
+  'description',
+  'entryExitPoints',
+  'locations',
+  'routes'
+]);
 const LOCATION_KEYS = Object.freeze([
   'name',
   'description',
@@ -13,11 +29,12 @@ const LOCATION_KEYS = Object.freeze([
 const LOCAL_ROUTE_KEYS = Object.freeze([
   'name',
   'between',
-  'walkingTime',
+  'travelTime',
   'elevationChangeMeters'
 ]);
-const INTER_REGION_ROUTE_KEYS = Object.freeze(['routeName', 'between', 'walkTime']);
+const INTER_REGION_ROUTE_KEYS = Object.freeze(['routeName', 'between', 'directions', 'travelTime']);
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const DIRECTION_SET = new Set(CARDINAL_DIRECTIONS);
 
 function assertObject(value, label) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -111,6 +128,15 @@ function validateRegion(region, regionId) {
     assertFiniteNumber(location.elevationMeters, `${locationLabel}.elevationMeters`);
   }
 
+  assertExactKeys(region.entryExitPoints, CARDINAL_DIRECTIONS, `${label}.entryExitPoints`);
+  for (const direction of CARDINAL_DIRECTIONS) {
+    const locationId = region.entryExitPoints[direction];
+    assertId(locationId, `${label}.entryExitPoints.${direction}`);
+    if (!Object.hasOwn(region.locations, locationId)) {
+      throw new Error(`${label}.entryExitPoints.${direction} references unknown location: ${locationId}`);
+    }
+  }
+
   if (!Array.isArray(region.routes)) throw new TypeError(`${label}.routes must be an array`);
   const routePairs = new Set();
   region.routes.forEach((route, index) => {
@@ -129,7 +155,7 @@ function validateRegion(region, regionId) {
     const pair = normalizedPair(firstId, secondId);
     if (routePairs.has(pair)) throw new Error(`${routeLabel} duplicates an existing undirected route`);
     routePairs.add(pair);
-    assertPositiveSafeInteger(route.walkingTime, `${routeLabel}.walkingTime`);
+    assertPositiveSafeInteger(route.travelTime, `${routeLabel}.travelTime`);
     assertNonNegativeFiniteNumber(route.elevationChangeMeters, `${routeLabel}.elevationChangeMeters`);
     adjacency.get(firstId).add(secondId);
     adjacency.get(secondId).add(firstId);
@@ -171,10 +197,21 @@ export function validateWorld(world) {
     if (firstId === secondId) throw new Error(`${label}.between must contain distinct region IDs`);
     if (!Object.hasOwn(world.regions, firstId)) throw new Error(`${label} references unknown region: ${firstId}`);
     if (!Object.hasOwn(world.regions, secondId)) throw new Error(`${label} references unknown region: ${secondId}`);
+    assertExactKeys(route.directions, route.between, `${label}.directions`);
+    for (const regionId of route.between) {
+      const direction = route.directions[regionId];
+      if (!DIRECTION_SET.has(direction)) {
+        throw new Error(`${label}.directions.${regionId} must be a canonical direction`);
+      }
+      const endpointLocationId = world.regions[regionId].entryExitPoints[direction];
+      if (!Object.hasOwn(world.regions[regionId].locations, endpointLocationId)) {
+        throw new Error(`${label}.directions.${regionId} does not resolve to a valid location`);
+      }
+    }
     const pair = normalizedPair(firstId, secondId);
     if (routePairs.has(pair)) throw new Error(`${label} duplicates an existing undirected route`);
     routePairs.add(pair);
-    assertPositiveSafeInteger(route.walkTime, `${label}.walkTime`);
+    assertPositiveSafeInteger(route.travelTime, `${label}.travelTime`);
     adjacency.get(firstId).add(secondId);
     adjacency.get(secondId).add(firstId);
   });

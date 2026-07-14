@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 12,
+  "schemaVersion": 13,
   "id": "es",
   "languageTag": "es",
   "messages": {
@@ -39,7 +39,9 @@
     "label.routesFrom": "Rutas desde",
     "label.destination": "Destino",
     "label.destinationRegion": "Región de destino",
-    "label.walkingTime": "Tiempo a pie",
+    "label.exitPoint": "Punto de salida",
+    "label.entryPoint": "Punto de entrada",
+    "label.travelTime": "Tiempo de viaje",
     "label.elevationChange": "Cambio de elevación",
     "label.epoch": "Época",
     "label.copyJson": "Copiar JSON",
@@ -66,7 +68,7 @@
     "document.page-05Description": "Equipo y depósito del personaje para {applicationName}.",
     "document.page-06Description": "Campeones y esbirros bajo el mando del personaje para {applicationName}.",
     "document.page-07Description": "Ubicación actual para {applicationName}.",
-    "document.page-08Description": "Rutas desde la ubicación actual para {applicationName}.",
+    "document.page-08Description": "Información de rutas locales e interregionales para {applicationName}.",
     "document.page-09Description": "Observaciones de exploración para {applicationName}.",
     "accessibility.version": "{label} {version}",
     "accessibility.orbitProgress": "Progreso orbital de {bodyName}",
@@ -95,6 +97,7 @@
     "pull.tie": "{status} entre {count} tríos empatados",
     "pull.noTie": "Sin desempate por prioridad fija · seleccionado entre {count} tríos",
     "route.fictionalMinutes": "{value} minutos ficticios",
+    "route.directionalPoint": "{locationName} ({direction})",
     "footer.epoch": "{epochLabel}: {epoch}"
   }
 }
