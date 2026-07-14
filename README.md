@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.24 is a browser-calculated fictional calendar and world-state interface with fixed Interlingua generic text. It has three live pages, four generic static pages, and two read-only location pages backed by one three-region world configuration. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time or location calculations.
+Insidia v8.25 is a browser-calculated fictional calendar and world-state interface with fixed Interlingua generic text. It has three focused live pages, four generic static pages, and two read-only location pages backed by one three-region world configuration. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time or location calculations.
 
 ## Run locally
 
@@ -16,7 +16,7 @@ Open [http://localhost:3000](http://localhost:3000). Set `PORT` to override port
 
 ## Pages and navigation
 
-The page registry contains exactly nine stable IDs, fixed routes, and nomenclature-owned names. Every page uses the same sticky navigation structure, and every generated link is a clean fixed route without presentation query parameters.
+The page registry contains exactly nine stable IDs, fixed routes, and nomenclature-owned names. Each HTML document contains one empty navigation placeholder. `app-bootstrap.js` renders the two-level navigation with DOM APIs from immutable group definitions, so membership and order exist in one place and every generated link remains a clean fixed route.
 
 The top category row is always Personage, Almanac, Location, in that order. Each top item is a navigation group rather than a page: Personage is `navigation-group-02` and opens Identitate; Almanac is `navigation-group-01` and opens Calendario; Location is `navigation-group-03` and opens Locus.
 
@@ -68,7 +68,7 @@ Mappa, Pensamentos, Commandamento, Investigationes, and Ordines were removed. Ob
 
 Location pages do not use browser geolocation, request location permission, display coordinates, or load a graphical map, iframe, route provider, external map provider, or map tiles.
 
-The four generic static pages use `bootstrapStaticPage()`. Locus and Rutas use the shared configured-static bootstrap so nomenclature and world configuration begin loading concurrently. All six share titles, descriptions, navigation, footer presentation, accessibility state, and configuration-error handling with the live pages, but do not start the live calendar scheduler or create a recurring timer.
+The four generic static pages share `static-page.js`; their current neutral ID comes from `data-current-page-id` on the document root. Locus and Rutas share `location-page.js` and the meaningful location orchestration in `location-bootstrap.js`, so nomenclature and world configuration begin loading concurrently. All six share titles, descriptions, navigation, footer presentation, accessibility state, and configuration-error handling with the live pages, but their module graphs contain neither `live-state.js` nor `core/mechanics.js` and they never create a recurring timer.
 
 ## World and location graphs
 
@@ -146,7 +146,7 @@ W  Oculo del Zenith               NW Oculo del Zenith
 
 Sheol and Observatorio use coordinate-authoritative authored mappings. They are not recalculated at runtime or influenced by elevation. Mercato Nigre intentionally overrides coordinate extrema: Porta del Mercatores is its controlled universal gateway. The validator has no Mercato-specific branch; repeated values are valid configuration everywhere.
 
-Validation remains generic. It requires exact shapes, lowercase kebab-case IDs, unique region display names, exact canonical directions, finite coordinates and elevations, positive safe-integer `travelTime` values, non-negative finite local elevation changes, valid endpoint references, no self-routes or reverse duplicates, a connected local graph within every region, and one connected global region graph. Location IDs remain scoped to their region. The loader accepts only `fetchFn` and `baseUrl`, always requests fixed same-origin `/regions/world.json` with `no-cache`, and rejects non-HTTP bases, cross-origin redirects, missing or malformed JSON, and unsupported source overrides.
+Validation remains generic. It requires exact shapes, lowercase kebab-case IDs, unique region display names, exact canonical directions, finite coordinates and elevations, positive safe-integer `travelTime` values, non-negative finite local elevation changes, valid endpoint references, no self-routes or reverse duplicates, a connected local graph within every region, and one connected global region graph. Location IDs remain scoped to their region. The world and nomenclature loaders share one secure JSON transport helper while retaining separate strict schema validation. They accept only `fetchFn` and `baseUrl`, always request fixed same-origin paths with `{ cache: "no-cache", redirect: "error" }`, and reject non-HTTP(S) bases, redirected/cross-origin responses, missing or malformed JSON, and unsupported source overrides.
 
 The immutable initial state is `{ regionId: "sheol", locationId: "bucca-de-sheol" }`. Locus displays Sheol, Le Bucca de Sheol, its existing world-of-the-living entrance description, and elevation `1 metro`. Bucca is not present in Sheol's `entryExitPoints`; it is a normal local location and is not a gateway to another configured region. The world of the living has no region, route, or special movement mechanic.
 
@@ -240,19 +240,27 @@ Tentativas usque a Rarum: 100
 
 Month rulers are selected at 22:00:00 on the final day of the preceding Interregno. Ossos and Lacrimas advance independent persistent four-ruler rotations. Pigritia alternates between governing and declining its regular Ossos opportunities; a declined opportunity can select a configured replacement from orbital progress at the inclusive 95% threshold. Raw month state preserves opportunity, regular, and effective ruler IDs and the complete deterministic decision seam. Reign ordinals count final effective rulers within the year and reset at the year boundary without resetting either rotation.
 
-All mechanics are deterministic browser-side calculations. Calendar and lunar elapsed seconds are independently recomputed from `Date.now()` and the epoch. Live pages recursively schedule one timer near the earlier next 997 ms or 1009 ms boundary, recalculate the full state on every update, and recalculate immediately when the page becomes visible. No mutable clock counter, server time API, persistent history, or browser storage participates.
+All mechanics are deterministic browser-side calculations. Calendar and lunar elapsed seconds are independently recomputed from `Date.now()` and the epoch. The complete `calculateCalendarState()` API and Calendar JSON v20 shape remain unchanged, while named page calculators avoid unrelated work:
+
+- Calendario calculates calendar date/rulership, current season ID, and lunar cycle/phase. It schedules at the earlier next calendar-day or lunar-day boundary.
+- Tempore calculates the two clocks, season, and only lunar-day/day/hour/season progress. It schedules at the earlier next calendar-second or lunar-second boundary.
+- Destino calculates lunar/tide state, bodies/Pulls, Outcome, and tide progress. It uses the same second-boundary cadence as Tempore.
+
+The generic scheduler keeps one recursive epoch-relative timeout, clears it while the document is hidden, renders immediately when visibility returns, and never uses `setInterval`. Current-month rulership replays are bounded by a one-entry absolute-month memo whose callers always receive fresh deep clones. No mutable clock counter, server time API, persistent history, or browser storage participates.
 
 ## Architecture and request topology
 
-1. `public/core/` contains immutable numeric rules and presentation-neutral mechanics.
-2. `public/config/nomenclature.json` contains the single schema-12 in-game vocabulary, excluding locations.
-3. `public/interface-text.js` contains immutable fixed Interlingua generic messages and templates.
-4. `public/nomenclature.js` combines the fixed interface with deeply frozen configured nomenclature.
-5. `public/world-loader.js` validates the fixed same-origin `/regions/world.json` local and global graphs.
-6. `public/location.js` builds the frozen read-only location context.
-7. `public/app-bootstrap.js` loads nomenclature, applies common document presentation, then either starts live state or completes a generic/configured static page.
+1. `public/core/` contains deeply immutable numeric rules, full mechanics, and the three focused page calculators.
+2. `public/config-loader.js` owns fixed-path same-origin HTTP(S) JSON transport; the schema-12 nomenclature and schema-3 world loaders validate their own data separately.
+3. `public/interface-text.js` and `public/nomenclature.js` combine fixed Interlingua templates with deeply frozen configured terminology.
+4. `public/page-definitions.js` owns all fixed routes and immutable Personage/Almanac/Location membership and order.
+5. `public/app-bootstrap.js` loads nomenclature, renders common document presentation/navigation, and bootstraps static/configured pages. It does not import live state or mechanics.
+6. `public/live-page-bootstrap.js` connects a live page's focused calculator, renderer, immutable cadence list, and `live-state.js` scheduler.
+7. `public/static-page.js` and `public/location-page.js` are the only shared entry modules for their respective static page classes.
 
-Normal pages make exactly one configuration request: `/config/nomenclature.json`. Locus and Rutas make exactly two concurrent configuration requests: `/config/nomenclature.json` and `/regions/world.json`, with no request waterfall. Navigation itself introduces no world request. Its two visible rows—the top groups and one secondary group—remain inside the same sticky site header.
+Normal pages make exactly one configuration request: `/config/nomenclature.json`. Locus and Rutas make exactly two concurrent configuration requests: `/config/nomenclature.json` and `/regions/world.json`, with no request waterfall. Navigation itself introduces no world request. Its two generated rows—the three top groups and the active three-page secondary group—remain inside the same sticky site header.
+
+The public schemas are intentionally unchanged: Calendar JSON v20, nomenclature schema 12, and world schema 3.
 
 The project has no frontend framework, build system, runtime dependency, database, backend time API, WebSocket, authentication, external font, date library, server-side rendering, service worker, geolocation integration, or external map integration.
 
@@ -276,7 +284,7 @@ The schema contains no language metadata. The raw Outcome thresholds and IDs did
 | Nine page routes | Static HTML described above |
 | `/config/nomenclature.json` | Single read-only nomenclature configuration |
 | `/regions/world.json` | Sole read-only three-region world and route graph |
-| `/health` | `{"ok":true,"version":"v8.24"}` |
+| `/health` | `{"ok":true,"version":"v8.25"}` |
 
 The built-in-module Node server supports GET and HEAD, explicit MIME types, `Cache-Control: no-cache` for HTML/CSS/JavaScript/JSON, deterministic weak ETags, Last-Modified validation, bodyless 304 responses, CSP and related security headers, safe traversal/dotfile rejection, Interlingua response bodies for HTTP errors, canonical HTTPS redirects, and graceful shutdown. Static page additions and removals require no route-specific handlers.
 
@@ -298,6 +306,11 @@ package-lock.json
 server.js
 public/
   app-bootstrap.js
+  live-page-bootstrap.js
+  static-page.js
+  location-page.js
+  config-loader.js
+  version.js
   calendario.html
   calendario-page.js
   destino.html
@@ -305,22 +318,16 @@ public/
   tempore.html
   tempore-page.js
   identitate.html
-  identitate-page.js
   inventario.html
-  inventario-page.js
   subordinatos.html
-  subordinatos-page.js
   locus.html
-  locus-page.js
   rutas.html
-  rutas-page.js
   location-bootstrap.js
   location-renderers.js
   location-state.js
   location.js
   world-loader.js
   explorar.html
-  explorar-page.js
   styles.css
   page-definitions.js
   interface-text.js
@@ -333,6 +340,10 @@ public/
   regions/world.json
   core/{rules,mechanics,formatting}.js
 test/
+  helpers.js
+  architecture.test.js
+  live-state.test.js
+  state-baseline.test.js
   core.test.js
   layout.test.js
   loaders.test.js

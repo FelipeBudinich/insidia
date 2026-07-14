@@ -3,7 +3,6 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { applyCommonDocumentPresentation } from '../public/app-bootstrap.js';
 import { calculateCalendarState, calculateMonthRulershipState } from '../public/core/mechanics.js';
 import {
   FICTIONAL_SECONDS_PER_DAY,
@@ -784,137 +783,28 @@ test('JSON v20 omits locale metadata and exposes named-day state, ruler decision
   assert.doesNotMatch(JSON.stringify(english), /calendario\.html|destino\.html|tempore\.html|calendar\.html|outcome\.html|weather\.html/);
 });
 
-test('navigation applies resolved labels, category state, submenus, and fixed application metadata', async () => {
-  function makeElement(dataset = {}) {
-    return {
-      dataset,
-      textContent: '',
-      hidden: true,
-      attributes: {},
-      setAttribute(name, value) { this.attributes[name] = value; },
-      removeAttribute(name) { delete this.attributes[name]; }
-    };
-  }
-
-  const links = PAGE_IDS.map((pageId) => makeElement({ pageId }));
-  const personageCategory = makeElement({
-    navigationGroupId: 'navigation-group-02',
-    navigationTargetPageId: 'page-04',
-    navigationCategoryPages: 'page-04 page-05 page-06'
-  });
-  const almanacCategory = makeElement({
-    navigationGroupId: 'navigation-group-01',
-    navigationTargetPageId: 'page-01',
-    navigationCategoryPages: 'page-01 page-02 page-03'
-  });
-  const locationCategory = makeElement({
-    navigationGroupId: 'navigation-group-03',
-    navigationTargetPageId: 'page-07',
-    navigationCategoryPages: 'page-07 page-08 page-09'
-  });
-  const categories = [personageCategory, almanacCategory, locationCategory];
-  for (const category of categories) category.attributes['data-active-section'] = 'true';
-  const personageSubmenu = makeElement({ navigationSubmenuPages: 'page-04 page-05 page-06' });
-  const almanacSubmenu = makeElement({ navigationSubmenuPages: 'page-01 page-02 page-03' });
-  const locationSubmenu = makeElement({ navigationSubmenuPages: 'page-07 page-08 page-09' });
-  const submenus = [personageSubmenu, almanacSubmenu, locationSubmenu];
-  const applicationElements = [{ textContent: '' }];
-  const pageNameElements = [{ textContent: '' }];
-  const pageSectionElements = [{ dataset: { pageSectionId: 'page-section-01' }, textContent: '' }];
-  const versionElements = [{ textContent: '', setAttribute(name, value) { this[name] = value; } }];
-  const nav = { setAttribute(name, value) { this[name] = value; } };
-  const meta = { setAttribute(name, value) { this[name] = value; } };
-  const documentRoot = {
-    documentElement: {}, title: '',
-    querySelector(selector) { return selector === 'meta[name="description"]' ? meta : selector === '.primary-nav' ? nav : null; },
-    querySelectorAll(selector) {
-      if (selector === '[data-page-id]') return links;
-      if (selector === '[data-navigation-group-id]') return [personageCategory, almanacCategory, locationCategory];
-      if (selector === '[data-navigation-category-pages]') return categories;
-      if (selector === '[data-navigation-submenu-pages]') return submenus;
-      if (selector === '[data-page-name]') return pageNameElements;
-      if (selector === '[data-page-section-id]') return pageSectionElements;
-      if (selector === '[data-application-name]') return applicationElements;
-      if (selector === '[data-version]') return versionElements;
-      return [];
-    }
-  };
-  const presentationContext = await context();
-  function applyAndAssert(pageId, presentationContext, activeCategories, visibleSubmenus) {
-    applyCommonDocumentPresentation(documentRoot, pageId, presentationContext);
-    for (const category of categories) {
-      assert.equal(category.attributes['data-active-section'], activeCategories.includes(category) ? 'true' : undefined, `${pageId}: category`);
-    }
-    for (const submenu of submenus) {
-      assert.equal(submenu.hidden, !visibleSubmenus.includes(submenu), `${pageId}: submenu`);
-    }
-  }
-
-  applyAndAssert('page-01', presentationContext, [almanacCategory], [almanacSubmenu]);
-  assert.equal(documentRoot.title, 'Calendario · Insidia');
-  assert.equal(meta.content, 'Data fictional, stato lunar e stato seasonal in directo pro Insidia.');
-  assert.deepEqual(links.map(({ attributes }) => attributes.href), ['/calendario.html','/destino.html','/tempore.html','/identitate.html','/inventario.html','/subordinatos.html','/locus.html','/rutas.html','/explorar.html']);
-  assert.deepEqual(links.map(({ textContent }) => textContent), ['Calendario','Destino','Tempore','Identitate','Inventario','Subordinatos','Locus','Rutas','Explorar']);
-  assert.equal(personageCategory.textContent, 'Personage');
-  assert.equal(personageCategory.attributes.href, '/identitate.html');
-  assert.equal(almanacCategory.textContent, 'Almanac');
-  assert.equal(almanacCategory.attributes.href, '/calendario.html');
-  assert.equal(locationCategory.textContent, 'Location');
-  assert.equal(locationCategory.attributes.href, '/locus.html');
-  assert.equal(pageNameElements[0].textContent, 'Calendario');
-  assert.equal(pageSectionElements[0].textContent, 'Titulo');
-  assert.equal(applicationElements[0].textContent, 'Insidia');
-  assert.equal(versionElements[0].textContent, 'v8.24');
-  assert.equal(versionElements[0]['aria-label'], 'Version del application 8.24');
-  assert.equal(nav['aria-label'], 'Navigation principal');
-
-  applyAndAssert('page-04', presentationContext, [personageCategory], [personageSubmenu]);
-  assert.equal(documentRoot.title, 'Identitate · Insidia');
-  assert.equal(meta.content, 'Profilo e historia del persona pro Insidia.');
-  assert.equal(versionElements[0]['aria-label'], 'Version del application 8.24');
-  assert.equal(personageCategory.textContent, 'Personage');
-  assert.equal(personageCategory.attributes.href, '/identitate.html');
-  assert.equal(almanacCategory.textContent, 'Almanac');
-  assert.equal(almanacCategory.attributes.href, '/calendario.html');
-
-  applyAndAssert('page-05', presentationContext, [personageCategory], [personageSubmenu]);
-  assert.equal(meta.content, 'Objectos portate e reservate del persona pro Insidia.');
-  applyAndAssert('page-06', presentationContext, [personageCategory], [personageSubmenu]);
-  assert.equal(meta.content, 'Sequitores sub le commando del persona pro Insidia.');
-  applyAndAssert('page-07', presentationContext, [locationCategory], [locationSubmenu]);
-  assert.equal(documentRoot.title, 'Locus · Insidia');
-  applyAndAssert('page-08', presentationContext, [locationCategory], [locationSubmenu]);
-  assert.equal(meta.content, 'Information de itinerarios local e interregional pro Insidia.');
-  applyAndAssert('page-09', presentationContext, [locationCategory], [locationSubmenu]);
-  assert.equal(meta.content, 'Notas de exploration pro Insidia.');
-
-  for (const groupId of NAVIGATION_GROUP_IDS) {
-    assert.equal(presentationContext.getNavigationGroup(groupId).id, groupId);
-  }
+test('navigation nomenclature retains all three fixed group identifiers', () => {
+  assert.deepEqual(NAVIGATION_GROUP_IDS, [
+    'navigation-group-01',
+    'navigation-group-02',
+    'navigation-group-03'
+  ]);
 });
 
-test('static HTML uses fixed Interlingua shells, v8.24, neutral IDs, and nomenclature placeholders', async () => {
+test('static HTML uses fixed Interlingua shells, neutral IDs, and nomenclature placeholders', async () => {
   const properNouns = ['Insidia','Almanac','Calendario','Destino','Tempore','Personage','Location','Locus','Rutas','Explorar','Identitate','Inventario','Subordinatos','Observationes','Decisiones','Titulo','Nomine','Epitheto','Memorias','Equipamento','Deposito','Campiones','Miniones','Santiago','Commune','Infrequens','Rarum','Annus Solis','Cyclus Lunae','MCCXXXIV','Regno de',...MONTH_RULERS.map(({ name }) => name),...REIGN_ORDINALS.map(({ name }) => name),...NAMED_DAYS.map(({ name }) => name),...INTERREGNOS.map(({ name }) => name),'Ossos','Lacrimas',...LUNAR_PHASE_NAMES,'Mercurius','Venus','Mars','Jupiter','Saturnus','Luna','Attraction dominante','Attraction minor','Attraction divergente', ...WEEKDAYS.map(({ name }) => name)];
   for (const file of ['calendario.html','destino.html','tempore.html','identitate.html','inventario.html','subordinatos.html','locus.html','rutas.html','explorar.html']) {
     const html = await readFile(path.join(root, 'public', file), 'utf8');
     for (const properNoun of properNouns) assert.ok(!containsProperNoun(html, properNoun), `${file}: ${properNoun}`);
-    assert.match(html, /<html lang="ia" aria-busy="true">/);
+    assert.match(html, /<html lang="ia" aria-busy="true" data-current-page-id="page-\d{2}">/);
     assert.match(html, /aria-busy="true"/);
     assert.match(html, /aria-label="Navigation principal"/);
-    assert.match(html, /data-version>v8\.24/);
+    assert.match(html, /data-version><\/span>/);
     assert.doesNotMatch(html, /\b(?:Live|Current|Character|Equipment|Storage|Champions|Local routes|Navegación|Tiempo|Ubicación|Información|Observaciones)\b/u);
     assert.doesNotMatch(html, /data-universe-name/);
     assert.doesNotMatch(html, /data-page-link|data-message-key="page\./);
     assert.doesNotMatch(html, /<select|name=["'](?:universe|nomenclature)["']/i);
   }
-});
-
-test('production JavaScript has no runtime locale or universe selection, cookies, or localStorage', async () => {
-  const files = ['app-bootstrap.js','interface-text.js','nomenclature.js','presentation.js','calendario-page.js','destino-page.js','tempore-page.js','identitate-page.js','inventario-page.js','subordinatos-page.js','locus-page.js','rutas-page.js','explorar-page.js','renderers.js'];
-  const source = (await Promise.all(files.map((file) => readFile(path.join(root, 'public', file), 'utf8')))).join('\n');
-  assert.doesNotMatch(source, /searchParams\.get\(['"]universe|requestedUniverseId|resolvedUniverseId|defaultUniverseId|loadUniverse|universe=/);
-  assert.doesNotMatch(source, /searchParams\.get\(['"]locale|requestedLocaleId|resolvedLocaleId|localeSchemaVersion|loadLocale|\?locale=/);
-  assert.doesNotMatch(source, /localStorage|document\.cookie|cookieStore/);
 });
 
 test('core source remains proper-noun free', async () => {

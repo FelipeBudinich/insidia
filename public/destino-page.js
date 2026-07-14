@@ -1,4 +1,6 @@
-import { bootstrapPage } from './app-bootstrap.js';
+import { calculateDestinoState } from './core/mechanics.js';
+import { DESTINO_BOUNDARY_MILLISECONDS } from './core/rules.js';
+import { bootstrapLivePage } from './live-page-bootstrap.js';
 import { createCelestialOrbitsRenderer, createOrbitalPullsRenderer, createOutcomeRenderer, createTideProgressRenderer, createTideRenderer } from './renderers.js';
 
 function createDestinoPageRenderer(root, context) {
@@ -10,4 +12,9 @@ function createDestinoPageRenderer(root, context) {
   return (state) => { renderOutcome(state.outcome); renderTide(state); renderPulls(state); renderOrbits(state); renderProgress(state); };
 }
 
-bootstrapPage('page-02', createDestinoPageRenderer);
+bootstrapLivePage({
+  pageId: 'page-02',
+  calculateState: calculateDestinoState,
+  createRenderer: createDestinoPageRenderer,
+  boundaryMilliseconds: DESTINO_BOUNDARY_MILLISECONDS
+});

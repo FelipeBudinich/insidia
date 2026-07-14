@@ -1,9 +1,9 @@
 import { bootstrapConfiguredStaticPage } from './app-bootstrap.js';
-import { createLocationContext } from './location.js';
 import { renderLocationPage } from './location-renderers.js';
+import { createLocationContext } from './location.js';
 import { loadWorld } from './world-loader.js';
 
-const LOCATION_PAGE_IDS = new Set(['page-07', 'page-08']);
+const LOCATION_PAGE_IDS = Object.freeze(['page-07', 'page-08']);
 
 async function loadLocationContext({ fetchFn, baseUrl }) {
   const worldResult = await loadWorld({ fetchFn, baseUrl });
@@ -11,15 +11,13 @@ async function loadLocationContext({ fetchFn, baseUrl }) {
 }
 
 export function bootstrapStaticPage(pageId, options = {}) {
-  if (!LOCATION_PAGE_IDS.has(pageId)) {
+  if (!LOCATION_PAGE_IDS.includes(pageId)) {
     throw new Error(`Unsupported location page ID: ${pageId}`);
   }
   return bootstrapConfiguredStaticPage(
     pageId,
     loadLocationContext,
-    (documentRoot, presentationContext, locationContext) => {
-      renderLocationPage(pageId, documentRoot, presentationContext, locationContext);
-    },
+    renderLocationPage.bind(null, pageId),
     options
   );
 }

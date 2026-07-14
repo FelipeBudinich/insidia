@@ -1,9 +1,6 @@
-import { calculateCalendarState } from './core/mechanics.js';
-import {
-  CALENDAR_EPOCH_UNIX_MS,
-  REAL_MS_PER_FICTIONAL_SECOND,
-  REAL_MS_PER_LUNAR_SECOND
-} from './core/rules.js';
+import { CALENDAR_EPOCH_UNIX_MS } from './core/rules.js';
+
+const SCHEDULING_TOLERANCE_MILLISECONDS = 5;
 
 export function millisecondsUntilNextBoundary(realUnixMilliseconds, unitMilliseconds) {
   if (typeof realUnixMilliseconds !== 'number') {
@@ -23,52 +20,74 @@ export function millisecondsUntilNextBoundary(realUnixMilliseconds, unitMillisec
   return unitMilliseconds - elapsedWithinUnit;
 }
 
-export function captureLiveState() {
-  const realUnixMilliseconds = Date.now();
-  return {
-    calendarValue: calculateCalendarState(realUnixMilliseconds),
-    realUnixMilliseconds
-  };
+function validateBoundaryMilliseconds(boundaryMilliseconds) {
+  if (!Array.isArray(boundaryMilliseconds) || boundaryMilliseconds.length === 0) {
+    throw new TypeError('boundaryMilliseconds must be a non-empty array');
+  }
+  if (!Object.isFrozen(boundaryMilliseconds)) {
+    throw new TypeError('boundaryMilliseconds must be immutable');
+  }
+  boundaryMilliseconds.forEach((value, index) => {
+    if (typeof value !== 'number') {
+      throw new TypeError(`boundaryMilliseconds[${index}] must be a number`);
+    }
+    if (!Number.isFinite(value) || !Number.isInteger(value) || value <= 0) {
+      throw new RangeError(`boundaryMilliseconds[${index}] must be a positive integer`);
+    }
+  });
 }
 
-export function startLiveState(renderSnapshot) {
+export function startLiveState({ calculateState, renderSnapshot, boundaryMilliseconds } = {}) {
+  if (typeof calculateState !== 'function') {
+    throw new TypeError('calculateState must be a function');
+  }
   if (typeof renderSnapshot !== 'function') {
     throw new TypeError('renderSnapshot must be a function');
   }
+  validateBoundaryMilliseconds(boundaryMilliseconds);
 
-  let timeoutId;
+  let timeoutId = null;
+  let stopped = false;
 
-  function update() {
-    window.clearTimeout(timeoutId);
-    const { calendarValue, realUnixMilliseconds } = captureLiveState();
-    renderSnapshot(calendarValue, realUnixMilliseconds);
-
-    const millisecondsUntilCalendarSecond = millisecondsUntilNextBoundary(
-      realUnixMilliseconds,
-      REAL_MS_PER_FICTIONAL_SECOND
-    );
-    const millisecondsUntilLunarSecond = millisecondsUntilNextBoundary(
-      realUnixMilliseconds,
-      REAL_MS_PER_LUNAR_SECOND
-    );
-    const millisecondsUntilNextSecond = Math.min(
-      millisecondsUntilCalendarSecond,
-      millisecondsUntilLunarSecond
-    );
-    timeoutId = window.setTimeout(update, Math.max(1, millisecondsUntilNextSecond + 5));
-  }
-
-  function handleVisibilityChange() {
-    if (document.visibilityState === 'visible') {
-      update();
+  function clearScheduledUpdate() {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+      timeoutId = null;
     }
   }
 
-  document.addEventListener('visibilitychange', handleVisibilityChange);
+  function scheduleNextUpdate(realUnixMilliseconds) {
+    if (stopped || document.visibilityState !== 'visible') return;
+    const delay = Math.min(...boundaryMilliseconds.map(
+      (boundary) => millisecondsUntilNextBoundary(realUnixMilliseconds, boundary)
+    ));
+    timeoutId = window.setTimeout(
+      update,
+      Math.max(1, delay + SCHEDULING_TOLERANCE_MILLISECONDS)
+    );
+  }
+
+  function update() {
+    clearScheduledUpdate();
+    if (stopped) return;
+    const realUnixMilliseconds = Date.now();
+    const state = calculateState(realUnixMilliseconds);
+    renderSnapshot(state, realUnixMilliseconds);
+    scheduleNextUpdate(realUnixMilliseconds);
+  }
+
+  function handleVisibilityChange() {
+    if (document.visibilityState === 'visible') update();
+    else clearScheduledUpdate();
+  }
+
   update();
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 
   return function stopLiveState() {
-    window.clearTimeout(timeoutId);
+    if (stopped) return;
+    stopped = true;
+    clearScheduledUpdate();
     document.removeEventListener('visibilitychange', handleVisibilityChange);
   };
 }

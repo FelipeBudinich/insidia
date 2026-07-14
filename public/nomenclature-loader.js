@@ -11,6 +11,7 @@ import {
   TIDE_RULES,
   WEEKDAY_IDS
 } from './core/rules.js';
+import { loadJsonConfiguration } from './config-loader.js';
 import { NAVIGATION_GROUP_IDS, PAGE_IDS, PAGE_SECTION_IDS } from './page-definitions.js';
 
 export const NOMENCLATURE_PATH = '/config/nomenclature.json';
@@ -18,12 +19,6 @@ export const NOMENCLATURE_PATH = '/config/nomenclature.json';
 const TOP_LEVEL_KEYS = Object.freeze([
   'schemaVersion', 'application', 'pages', 'navigationGroups', 'pageSections', 'outcomeTypes',
   'calendar', 'seasons', 'lunarPhases', 'lunarCycle', 'tides', 'celestialBodies', 'pulls'
-]);
-
-const FORBIDDEN_KEYS = new Set([
-  'durationDays', 'durationHours', 'orbitalPeriod', 'orbitalPeriodDays',
-  'orbitalPeriodLunarDays', 'tieBreakPriorityRank', 'threshold',
-  'maximumPercentage', 'messages', 'templates', 'route'
 ]);
 
 function assertObject(value, label) {
@@ -44,14 +39,6 @@ function assertExactKeys(value, expectedKeys, label) {
 function assertNonEmptyString(value, label) {
   if (typeof value !== 'string' || value.trim() === '') {
     throw new TypeError(`${label} must be a non-empty string`);
-  }
-}
-
-function assertNoForbiddenKeys(value, location = 'nomenclature') {
-  if (!value || typeof value !== 'object') return;
-  for (const [key, nested] of Object.entries(value)) {
-    if (FORBIDDEN_KEYS.has(key)) throw new Error(`${location}.${key} is not nomenclature data`);
-    assertNoForbiddenKeys(nested, `${location}.${key}`);
   }
 }
 
@@ -99,7 +86,6 @@ export function validateNomenclature(nomenclature) {
   validateEntities(nomenclature.tides, TIDE_RULES.map(({ id }) => id), 'nomenclature.tides', ['id', 'name']);
   validateEntities(nomenclature.celestialBodies, CELESTIAL_BODY_RULES.map(({ id }) => id), 'nomenclature.celestialBodies', ['id', 'name', 'symbol']);
   validateEntities(nomenclature.pulls, PULL_RULES.map(({ id }) => id), 'nomenclature.pulls', ['id', 'name']);
-  assertNoForbiddenKeys(nomenclature);
   return nomenclature;
 }
 
@@ -109,17 +95,12 @@ export async function loadNomenclature(options = {}) {
   if (unknownOptions.length > 0) throw new Error(`Unsupported nomenclature loader option: ${unknownOptions[0]}`);
   const fetchFn = options.fetchFn ?? window.fetch.bind(window);
   const baseUrl = options.baseUrl ?? window.location.href;
-  const base = new URL(baseUrl);
-  const url = new URL(NOMENCLATURE_PATH, base);
-  if (url.origin !== base.origin) throw new Error('Nomenclature file must be same-origin');
-  const response = await fetchFn(url.href, { cache: 'no-cache' });
-  if (!response?.ok) throw new Error(`Unable to load nomenclature: ${url.pathname}`);
-  let nomenclature;
-  try {
-    nomenclature = await response.json();
-  } catch {
-    throw new Error(`Malformed JSON: ${url.pathname}`);
-  }
+  const nomenclature = await loadJsonConfiguration({
+    path: NOMENCLATURE_PATH,
+    resourceName: 'nomenclature',
+    fetchFn,
+    baseUrl
+  });
   const validated = validateNomenclature(nomenclature);
   return { schemaVersion: validated.schemaVersion, nomenclature: validated };
 }

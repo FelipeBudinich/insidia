@@ -62,6 +62,7 @@ function makeElement(dataset = {}) {
     hidden: false,
     textContent: '',
     setAttribute(name, value) { this.attributes[name] = String(value); },
+    hasAttribute(name) { return Object.hasOwn(this.attributes, name); },
     removeAttribute(name) { delete this.attributes[name]; },
     append(...children) { this.children.push(...children); },
     replaceChildren(...children) { this.children = [...children]; }
@@ -143,12 +144,12 @@ function makeBootstrapDocument(pageId) {
     createElement: () => makeElement(),
     querySelector(selector) {
       if (selector === 'meta[name="description"]') return meta;
-      if (selector === '.primary-nav') return nav;
+      if (selector === '[data-navigation]') return nav;
       return specific.get(selector) ?? null;
     },
     querySelectorAll(selector) { return selectorLists.get(selector) ?? []; }
   };
-  return { documentRoot, specific, links };
+  return { documentRoot, specific, navigation: nav };
 }
 
 function rendererRoot(selectors) {
@@ -410,7 +411,7 @@ test('world loader uses one fixed no-cache same-origin request', async () => {
     assert.equal(WORLD_PATH, '/regions/world.json');
     assert.deepEqual(requests, [{
       url: 'https://app.test/regions/world.json',
-      options: { cache: 'no-cache' }
+      options: { cache: 'no-cache', redirect: 'error' }
     }]);
     assert.equal(result.schemaVersion, 3);
     assert.equal(result.world.regions.sheol.regionName, 'Sheol');
@@ -633,9 +634,10 @@ test('Locus and Rutas start nomenclature and world requests concurrently without
   ]) {
     const requests = [];
     const pending = new Map();
-    const { documentRoot, specific, links } = makeBootstrapDocument(pageId);
+    const { documentRoot, specific, navigation } = makeBootstrapDocument(pageId);
     const fetchFn = (url, options) => {
       assert.equal(options.cache, 'no-cache');
+      assert.equal(options.redirect, 'error');
       const requestPath = new URL(url).pathname;
       requests.push(requestPath);
       return new Promise((resolve) => pending.set(requestPath, resolve));
@@ -657,7 +659,8 @@ test('Locus and Rutas start nomenclature and world requests concurrently without
     assert.equal(context.currentLocationId, INITIAL_LOCATION_STATE.locationId);
     assert.equal(documentRoot.documentElement.attributes['aria-busy'], 'false');
     assert.equal(documentRoot.documentElement.lang, 'ia');
-    assert.equal(links.every((link) => !link.attributes.href.includes('?')), true);
+    assert.equal(navigation.children[0].children.every((link) => !link.href.includes('?')), true);
+    assert.equal(navigation.children[1].children.every((link) => !link.href.includes('?')), true);
     if (pageId === 'page-07') {
       assert.equal(specific.get('[data-region-name]').textContent, 'Sheol');
     } else {
@@ -679,6 +682,7 @@ test('ordinary static pages load only nomenclature even when a locale query is p
     locationLike: { href: 'https://app.test/explorar.html?locale=en' },
     fetchFn: (url, options) => {
       assert.equal(options.cache, 'no-cache');
+      assert.equal(options.redirect, 'error');
       const requestPath = new URL(url).pathname;
       requests.push(requestPath);
       return new Promise((resolve) => pending.set(requestPath, resolve));
@@ -723,7 +727,7 @@ test('Locus renders initial Sheol data with deterministic Interlingua meters and
     '[data-location-description]', '[data-location-elevation]'
   ];
   const rootElement = rendererRoot(selectors);
-  renderLocus(rootElement, await presentationContext(), locationContext);
+  renderLocus(rootElement, locationContext);
   const visible = Object.fromEntries(
     [...rootElement.elements].map(([selector, element]) => [selector, element.textContent])
   );
@@ -817,7 +821,7 @@ test('location production has one world source and remains read-only and free of
   assert.deepEqual(regionFiles, ['world.json']);
   const locationFiles = [
     'location-bootstrap.js', 'location-renderers.js', 'location-state.js',
-    'location.js', 'world-loader.js', 'locus-page.js', 'rutas-page.js',
+    'location.js', 'world-loader.js', 'location-page.js',
     'locus.html', 'rutas.html'
   ];
   const locationSource = (await Promise.all(locationFiles.map((file) => (

@@ -1,17 +1,48 @@
-import { getPageDefinition } from './page-definitions.js';
+import { getPageDefinition, NAVIGATION_GROUPS } from './page-definitions.js';
 import { INTERFACE_LANGUAGE_TAG, INTERFACE_MESSAGES } from './interface-text.js';
 import { loadNomenclature } from './nomenclature-loader.js';
 import { createPresentationContext } from './nomenclature.js';
-import { startLiveState } from './live-state.js';
+import { APPLICATION_VERSION } from './version.js';
 
-export const APPLICATION_VERSION = '8.24';
+export { APPLICATION_VERSION };
 const EPOCH_TEXT = '1970-01-01 00:00:00 UTC';
 
-function parsePageIdList(value) {
-  return String(value ?? '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+export function renderNavigation(documentRoot, pageId, context) {
+  getPageDefinition(pageId);
+  const activeGroup = NAVIGATION_GROUPS.find(({ pageIds }) => pageIds.includes(pageId));
+  if (!activeGroup) throw new Error(`Page is not assigned to a navigation group: ${pageId}`);
+  const navigation = documentRoot.querySelector('[data-navigation]');
+  if (!navigation) throw new Error('Missing navigation placeholder');
+  navigation.setAttribute('aria-label', context.message('nav.aria'));
+  navigation.replaceChildren();
+
+  const categories = documentRoot.createElement('div');
+  categories.className = 'primary-nav-categories';
+  for (const group of NAVIGATION_GROUPS) {
+    const link = documentRoot.createElement('a');
+    link.id = group.categoryElementId;
+    link.className = 'navigation-category-link';
+    link.dataset.navigationGroupId = group.id;
+    link.href = getPageDefinition(group.targetPageId).route;
+    link.textContent = context.getNavigationGroup(group.id).name;
+    if (group === activeGroup) link.setAttribute('data-active-section', 'true');
+    categories.append(link);
+  }
+  navigation.append(categories);
+
+  const secondary = documentRoot.createElement('div');
+  secondary.className = 'secondary-nav';
+  secondary.setAttribute('role', 'group');
+  secondary.setAttribute('aria-labelledby', activeGroup.categoryElementId);
+  for (const targetPageId of activeGroup.pageIds) {
+    const link = documentRoot.createElement('a');
+    link.dataset.pageId = targetPageId;
+    link.href = getPageDefinition(targetPageId).route;
+    link.textContent = context.getPage(targetPageId).name;
+    if (targetPageId === pageId) link.setAttribute('aria-current', 'page');
+    secondary.append(link);
+  }
+  navigation.append(secondary);
 }
 
 export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
@@ -29,31 +60,7 @@ export function applyCommonDocumentPresentation(documentRoot, pageId, context) {
       applicationName: context.applicationDisplayName
     }));
   }
-  const nav = documentRoot.querySelector('.primary-nav');
-  nav.setAttribute('aria-label', context.message('nav.aria'));
-  for (const link of documentRoot.querySelectorAll('[data-page-id]')) {
-    const targetPageId = link.dataset.pageId;
-    const targetPage = context.getPage(targetPageId);
-    const targetDefinition = getPageDefinition(targetPageId);
-    link.textContent = targetPage.name;
-    link.setAttribute('href', targetDefinition.route);
-  }
-  for (const link of documentRoot.querySelectorAll('[data-navigation-group-id]')) {
-    const navigationGroup = context.getNavigationGroup(link.dataset.navigationGroupId);
-    const targetDefinition = getPageDefinition(link.dataset.navigationTargetPageId);
-    link.textContent = navigationGroup.name;
-    link.setAttribute('href', targetDefinition.route);
-  }
-  for (const element of documentRoot.querySelectorAll('[data-navigation-category-pages]')) {
-    if (parsePageIdList(element.dataset.navigationCategoryPages).includes(pageId)) {
-      element.setAttribute('data-active-section', 'true');
-    } else {
-      element.removeAttribute('data-active-section');
-    }
-  }
-  for (const element of documentRoot.querySelectorAll('[data-navigation-submenu-pages]')) {
-    element.hidden = !parsePageIdList(element.dataset.navigationSubmenuPages).includes(pageId);
-  }
+  renderNavigation(documentRoot, pageId, context);
   for (const element of documentRoot.querySelectorAll('[data-page-name]')) {
     element.textContent = page.name;
   }
@@ -96,7 +103,7 @@ function renderConfigurationError(documentRoot) {
   documentRoot.body.append(main);
 }
 
-async function bootstrapDocument(pageId, options, complete, loadConfiguredContext) {
+export async function bootstrapDocument(pageId, options, complete, loadConfiguredContext) {
   const documentRoot = options.documentRoot ?? document;
   const locationLike = options.locationLike ?? window.location;
   const fetchFn = options.fetchFn ?? window.fetch.bind(window);
@@ -126,13 +133,6 @@ async function bootstrapDocument(pageId, options, complete, loadConfiguredContex
     console.error('Application configuration failed.', error);
     return null;
   }
-}
-
-export function bootstrapPage(pageId, createRenderer, options = {}) {
-  return bootstrapDocument(pageId, options, (context, documentRoot) => {
-    const renderer = createRenderer(documentRoot, context);
-    return startLiveState(renderer);
-  });
 }
 
 export function bootstrapStaticPage(pageId, options = {}) {

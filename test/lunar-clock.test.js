@@ -8,8 +8,7 @@ import {
 } from '../public/core/mechanics.js';
 import { formatClock } from '../public/core/formatting.js';
 import {
-  millisecondsUntilNextBoundary,
-  startLiveState
+  millisecondsUntilNextBoundary
 } from '../public/live-state.js';
 import * as rules from '../public/core/rules.js';
 
@@ -300,43 +299,5 @@ test('boundary helper is epoch-relative and returns a full unit on a boundary', 
   }
   for (const invalid of [0, -1, 1.5, NaN, Infinity]) {
     assert.throws(() => millisecondsUntilNextBoundary(0, invalid), RangeError);
-  }
-});
-
-test('live scheduler chooses the earlier calendar or lunar second boundary', () => {
-  const originalNow = Date.now;
-  const originalWindow = globalThis.window;
-  const originalDocument = globalThis.document;
-  const scheduled = [];
-  let now = 0;
-  const listeners = new Map();
-  try {
-    Date.now = () => now;
-    globalThis.window = {
-      clearTimeout() {},
-      setTimeout(callback, delay) {
-        scheduled.push({ callback, delay });
-        return scheduled.length;
-      }
-    };
-    globalThis.document = {
-      visibilityState: 'visible',
-      addEventListener(type, callback) { listeners.set(type, callback); },
-      removeEventListener(type) { listeners.delete(type); }
-    };
-    const stop = startLiveState(() => {});
-    assert.equal(scheduled.at(-1).delay, 997 + 5);
-    now = 998;
-    scheduled.at(-1).callback();
-    assert.equal(scheduled.at(-1).delay, (1009 - 998) + 5);
-    assert.equal(listeners.has('visibilitychange'), true);
-    stop();
-    assert.equal(listeners.has('visibilitychange'), false);
-  } finally {
-    Date.now = originalNow;
-    if (originalWindow === undefined) delete globalThis.window;
-    else globalThis.window = originalWindow;
-    if (originalDocument === undefined) delete globalThis.document;
-    else globalThis.document = originalDocument;
   }
 });
