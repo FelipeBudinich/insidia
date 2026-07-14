@@ -9,7 +9,6 @@ import {
   REAL_MS_PER_FICTIONAL_SECOND,
   SEASON_LENGTH_DAYS
 } from '../public/core/rules.js';
-import { validateLocale } from '../public/locale-loader.js';
 import { validateNomenclature } from '../public/nomenclature-loader.js';
 import { createPresentationContext } from '../public/nomenclature.js';
 import { createDisplayData } from '../public/presentation.js';
@@ -30,22 +29,12 @@ const PAGE_SHELLS = Object.freeze([
 const PAGE_ROUTES = Object.freeze(PAGE_SHELLS.map(([, , , route]) => route));
 
 async function productionContext() {
-  const [nomenclatureSource, localeSource] = await Promise.all([
-    readPublic('config/nomenclature.json'),
-    readPublic('locales/en.json')
-  ]);
+  const nomenclatureSource = await readPublic('config/nomenclature.json');
   const nomenclature = validateNomenclature(JSON.parse(nomenclatureSource));
-  const locale = validateLocale(JSON.parse(localeSource));
   return createPresentationContext({
     nomenclatureResult: {
       schemaVersion: nomenclature.schemaVersion,
       nomenclature
-    },
-    localeResult: {
-      requestedLocaleId: 'en',
-      resolvedLocaleId: 'en',
-      schemaVersion: locale.schemaVersion,
-      locale
     }
   });
 }
@@ -59,15 +48,15 @@ async function listSourceFiles(directory) {
   return nested.flat();
 }
 
-test('package and visible application versions are v8.23', async () => {
+test('package and visible application versions are v8.24', async () => {
   const [packageJson, packageLock, bootstrap] = await Promise.all([
     readFile(path.join(root, 'package.json'), 'utf8'),
     readFile(path.join(root, 'package-lock.json'), 'utf8'),
     readPublic('app-bootstrap.js')
   ]);
-  assert.equal(JSON.parse(packageJson).version, '8.23.0');
-  assert.equal(JSON.parse(packageLock).version, '8.23.0');
-  assert.match(bootstrap, /const APPLICATION_VERSION = '8\.23'/);
+  assert.equal(JSON.parse(packageJson).version, '8.24.0');
+  assert.equal(JSON.parse(packageLock).version, '8.24.0');
+  assert.match(bootstrap, /APPLICATION_VERSION = '8\.24'/);
 });
 
 test('Calendario preserves the v8.1 time, title, JSON, and copy removals', async () => {
@@ -179,7 +168,7 @@ test('Destino uses the current tide progress contract and composes its dedicated
   assert.doesNotMatch(renderers, /createHourProgressRenderer/);
 });
 
-test('Tempore preserves its header removal and begins visibly with Time', async () => {
+test('Tempore preserves its header removal and begins with its time section', async () => {
   const [html, script] = await Promise.all([readPublic('tempore.html'), readPublic('tempore-page.js')]);
   assert.doesNotMatch(html, /class="page-header"|class="page-kicker"/);
   assert.match(html, /<h1 id="page-heading" class="visually-hidden" data-page-name><\/h1>/);
@@ -204,14 +193,14 @@ test('Tempore preserves its header removal and begins visibly with Time', async 
   assert.match(weatherRenderer, /state\.progress\[row\.key\]\.fraction/);
 });
 
-test('each configured page has one localized v8.23 footer version', async () => {
+test('each configured page has one fixed v8.24 footer version', async () => {
   for (const [file] of PAGE_SHELLS) {
     const html = await readPublic(file);
     assert.equal((html.match(/data-version/g) ?? []).length, 1, file);
     const footer = html.slice(html.indexOf('<footer>'), html.indexOf('</footer>') + '</footer>'.length);
     assert.match(footer, /data-application-name/);
     assert.match(footer, /data-epoch/);
-    assert.match(footer, /class="version footer-version" data-version>v8\.23/);
+    assert.match(footer, /class="version footer-version" data-version>v8\.24/);
     assert.equal((footer.match(/aria-hidden="true"/g) ?? []).length, 2);
     assert.equal(html.indexOf('data-version'), html.indexOf('data-version', html.indexOf('<footer>')));
   }
@@ -225,6 +214,9 @@ test('nine pages use neutral IDs, fixed routes, one active link, and matching mo
     assert.match(html, new RegExp(`data-page-id="${activeId}"[^>]*aria-current="page"`));
     for (const route of PAGE_ROUTES) assert.ok(html.includes(`href="${route}"`), `${file}: ${route}`);
     assert.match(html, new RegExp(`src="/${module}"`));
+    assert.match(html, /<html lang="ia" aria-busy="true">/);
+    assert.match(html, /<nav class="primary-nav" aria-label="Navigation principal">/);
+    assert.doesNotMatch(html, /\b(?:Live|Current|Character|Equipment|Storage|Champions|Navegación|Tiempo|Ubicación|Información|Observaciones)\b/u);
     assert.doesNotMatch(html, /data-page-link/);
   }
 });
@@ -401,10 +393,11 @@ test('removed layout and JSON selectors no longer remain in shared CSS', async (
   ]) assert.ok(css.includes(preserved), preserved);
 });
 
-test('JSON serialization is schema v19 with calendar time intact', async () => {
+test('JSON serialization is schema v20 without locale metadata and with calendar time intact', async () => {
   const [presentation, mechanics] = await Promise.all([readPublic('presentation.js'), readPublic('core/mechanics.js')]);
   assert.match(presentation, /export function createCalendarJson/);
-  assert.match(presentation, /calendarVersion: 'v19'/);
+  assert.match(presentation, /calendarVersion: 'v20'/);
+  assert.doesNotMatch(presentation, /\blocale\s*:/);
   assert.match(presentation, /time: formatClock\(state\.calendar\.time\)/);
   assert.match(mechanics, /time: \{ hour, minute, second \}/);
 });
@@ -427,7 +420,7 @@ test('repository prose contains only the approved period terminology', async () 
 test('Interregno proper names are sourced only from nomenclature', async () => {
   for (const file of [
     'presentation.js', 'calendario-page.js', 'calendario.html',
-    'locales/en.json', 'locales/es.json', 'core/rules.js', 'core/mechanics.js'
+    'interface-text.js', 'core/rules.js', 'core/mechanics.js'
   ]) {
     assert.doesNotMatch(await readPublic(file), /Interregno/, file);
   }

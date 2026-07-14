@@ -4,13 +4,8 @@ function requireElement(documentRoot, selector) {
   return element;
 }
 
-function formatUnit(value, languageTag, unit) {
-  return new Intl.NumberFormat(languageTag, {
-    style: 'unit',
-    unit,
-    unitDisplay: 'long',
-    maximumFractionDigits: 2
-  }).format(value);
+export function formatMeters(value) {
+  return `${value} ${value === 1 ? 'metro' : 'metros'}`;
 }
 
 function clearElement(element) {
@@ -39,11 +34,7 @@ export function renderLocus(documentRoot, presentationContext, locationContext) 
   requireElement(documentRoot, '[data-region-description]').textContent = locationContext.currentRegionDescription;
   requireElement(documentRoot, '[data-location-name]').textContent = location.name;
   requireElement(documentRoot, '[data-location-description]').textContent = location.description;
-  requireElement(documentRoot, '[data-location-elevation]').textContent = formatUnit(
-    location.elevationMeters,
-    presentationContext.languageTag,
-    'meter'
-  );
+  requireElement(documentRoot, '[data-location-elevation]').textContent = formatMeters(location.elevationMeters);
 }
 
 function renderLocalRoutes(documentRoot, presentationContext, locationContext) {
@@ -81,7 +72,7 @@ function renderLocalRoutes(documentRoot, presentationContext, locationContext) {
       card,
       'route-metadata',
       presentationContext.message('label.elevationChange'),
-      formatUnit(route.elevationChangeMeters, presentationContext.languageTag, 'meter')
+      formatMeters(route.elevationChangeMeters)
     );
     routeList.append(card);
   }

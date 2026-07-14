@@ -184,16 +184,10 @@ function copyRawState(state) {
 
 export function createCalendarJson(state, realUnixMilliseconds, context) {
   return {
-    calendarVersion: 'v19',
+    calendarVersion: 'v20',
     nomenclature: {
       schemaVersion: context.nomenclatureSchemaVersion,
       applicationDisplayName: context.applicationDisplayName
-    },
-    locale: {
-      requestedId: context.requestedLocaleId,
-      resolvedId: context.resolvedLocaleId,
-      languageTag: context.languageTag,
-      schemaVersion: context.localeSchemaVersion
     },
     source: { unixMilliseconds: realUnixMilliseconds, isoUtc: new Date(realUnixMilliseconds).toISOString() },
     state: copyRawState(state),

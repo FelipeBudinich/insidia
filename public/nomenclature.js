@@ -1,4 +1,9 @@
 import { formatTemplate } from './templates.js';
+import {
+  INTERFACE_LANGUAGE_TAG,
+  INTERFACE_MESSAGES,
+  INTERFACE_TEMPLATES
+} from './interface-text.js';
 
 function deepFreeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -16,9 +21,8 @@ function requireMapped(map, id, category) {
   return value;
 }
 
-export function createPresentationContext({ nomenclatureResult, localeResult }) {
+export function createPresentationContext({ nomenclatureResult }) {
   const nomenclature = nomenclatureResult.nomenclature;
-  const locale = localeResult.locale;
   const maps = {
     pages: mapItems(nomenclature.pages),
     navigationGroups: mapItems(nomenclature.navigationGroups),
@@ -36,15 +40,12 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
     outcomeTypes: mapItems(nomenclature.outcomeTypes)
   };
   const context = {
-    requestedLocaleId: localeResult.requestedLocaleId,
-    resolvedLocaleId: localeResult.resolvedLocaleId,
     applicationDisplayName: nomenclature.application.displayName,
     calendarYearName: nomenclature.calendar.yearName,
     monthReignName: nomenclature.calendar.monthReign.name,
     lunarCycleName: nomenclature.lunarCycle.name,
     nomenclatureSchemaVersion: nomenclatureResult.schemaVersion,
-    localeSchemaVersion: localeResult.schemaVersion,
-    languageTag: locale.languageTag,
+    languageTag: INTERFACE_LANGUAGE_TAG,
     getPage: (id) => requireMapped(maps.pages, id, 'page'),
     getNavigationGroup: (id) => requireMapped(maps.navigationGroups, id, 'navigation group'),
     getPageSection: (id) => requireMapped(maps.pageSections, id, 'page section'),
@@ -60,13 +61,13 @@ export function createPresentationContext({ nomenclatureResult, localeResult }) 
     getPull: (id) => requireMapped(maps.pulls, id, 'pull'),
     getOutcomeType: (id) => requireMapped(maps.outcomeTypes, id, 'outcome type'),
     message(key) {
-      const value = locale.messages[key];
-      if (value === undefined) throw new Error(`Missing locale message: ${key}`);
+      const value = INTERFACE_MESSAGES[key];
+      if (value === undefined) throw new Error(`Missing interface message: ${key}`);
       return value;
     },
     format(key, values) {
-      const template = locale.templates[key];
-      if (template === undefined) throw new Error(`Missing locale template: ${key}`);
+      const template = INTERFACE_TEMPLATES[key];
+      if (template === undefined) throw new Error(`Missing interface template: ${key}`);
       return formatTemplate(template, values);
     }
   };

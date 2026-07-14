@@ -1,6 +1,6 @@
 # Insidia
 
-Insidia v8.23 is a browser-calculated fictional calendar and world-state interface. It has three live pages, four generic static pages, and two read-only location pages backed by one three-region world configuration. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time or location calculations.
+Insidia v8.24 is a browser-calculated fictional calendar and world-state interface with fixed Interlingua generic text. It has three live pages, four generic static pages, and two read-only location pages backed by one three-region world configuration. The Node.js backend only redirects `/`, serves static files, and exposes `/health`; it performs no fictional-time or location calculations.
 
 ## Run locally
 
@@ -16,7 +16,7 @@ Open [http://localhost:3000](http://localhost:3000). Set `PORT` to override port
 
 ## Pages and navigation
 
-The page registry contains exactly nine stable IDs, fixed routes, and nomenclature-owned names. Every page uses the same sticky navigation structure and preserves only the resolved `locale` query value in its links.
+The page registry contains exactly nine stable IDs, fixed routes, and nomenclature-owned names. Every page uses the same sticky navigation structure, and every generated link is a clean fixed route without presentation query parameters.
 
 The top category row is always Personage, Almanac, Location, in that order. Each top item is a navigation group rather than a page: Personage is `navigation-group-02` and opens Identitate; Almanac is `navigation-group-01` and opens Calendario; Location is `navigation-group-03` and opens Locus.
 
@@ -68,7 +68,7 @@ Mappa, Pensamentos, Commandamento, Investigationes, and Ordines were removed. Ob
 
 Location pages do not use browser geolocation, request location permission, display coordinates, or load a graphical map, iframe, route provider, external map provider, or map tiles.
 
-The four generic static pages use `bootstrapStaticPage()`. Locus and Rutas use the shared configured-static bootstrap so locale, nomenclature, and world configuration begin loading concurrently. All six share titles, descriptions, navigation, footer presentation, accessibility state, and configuration-error handling with the live pages, but do not start the live calendar scheduler or create a recurring timer.
+The four generic static pages use `bootstrapStaticPage()`. Locus and Rutas use the shared configured-static bootstrap so nomenclature and world configuration begin loading concurrently. All six share titles, descriptions, navigation, footer presentation, accessibility state, and configuration-error handling with the live pages, but do not start the live calendar scheduler or create a recurring timer.
 
 ## World and location graphs
 
@@ -148,27 +148,17 @@ Sheol and Observatorio use coordinate-authoritative authored mappings. They are 
 
 Validation remains generic. It requires exact shapes, lowercase kebab-case IDs, unique region display names, exact canonical directions, finite coordinates and elevations, positive safe-integer `travelTime` values, non-negative finite local elevation changes, valid endpoint references, no self-routes or reverse duplicates, a connected local graph within every region, and one connected global region graph. Location IDs remain scoped to their region. The loader accepts only `fetchFn` and `baseUrl`, always requests fixed same-origin `/regions/world.json` with `no-cache`, and rejects non-HTTP bases, cross-origin redirects, missing or malformed JSON, and unsupported source overrides.
 
-The immutable initial state is `{ regionId: "sheol", locationId: "bucca-de-sheol" }`. Locus displays Sheol, Le Bucca de Sheol, its existing world-of-the-living entrance description, and elevation 1 meter. Bucca is not present in Sheol's `entryExitPoints`; it is a normal local location and is not a gateway to another configured region. The world of the living has no region, route, or special movement mechanic.
+The immutable initial state is `{ regionId: "sheol", locationId: "bucca-de-sheol" }`. Locus displays Sheol, Le Bucca de Sheol, its existing world-of-the-living entrance description, and elevation `1 metro`. Bucca is not present in Sheol's `entryExitPoints`; it is a normal local location and is not a gateway to another configured region. The world of the living has no region, route, or special movement mechanic.
 
-Rutas initially lists the three local routes connected to Bucca, in configured order: Le Via del Sibylla, Le Via del Desiro, and Le Passage Submergite. Each card uses the unified `travelTime` property and localized Travel time / Tiempo de viaje label with fictional-minute units. The inter-regional section still shows Le Via del Obolo Nigre even though Bucca is not its gateway: its Sheol exit is Le Campo del Ultime Pensamentos (N), and its Mercato entry is Le Porta del Mercatores (S). Le Via del Signos Celestial resolves from Le Porta del Mercatores (N) to Le Turre del Polo (S), but is not displayed from Sheol. There remains no direct Sheol–Observatorio route.
+Rutas initially lists the three local routes connected to Bucca, in configured order: Le Via del Sibylla, Le Via del Desiro, and Le Passage Submergite. Each card uses the unified `travelTime` property and fixed Interlingua `Duration del viage` label with `minutas fictional` units. Elevations use deterministic application-owned `metro`/`metros` wording rather than runtime unit localization. The inter-regional section still shows Le Via del Obolo Nigre even though Bucca is not its gateway: its Sheol exit is Le Campo del Ultime Pensamentos (N), and its Mercato entry is Le Porta del Mercatores (S). Le Via del Signos Celestial resolves from Le Porta del Mercatores (N) to Le Turre del Polo (S), but is not displayed from Sheol. There remains no direct Sheol–Observatorio route.
 
 Latitude and longitude remain available in configuration and the immutable browser runtime context but are intentionally not rendered. Both graphs are read-only. There are no travel controls, movement APIs, arrival times, countdowns, persistence, discovery state, route availability, route planning, shortest-path calculations, graphical maps, or inferred gateways.
 
-## Locale selection
+## Fixed interface language
 
-Locale is the only presentation option accepted through the query string:
+All generic user-facing text is fixed Interlingua with language tag `ia`. `public/interface-text.js` exports immutable messages and named templates for navigation accessibility, section and progress labels, page descriptions, configuration errors, renderer prose, and units. There is no runtime language selection, registry, fallback, schema, fetch, browser-language detection, cookie, storage value, or request header. Query strings do not affect interface language or generated navigation links.
 
-```text
-/calendario.html?locale=en
-/destino.html?locale=es
-/identitate.html?locale=es
-/locus.html?locale=en
-/explorar.html?locale=es
-```
-
-English is the default. English and Spanish paths are allowlisted in `public/locale-loader.js`. Unknown IDs resolve safely to English; a known malformed locale stops bootstrap visibly. Query values never become file paths. There is no runtime universe selector, alternate world configuration, cookie, local-storage setting, header, route, or configurable frontend path for changing in-game nomenclature.
-
-Locale schema 13 contains exactly `schemaVersion`, `id`, `languageTag`, `messages`, and `templates`. Locale files own generic language such as Current Location / Ubicación actual, Local routes / Rutas locales, Inter-regional routes / Rutas interregionales, destination, entry/exit-point, and travel-time labels, localized page descriptions, and surrounding prose. They do not own page names, navigation-group names, page-section names, region/location/route names or descriptions, Outcome-type names, direction IDs, or other fixed in-universe terms.
+Generic interface wording remains separate from configured in-universe terminology. Application, navigation-group, page, page-section, calendar, season, tide, celestial-body, Outcome-type, region, location, and route names/descriptions continue to come only from `public/config/nomenclature.json` or `public/regions/world.json`.
 
 ## Fixed nomenclature
 
@@ -195,7 +185,7 @@ The active configured terms include:
 - Orbital Pulls: Attraction dominante, Attraction minor, Attraction divergente
 - Celestial bodies: ☿ Mercurius, ♀ Venus, ♂ Mars, ♃ Jupiter, ♄ Saturnus, ☾ Luna
 
-These terms are fixed in-universe nomenclature and remain identical in English and Spanish. Validation requires every canonical ID in canonical order and exact entity shapes. It rejects missing, duplicate, unknown, reordered, empty, non-string, extra, localized, and mechanical fields. Page routes and navigation hierarchy remain fixed application infrastructure; visible page and navigation-group names come from nomenclature and never generate routes.
+These terms are configurable in-universe nomenclature and are independent of the fixed Interlingua interface. Validation requires every canonical ID in canonical order and exact entity shapes. It rejects missing, duplicate, unknown, reordered, empty, non-string, extra, interface-copy, and mechanical fields. Page routes and navigation hierarchy remain fixed application infrastructure; visible page and navigation-group names come from nomenclature and never generate routes.
 
 The presentation context clones and deeply freezes nomenclature entities and exposes stable getters for navigation groups, pages, page sections, outcome types, calendar entities, seasons, lunar phases, tides, celestial bodies, and Pulls. The separate location context clones and deeply freezes the world, state, regions, entry/exit maps, locations, local routes, inter-region directions, and resolved endpoint objects; its private Maps and Sets are not exposed. The API requires explicit region IDs, validates canonical directions, rejects cloned or foreign route objects, resolves local destinations and physical inter-region endpoints symmetrically, and never mutates the authored JSON.
 
@@ -225,13 +215,12 @@ Outcome names are schema-12 nomenclature, not translations:
 - `outcome-tier-02` → Infrequens
 - `outcome-tier-03` → Rarum
 
-Destino renders `Destino Commune`, `Destino Infrequens`, or `Destino Rarum` with one space and no colon. Both locales expose the same display entity. Raw mechanical Outcome state remains neutral and unchanged.
+Destino renders `Destino Commune`, `Destino Infrequens`, or `Destino Rarum` with one space and no colon. Raw mechanical Outcome state remains neutral and unchanged.
 
-Attempts text keeps localized surrounding prose while resolving Rarum through nomenclature:
+Attempts text uses fixed Interlingua surrounding prose while resolving Rarum through nomenclature:
 
 ```text
-Attempts until Rarum: 100
-Intentos hasta Rarum: 100
+Tentativas usque a Rarum: 100
 ```
 
 ## Mechanics
@@ -257,48 +246,45 @@ All mechanics are deterministic browser-side calculations. Calendar and lunar el
 
 1. `public/core/` contains immutable numeric rules and presentation-neutral mechanics.
 2. `public/config/nomenclature.json` contains the single schema-12 in-game vocabulary, excluding locations.
-3. `public/locales/` contains schema-13 generic UI messages and templates.
-4. `public/presentation-context-loader.js` starts exactly one locale request and one nomenclature request concurrently.
-5. `public/nomenclature.js` builds the frozen presentation context.
-6. `public/world-loader.js` validates the fixed same-origin `/regions/world.json` local and global graphs.
-7. `public/location.js` builds the frozen read-only location context.
-8. `public/app-bootstrap.js` applies common document presentation, then either starts live state or completes a generic/configured static page.
+3. `public/interface-text.js` contains immutable fixed Interlingua generic messages and templates.
+4. `public/nomenclature.js` combines the fixed interface with deeply frozen configured nomenclature.
+5. `public/world-loader.js` validates the fixed same-origin `/regions/world.json` local and global graphs.
+6. `public/location.js` builds the frozen read-only location context.
+7. `public/app-bootstrap.js` loads nomenclature, applies common document presentation, then either starts live state or completes a generic/configured static page.
 
-Every page starts locale and nomenclature requests concurrently. Locus and Rutas additionally start the world request at the same time, with no request waterfall; all other pages make exactly the original two configuration requests. Navigation itself introduces no world request. Its two visible rows—the top groups and one secondary group—remain inside the same sticky site header.
+Normal pages make exactly one configuration request: `/config/nomenclature.json`. Locus and Rutas make exactly two concurrent configuration requests: `/config/nomenclature.json` and `/regions/world.json`, with no request waterfall. Navigation itself introduces no world request. Its two visible rows—the top groups and one secondary group—remain inside the same sticky site header.
 
 The project has no frontend framework, build system, runtime dependency, database, backend time API, WebSocket, authentication, external font, date library, server-side rendering, service worker, geolocation integration, or external map integration.
 
-## Calendar JSON v19
+## Calendar JSON v20
 
 `createCalendarJson()` remains a public serialization API even though no page exposes a visible JSON or clipboard control. Its top-level fields are:
 
-- `calendarVersion: "v19"`
+- `calendarVersion: "v20"`
 - `nomenclature`: schema version 12 and application display name
-- `locale`: requested/resolved IDs, language tag, and schema version 13
 - `source`: Unix milliseconds and ISO UTC
 - `state`: raw canonical IDs and numeric mechanics without configured names or symbols
-- `display`: configured entities, localized prose, and formatted values
+- `display`: configured entities, fixed Interlingua prose, and formatted values
 
-English and Spanish JSON snapshots have identical raw state and identical `display.outcomeType` entities. The raw Outcome thresholds and IDs did not change. Lunar display retains `cycleName`, `formattedCycle`, and the separate bullet-form `formattedSummary`.
+The schema contains no language metadata. The raw Outcome thresholds and IDs did not change. Lunar display retains `cycleName`, `formattedCycle`, and the separate bullet-form `formattedSummary`.
 
 ## Server
 
 | Route | Purpose |
 |---|---|
-| `/` | Redirect to `/calendario.html`, preserving only a non-empty locale |
+| `/` | Redirect to `/calendario.html`; query parameters are ignored |
 | Nine page routes | Static HTML described above |
 | `/config/nomenclature.json` | Single read-only nomenclature configuration |
 | `/regions/world.json` | Sole read-only three-region world and route graph |
-| `/locales/en.json`, `/locales/es.json` | Allowlisted locale files |
-| `/health` | `{"ok":true,"version":"v8.23"}` |
+| `/health` | `{"ok":true,"version":"v8.24"}` |
 
-The built-in-module Node server supports GET and HEAD, explicit MIME types, `Cache-Control: no-cache` for HTML/CSS/JavaScript/JSON, deterministic weak ETags, Last-Modified validation, bodyless 304 responses, CSP and related security headers, safe traversal/dotfile rejection, generic errors, canonical HTTPS redirects, and graceful shutdown. Static page additions and removals require no route-specific handlers.
+The built-in-module Node server supports GET and HEAD, explicit MIME types, `Cache-Control: no-cache` for HTML/CSS/JavaScript/JSON, deterministic weak ETags, Last-Modified validation, bodyless 304 responses, CSP and related security headers, safe traversal/dotfile rejection, Interlingua response bodies for HTTP errors, canonical HTTPS redirects, and graceful shutdown. Static page additions and removals require no route-specific handlers.
 
 ## Editing configuration
 
-When editing nomenclature, retain schema 12, all canonical IDs, canonical ordering, and exact entity shapes. Keep translations, UI templates, location data, routes, submenu membership, durations, orbital periods, thresholds, priorities, and other mechanics out of the file.
+When editing nomenclature, retain schema 12, all canonical IDs, canonical ordering, and exact entity shapes. Keep generic interface text, UI templates, location data, routes, submenu membership, durations, orbital periods, thresholds, priorities, and other mechanics out of the file.
 
-When adding a locale, translate every required message and template, retain the exact schema-13 top-level shape, add its fixed same-origin path to `LOCALE_FILES`, and do not duplicate nomenclature- or world-owned names.
+When editing generic interface wording, update `public/interface-text.js`, preserve every named placeholder, and keep all nomenclature- and world-owned names out of it.
 
 When editing `world.json`, retain the exact schema above and validate both levels independently: every region must keep all eight entry/exit directions and a connected location graph, while the inter-region graph must keep all regions connected. Direction values resolve through the owning region; do not duplicate endpoint IDs on inter-region routes or encode movement state.
 
@@ -337,16 +323,14 @@ public/
   explorar-page.js
   styles.css
   page-definitions.js
-  presentation-context-loader.js
+  interface-text.js
   nomenclature-loader.js
   nomenclature.js
-  locale-loader.js
   presentation.js
   live-state.js
   renderers.js
   config/nomenclature.json
   regions/world.json
-  locales/{en,es}.json
   core/{rules,mechanics,formatting}.js
 test/
   core.test.js
